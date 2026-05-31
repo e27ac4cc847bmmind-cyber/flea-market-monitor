@@ -18,6 +18,32 @@
   ],
   "history": [
     {
+      "id": "mercari_m50002076193",
+      "name": "大日本古銭　旧十圓金貨　明治十三年　近代貨幣　アンティークコレクション遺品整理品",
+      "price": 3069,
+      "platform": "メルカリ",
+      "url": "https://jp.mercari.com/item/m50002076193",
+      "image_url": "https://static.mercdn.net/thumb/item/webp/m50002076193_1.jpg?1780192168",
+      "keyword": "純銀 コイン",
+      "ai_comment": "[gpt-oss-120b] 金貨で銀製品でなく、銀スポット価格比較の対象外です。",
+      "ai_ok": false,
+      "market_info": "銀スポット: ¥385/g（1oz=¥11987）",
+      "detected_at": "2026-05-31T19:51:19.015753"
+    },
+    {
+      "id": "paypay_z607654904",
+      "name": "プルーフ貨幣セット出し純銀メダル 約7g",
+      "price": 3500,
+      "platform": "PayPayフリマ",
+      "url": "https://paypayfleamarket.yahoo.co.jp/item/z607654904",
+      "image_url": "https://auc-pctr.c.yimg.jp/i/auctions.c.yimg.jp/images.auctions.yahoo.co.jp/image/dr000/auc0205/users/8b454e79957c25bd0572a31e172e81c7a77d3898/i-img773x781-1778455940792yepaq4.jpg?pri=s&w=298&h=298&ccw=298&cch=298&fill=1&fw=298&fh=298&up=0&nf_src=sy&nf_path=images/auc/pc/top/image/1.0.3/na_170x170.png&nf_st=200",
+      "keyword": "純銀 コイン",
+      "ai_comment": "[gpt-oss-120b] 価格が銀のスポット価格より高く、重量も1オンス未満です。",
+      "ai_ok": false,
+      "market_info": "銀スポット: ¥385/g（1oz=¥11987）",
+      "detected_at": "2026-05-31T19:51:28.636583"
+    },
+    {
       "id": "mercari_m26209507898",
       "name": "1999年 オールドコイン 貨幣セット銀メダル年銘板 純銀製 直径25mm 7g",
       "price": 4000,
