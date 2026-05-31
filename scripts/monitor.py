@@ -410,9 +410,9 @@ REASON: 50文字以内の理由"""
 
     # 無料モデルのフォールバック順（安定しているものを優先）
     MODELS = [
+        "deepseek/deepseek-v4-flash:free",
         "openai/gpt-oss-120b:free",
         "openai/gpt-oss-20b:free",
-        "deepseek/deepseek-v4-flash:free",
         "meta-llama/llama-3.3-70b-instruct:free",
     ]
 
