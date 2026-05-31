@@ -66,10 +66,16 @@ def save_json(path: Path, data: dict):
 
 
 def parse_price(text: str) -> Optional[int]:
-    text = text.replace("¥", "").replace(",", "").replace(" ", "").replace("円", "")
-    m = re.search(r"\d{3,}", text)
+    # ¥マーク直後の数字を優先（「1988年 ¥34,800」の誤認識を防ぐ）
+    m = re.search(r"[¥￥]\s*([\d,]+)", text)
     if m:
-        p = int(m.group())
+        p = int(m.group(1).replace(",", ""))
+        if 100 <= p <= 10_000_000:
+            return p
+    # フォールバック: 5桁以上の数字
+    m2 = re.search(r"\d{5,}", text.replace(",", ""))
+    if m2:
+        p = int(m2.group())
         if 100 <= p <= 10_000_000:
             return p
     return None
@@ -191,7 +197,9 @@ def scrape_mercari(keyword: str, max_price: int) -> list[dict]:
 
             # 画像のaltから商品名、srcから画像URLを取得
             img = a.find("img")
-            name = (img.get("alt", "") if img else "") or a.get_text(" ", strip=True)[:80]
+            raw_name = (img.get("alt", "") if img else "") or a.get_text(" ", strip=True)[:80]
+            # メルカリはalt末尾に「のサムネイル」が付くので除去
+            name = re.sub(r"のサムネイル$", "", raw_name).strip()
             image_url = img.get("src", "") if img else ""
             if not name:
                 continue
@@ -400,10 +408,10 @@ REASON: 50文字以内の理由"""
 JUDGMENT: YES または NO
 REASON: 50文字以内の理由"""
 
-    # 無料モデルのフォールバック順
+    # 無料モデルのフォールバック順（安定しているものを優先）
     MODELS = [
-        "openai/gpt-oss-20b:free",
         "openai/gpt-oss-120b:free",
+        "openai/gpt-oss-20b:free",
         "deepseek/deepseek-v4-flash:free",
         "meta-llama/llama-3.3-70b-instruct:free",
     ]
