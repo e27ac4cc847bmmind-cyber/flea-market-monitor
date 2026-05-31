@@ -1,0 +1,43 @@
+name: フリマ監視
+
+on:
+  schedule:
+    - cron: "* * * * *"  # 1分ごと
+  workflow_dispatch:      # 手動実行
+
+jobs:
+  monitor:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: リポジトリチェックアウト
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Python セットアップ
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
+          cache-dependency-path: scripts/requirements.txt
+
+      - name: 依存パッケージインストール
+        run: pip install -r scripts/requirements.txt
+
+      - name: 監視スクリプト実行
+        env:
+          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+          DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
+          PYTHONUTF8: "1"
+        run: python scripts/monitor.py
+
+      - name: seen_ids.json と config.json をコミット
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add seen_ids.json config.json
+          git diff --staged --quiet || git commit -m "chore: 監視データ更新 $(date +'%Y-%m-%d %H:%M:%S')"
+          git push
