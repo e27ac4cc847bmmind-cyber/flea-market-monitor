@@ -18,6 +18,32 @@
   ],
   "history": [
     {
+      "id": "mercari_m94654509001",
+      "name": "映画ゴースト メモリアルコイン",
+      "price": 4000,
+      "platform": "メルカリ",
+      "url": "https://jp.mercari.com/item/m94654509001",
+      "image_url": "https://static.mercdn.net/thumb/item/webp/m94654509001_1.jpg?1780261982",
+      "keyword": "純銀 コイン",
+      "ai_comment": "[gpt-oss-120b] コインは小型で重量は数グラムしかなく、1オンス以上の純銀製品ではありません。",
+      "ai_ok": false,
+      "market_info": "銀スポット: ¥388/g（1oz=¥12065）",
+      "detected_at": "2026-05-31T23:42:33.082723"
+    },
+    {
+      "id": "mercari_m34100037822",
+      "name": "（104）古銭　珍しいコイン 直径22.1ミリ",
+      "price": 300,
+      "platform": "メルカリ",
+      "url": "https://jp.mercari.com/item/m34100037822",
+      "image_url": "https://static.mercdn.net/thumb/item/webp/m34100037822_1.jpg?1779001044",
+      "keyword": "純銀 コイン",
+      "ai_comment": "[gpt-oss-120b] 小径22.1mmの古銭は重量が数グラム程度で、1オンス以上の純銀ではないため。",
+      "ai_ok": false,
+      "market_info": "銀スポット: ¥388/g（1oz=¥12065）",
+      "detected_at": "2026-05-31T23:42:39.587182"
+    },
+    {
       "id": "mercari_m50002076193",
       "name": "大日本古銭　旧十圓金貨　明治十三年　近代貨幣　アンティークコレクション遺品整理品",
       "price": 3069,
