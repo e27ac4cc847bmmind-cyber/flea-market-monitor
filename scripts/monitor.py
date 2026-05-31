@@ -189,9 +189,10 @@ def scrape_mercari(keyword: str, max_price: int) -> list[dict]:
                 continue
             item_id = item_id.group()
 
-            # 画像のaltから商品名を取得
+            # 画像のaltから商品名、srcから画像URLを取得
             img = a.find("img")
             name = (img.get("alt", "") if img else "") or a.get_text(" ", strip=True)[:80]
+            image_url = img.get("src", "") if img else ""
             if not name:
                 continue
 
@@ -208,6 +209,7 @@ def scrape_mercari(keyword: str, max_price: int) -> list[dict]:
                 "price": price,
                 "platform": "メルカリ",
                 "url": full_url,
+                "image_url": image_url,
             })
 
         # 重複除去
@@ -246,9 +248,11 @@ def scrape_rakuma(keyword: str, max_price: int) -> list[dict]:
             href = a.get("href", "")
             item_id = href.rstrip("/").split("/")[-1]
 
-            # 商品名: img alt
+            # 商品名: img alt、画像URL: data-original（遅延読み込み）
             img = box.find("img")
             name = img.get("alt", "").strip() if img else ""
+            # data-original が本物の画像URL（srcはダミー）
+            image_url = (img.get("data-original", "") or img.get("src", "")) if img else ""
             if not name:
                 name = a.get_text(strip=True)[:80]
             if not name:
@@ -266,6 +270,7 @@ def scrape_rakuma(keyword: str, max_price: int) -> list[dict]:
                 "price": price,
                 "platform": "ラクマ",
                 "url": href,
+                "image_url": image_url,
             })
 
     except Exception as e:
@@ -330,6 +335,7 @@ def scrape_paypay(keyword: str, max_price: int) -> list[dict]:
             if not price or int(price) > max_price:
                 continue
             item_url = it.get("url") or f"https://paypayfleamarket.yahoo.co.jp/item/{item_id}"
+            image_url = it.get("thumbnailImageUrl", "")
 
             items.append({
                 "id": f"paypay_{item_id}",
@@ -337,6 +343,7 @@ def scrape_paypay(keyword: str, max_price: int) -> list[dict]:
                 "price": int(price),
                 "platform": "PayPayフリマ",
                 "url": item_url,
+                "image_url": image_url,
             })
 
     except Exception as e:
@@ -393,32 +400,47 @@ REASON: 50文字以内の理由"""
 JUDGMENT: YES または NO
 REASON: 50文字以内の理由"""
 
-    try:
-        r = requests.post(
-            "https://openrouter.ai/api/v1/chat/completions",
-            headers={
-                "Authorization": f"Bearer {OPENROUTER_API_KEY}",
-                "Content-Type": "application/json",
-                "HTTP-Referer": "https://github.com/flea-market-monitor",
-            },
-            json={
-                "model": "deepseek/deepseek-chat-v3-5k:free",
-                "messages": [{"role": "user", "content": prompt}],
-                "max_tokens": 200,
-            },
-            timeout=30,
-        )
-        if r.status_code == 200:
-            content = r.json()["choices"][0]["message"]["content"]
-            j = re.search(r"JUDGMENT:\s*(YES|NO)", content, re.IGNORECASE)
-            reason_m = re.search(r"REASON:\s*(.+)", content)
-            ok = j and j.group(1).upper() == "YES"
-            reason = reason_m.group(1).strip() if reason_m else content[:100]
-            return {"ok": bool(ok), "reason": reason}
-    except Exception as e:
-        print(f"AI判定エラー: {e}")
+    # 無料モデルのフォールバック順
+    MODELS = [
+        "openai/gpt-oss-20b:free",
+        "openai/gpt-oss-120b:free",
+        "deepseek/deepseek-v4-flash:free",
+        "meta-llama/llama-3.3-70b-instruct:free",
+    ]
 
-    return {"ok": True, "reason": "AI判定失敗 — デフォルト通過"}
+    for model in MODELS:
+        try:
+            time.sleep(1.5)  # レート制限対策
+            r = requests.post(
+                "https://openrouter.ai/api/v1/chat/completions",
+                headers={
+                    "Authorization": f"Bearer {OPENROUTER_API_KEY}",
+                    "Content-Type": "application/json",
+                    "HTTP-Referer": "https://github.com/flea-market-monitor",
+                },
+                json={
+                    "model": model,
+                    "messages": [{"role": "user", "content": prompt}],
+                    "max_tokens": 200,
+                },
+                timeout=30,
+            )
+            if r.status_code == 429:
+                print(f"    AI({model}): レート制限 → 次のモデルへ")
+                time.sleep(5)
+                continue
+            if r.status_code == 200:
+                content = r.json()["choices"][0]["message"]["content"]
+                j = re.search(r"JUDGMENT:\s*(YES|NO)", content, re.IGNORECASE)
+                reason_m = re.search(r"REASON:\s*(.+)", content)
+                ok = j and j.group(1).upper() == "YES"
+                reason = reason_m.group(1).strip() if reason_m else content[:100]
+                return {"ok": bool(ok), "reason": f"[{model.split('/')[1].split(':')[0]}] {reason}"}
+            print(f"    AI({model}): エラー {r.status_code}")
+        except Exception as e:
+            print(f"    AI({model}): 例外 {e}")
+
+    return {"ok": False, "reason": "AI判定失敗 — 通知スキップ"}
 
 
 # ==================== Discord通知 ====================
@@ -441,6 +463,11 @@ def send_discord_notification(item: dict, keyword_config: dict, ai_result: dict,
         "timestamp": datetime.utcnow().isoformat() + "Z",
         "footer": {"text": "フリマ監視システム"},
     }
+
+    # 商品画像をサムネイルとして追加
+    image_url = item.get("image_url", "")
+    if image_url and image_url.startswith("http"):
+        embed["thumbnail"] = {"url": image_url}
 
     try:
         r = requests.post(DISCORD_WEBHOOK_URL, json={"embeds": [embed]}, timeout=10)
@@ -521,6 +548,7 @@ def process_keyword(keyword_config: dict, seen_ids: dict) -> list[dict]:
             "price": item["price"],
             "platform": item["platform"],
             "url": item["url"],
+            "image_url": item.get("image_url", ""),
             "keyword": keyword,
             "ai_comment": ai_result["reason"],
             "ai_ok": ai_result["ok"],
