@@ -410,7 +410,7 @@ REASON: 50文字以内の理由"""
 
     # 無料モデルのフォールバック順（安定しているものを優先）
     MODELS = [
-        "deepseek/deepseek-v4-flash:free",
+        "deepseek/deepseek-v4-flash",  # 有料版（約$0.10/1Mトークン・実質月数円）
         "openai/gpt-oss-120b:free",
         "openai/gpt-oss-20b:free",
         "meta-llama/llama-3.3-70b-instruct:free",
