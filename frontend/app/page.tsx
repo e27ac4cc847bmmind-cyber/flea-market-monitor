@@ -29,6 +29,9 @@ interface KeywordConfig {
   platforms: Platform;
   precious_metal_mode: boolean;
   metal_type: "silver" | "gold";
+  exclude_words: string[];
+  require_words: string[];
+  note: string;
   enabled: boolean;
 }
 
@@ -195,6 +198,61 @@ function KeywordCard({
               })}
             </div>
           </div>
+
+          <div>
+            <label className="text-sm font-medium text-gray-700">
+              除外ワード（これを含む出品は通知しない・カンマ区切り）
+            </label>
+            <input
+              type="text"
+              value={kw.exclude_words.join(", ")}
+              onChange={(e) =>
+                onChange({
+                  ...kw,
+                  exclude_words: e.target.value
+                    .split(",")
+                    .map((s) => s.trim())
+                    .filter(Boolean),
+                })
+              }
+              placeholder="例: レプリカ, メッキ, ジャンク, ネックレス"
+              className="mt-1 w-full border rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
+            />
+          </div>
+
+          <div>
+            <label className="text-sm font-medium text-gray-700">
+              必須ワード（すべて含む出品のみ通知・カンマ区切り）
+            </label>
+            <input
+              type="text"
+              value={kw.require_words.join(", ")}
+              onChange={(e) =>
+                onChange({
+                  ...kw,
+                  require_words: e.target.value
+                    .split(",")
+                    .map((s) => s.trim())
+                    .filter(Boolean),
+                })
+              }
+              placeholder="例: 純銀, 1オンス"
+              className="mt-1 w-full border rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
+            />
+          </div>
+
+          <div>
+            <label className="text-sm font-medium text-gray-700">
+              希望条件メモ（AIがこの条件に合うか判定します）
+            </label>
+            <textarea
+              value={kw.note}
+              onChange={(e) => onChange({ ...kw, note: e.target.value })}
+              placeholder="例: 投資用の純銀地金。アクセサリーや装飾品は不要。本物で状態の良いものだけ。"
+              rows={2}
+              className="mt-1 w-full border rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 resize-y"
+            />
+          </div>
         </div>
       )}
     </div>
@@ -250,6 +308,13 @@ export default function Home() {
       setLoading(true);
       setError("");
       const data = await fetchConfig();
+      // 旧データに新フィールドが無い場合の補完
+      data.keywords = (data.keywords ?? []).map((k) => ({
+        ...k,
+        exclude_words: k.exclude_words ?? [],
+        require_words: k.require_words ?? [],
+        note: k.note ?? "",
+      }));
       setConfig(data);
     } catch (e) {
       setError("設定の読み込みに失敗しました。");
@@ -288,6 +353,9 @@ export default function Home() {
       platforms: { mercari: true, rakuma: true, paypay: true },
       precious_metal_mode: false,
       metal_type: "silver",
+      exclude_words: [],
+      require_words: [],
+      note: "",
       enabled: true,
     };
     setConfig({ ...config, keywords: [...config.keywords, newKw] });

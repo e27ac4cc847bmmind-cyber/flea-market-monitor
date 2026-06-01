@@ -369,6 +369,7 @@ def ai_judge(item: dict, keyword_config: dict, market_price: Optional[float], sp
     precious_metal_mode = keyword_config.get("precious_metal_mode", False)
     metal_type = keyword_config.get("metal_type", "silver")
     discount_threshold = keyword_config.get("discount_threshold", 20)
+    note = keyword_config.get("note", "").strip()
 
     lines = [
         f"商品名: {item['name']}",
@@ -381,28 +382,31 @@ def ai_judge(item: dict, keyword_config: dict, market_price: Optional[float], sp
     elif market_price:
         lines.append(f"メルカリ相場: {market_price:.0f}円")
 
+    note_line = f"\n4. ユーザーの希望条件に合致するか: {note}" if note else ""
+
     if precious_metal_mode:
         metal_name = "銀" if metal_type == "silver" else "金"
         prompt = f"""以下のフリマ出品商品を評価してください。
 
 {chr(10).join(lines)}
 
-判定基準：
-1. 本物の{metal_name}製品か（偽物・メッキ品ではないか）
+判定基準（すべて満たす場合のみYES）：
+1. 本物の{metal_name}製品か（偽物・メッキ品・レプリカ・複製ではないか）
 2. 1オンス（31.1g）以上の純{metal_name}か
-3. スポット価格比{discount_threshold}%以上お得か
+3. スポット価格比{discount_threshold}%以上お得か{note_line}
 
 必ず以下の形式で回答：
 JUDGMENT: YES または NO
 REASON: 50文字以内の理由"""
     else:
+        note_basis = f"\n3. ユーザーの希望条件に合致するか: {note}" if note else ""
         prompt = f"""以下のフリマ出品商品を評価してください。
 
 {chr(10).join(lines)}
 
-判定基準：
-1. 正規品・本物か（偽物・詐欺的出品ではないか）
-2. 相場より{discount_threshold}%以上お得か
+判定基準（すべて満たす場合のみYES）：
+1. 正規品・本物で実用に足る状態か（偽物・詐欺的出品・パーツ取り・ジャンク・破損品ではないか）
+2. 相場より{discount_threshold}%以上お得か{note_basis}
 
 必ず以下の形式で回答：
 JUDGMENT: YES または NO
@@ -536,6 +540,23 @@ def process_keyword(keyword_config: dict, seen_ids: dict) -> list[dict]:
     keyword_seen = set(seen_ids.get(keyword, []))
     new_items = [it for it in all_items if it["id"] not in keyword_seen]
     print(f"  新着: {len(new_items)}件")
+
+    # 除外ワード / 必須ワードフィルタ（AI判定の前に機械的に弾く＝API節約＆確実）
+    exclude_words = [w.strip().lower() for w in keyword_config.get("exclude_words", []) if w.strip()]
+    require_words = [w.strip().lower() for w in keyword_config.get("require_words", []) if w.strip()]
+
+    def passes_word_filter(it: dict) -> bool:
+        name = it["name"].lower()
+        if exclude_words and any(w in name for w in exclude_words):
+            return False
+        if require_words and not all(w in name for w in require_words):
+            return False
+        return True
+
+    if exclude_words or require_words:
+        before = len(new_items)
+        new_items = [it for it in new_items if passes_word_filter(it)]
+        print(f"  ワードフィルタ通過: {len(new_items)}件 (除外 {before - len(new_items)}件)")
 
     # お得判定
     def is_good_deal(it: dict) -> bool:
