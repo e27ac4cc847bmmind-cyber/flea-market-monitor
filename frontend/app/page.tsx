@@ -12,6 +12,7 @@ import {
   ChevronUp,
   AlertCircle,
   CheckCircle,
+  Sparkles,
 } from "lucide-react";
 
 // ==================== 型定義 ====================
@@ -302,6 +303,8 @@ export default function Home() {
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [activeTab, setActiveTab] = useState<"settings" | "history">("settings");
+  const [nlText, setNlText] = useState("");
+  const [nlLoading, setNlLoading] = useState(false);
 
   const load = useCallback(async () => {
     try {
@@ -359,6 +362,46 @@ export default function Home() {
       enabled: true,
     };
     setConfig({ ...config, keywords: [...config.keywords, newKw] });
+  };
+
+  const addKeywordFromText = async () => {
+    if (!config || !nlText.trim()) return;
+    setNlLoading(true);
+    setError("");
+    setSuccess("");
+    try {
+      const res = await fetch("/api/parse-keyword", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ text: nlText }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.config) {
+        throw new Error(data.error || "変換に失敗しました");
+      }
+      const c = data.config;
+      const newKw: KeywordConfig = {
+        id: Date.now().toString(),
+        keyword: c.keyword,
+        max_price: c.max_price,
+        discount_threshold: c.discount_threshold,
+        platforms: { mercari: true, rakuma: true, paypay: true },
+        precious_metal_mode: c.precious_metal_mode,
+        metal_type: c.metal_type,
+        exclude_words: c.exclude_words,
+        require_words: c.require_words,
+        note: c.note,
+        enabled: true,
+      };
+      setConfig({ ...config, keywords: [...config.keywords, newKw] });
+      setNlText("");
+      setSuccess(`「${c.keyword}」を追加しました。内容を確認して保存してください。`);
+      setTimeout(() => setSuccess(""), 5000);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "変換に失敗しました");
+    } finally {
+      setNlLoading(false);
+    }
   };
 
   const updateKeyword = (id: string, updated: KeywordConfig) => {
@@ -475,6 +518,41 @@ export default function Home() {
       {/* 設定タブ */}
       {activeTab === "settings" && (
         <div className="space-y-3">
+          {/* 言葉で追加 */}
+          <div className="bg-gradient-to-br from-purple-50 to-blue-50 border border-purple-200 rounded-xl p-4">
+            <div className="flex items-center gap-2 mb-2">
+              <Sparkles size={18} className="text-purple-500" />
+              <span className="font-semibold text-gray-800 text-sm">言葉で監視を追加</span>
+            </div>
+            <p className="text-xs text-gray-500 mb-2">
+              探したいものを文章で書くと、AIがキーワード・除外条件・上限価格を自動設定します。
+            </p>
+            <textarea
+              value={nlText}
+              onChange={(e) => setNlText(e.target.value)}
+              placeholder="例: Nintendo Switch 有機ELを2万円以下で。ジャンクや本体なしは除いて、動作品だけ欲しい。"
+              rows={2}
+              className="w-full border rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-400 resize-y"
+            />
+            <button
+              onClick={addKeywordFromText}
+              disabled={nlLoading || !nlText.trim()}
+              className="mt-2 w-full bg-purple-600 hover:bg-purple-700 disabled:bg-purple-300 text-white font-medium py-2 rounded-lg flex items-center justify-center gap-2 transition-colors text-sm"
+            >
+              {nlLoading ? (
+                <>
+                  <RefreshCw size={16} className="animate-spin" />
+                  AIが設定を作成中...
+                </>
+              ) : (
+                <>
+                  <Sparkles size={16} />
+                  この内容で追加
+                </>
+              )}
+            </button>
+          </div>
+
           {config.keywords.length === 0 && (
             <div className="text-center py-10 text-gray-400">
               <p>キーワードが登録されていません</p>
