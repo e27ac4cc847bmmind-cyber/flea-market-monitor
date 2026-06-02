@@ -40,6 +40,32 @@
   ],
   "history": [
     {
+      "id": "mercari_m30111545339",
+      "name": "鳳凰デザインの金色コイン",
+      "price": 1500,
+      "platform": "メルカリ",
+      "url": "https://jp.mercari.com/item/m30111545339",
+      "image_url": "https://static.mercdn.net/thumb/item/webp/m30111545339_1.jpg?1778075957",
+      "keyword": "純銀 コイン",
+      "ai_comment": "[gpt-oss-120b] 銀製品ではなく装飾コインで、重量・純度・投資目的を満たさないため。",
+      "ai_ok": false,
+      "market_info": "銀スポット: ¥386/g（1oz=¥11994）",
+      "detected_at": "2026-06-02T22:13:59.292188"
+    },
+    {
+      "id": "paypay_z620080190",
+      "name": "造幣局貨幣セットの年銘板　銀メダル　シルバー　純銀　銀貨　セット出し　花のまわりみち　2025 蛇　巳年　令和7年　令和七年",
+      "price": 2200,
+      "platform": "PayPayフリマ",
+      "url": "https://paypayfleamarket.yahoo.co.jp/item/z620080190",
+      "image_url": "https://auc-pctr.c.yimg.jp/i/auctions.c.yimg.jp/images.auctions.yahoo.co.jp/image/dr000/auc0206/users/04070c0165f9b854a544c5b91a8a8f743d6d5100/i-img1200x1200-1780406952322sa7x5s.jpg?pri=s&w=298&h=298&ccw=298&cch=298&fill=1&fw=298&fh=298&up=0&nf_src=sy&nf_path=images/auc/pc/top/image/1.0.3/na_170x170.png&nf_st=200",
+      "keyword": "純銀 コイン",
+      "ai_comment": "[deepseek-v4-flash] 年銘板メダルは装飾品で、1オンス未満の可能性が高く、投資用地金に該当しません。",
+      "ai_ok": false,
+      "market_info": "銀スポット: ¥386/g（1oz=¥11994）",
+      "detected_at": "2026-06-02T22:14:01.855691"
+    },
+    {
       "id": "mercari_m26630877799",
       "name": "オーストリア建国1000年記念 純銀999 記念銀貨 ケース付ーJTB",
       "price": 5000,
