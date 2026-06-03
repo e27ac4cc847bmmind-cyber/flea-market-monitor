@@ -40,6 +40,19 @@
   ],
   "history": [
     {
+      "id": "mercari_m81561616732",
+      "name": "【ハーフダラー銀貨】1964年発行 アメリカ ケネディ 50セント 銀90% ②",
+      "price": 4950,
+      "platform": "メルカリ",
+      "url": "https://jp.mercari.com/item/m81561616732",
+      "image_url": "https://static.mercdn.net/thumb/item/webp/m81561616732_1.jpg?1780315839",
+      "keyword": "純銀 コイン",
+      "ai_comment": "[deepseek-v4-flash] このコインは純銀は約0.36ozで1oz未満、投資目的の地金には適さない。",
+      "ai_ok": false,
+      "market_info": "銀スポット: ¥373/g（1oz=¥11591）",
+      "detected_at": "2026-06-03T22:17:20.729979"
+    },
+    {
       "id": "rakuma_a8a3fc21d120f86237b303a99fa06968",
       "name": "#30.0mm迄の硬貨保護カプセル。 非常に便利移動OK 100 個スペーサー付(貨幣)",
       "price": 1980,
