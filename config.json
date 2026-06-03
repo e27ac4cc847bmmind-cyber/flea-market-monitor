@@ -40,6 +40,32 @@
   ],
   "history": [
     {
+      "id": "mercari_m74633658558",
+      "name": "造幣局　純銀ミニメダル　ネズミ　桜の通り抜け 2008年　干支",
+      "price": 2525,
+      "platform": "メルカリ",
+      "url": "https://jp.mercari.com/item/m74633658558",
+      "image_url": "https://static.mercdn.net/thumb/item/webp/m74633658558_1.jpg?1775106771",
+      "keyword": "純銀 コイン",
+      "ai_comment": "[deepseek-v4-flash] 1オンス未満のミニメダルで、投資目的の重量条件を満たさない。",
+      "ai_ok": false,
+      "market_info": "銀スポット: ¥377/g（1oz=¥11730）",
+      "detected_at": "2026-06-03T15:57:51.969920"
+    },
+    {
+      "id": "paypay_z620659630",
+      "name": "純銀製 干支メダル 酉 2005年 コイン コレクション",
+      "price": 2300,
+      "platform": "PayPayフリマ",
+      "url": "https://paypayfleamarket.yahoo.co.jp/item/z620659630",
+      "image_url": "https://auc-pctr.c.yimg.jp/i/auctions.c.yimg.jp/images.auctions.yahoo.co.jp/image/dr000/auc0206/users/967550e290c6c1360a81771d0e814c55eeca006c/i-img1200x1200-1780495059138e4oxfs.jpg?pri=s&w=298&h=298&ccw=298&cch=298&fill=1&fw=298&fh=298&up=0&nf_src=sy&nf_path=images/auc/pc/top/image/1.0.3/na_170x170.png&nf_st=200",
+      "keyword": "純銀 コイン",
+      "ai_comment": "AI判定失敗 — 通知スキップ",
+      "ai_ok": false,
+      "market_info": "銀スポット: ¥377/g（1oz=¥11730）",
+      "detected_at": "2026-06-03T15:58:05.918754"
+    },
+    {
       "id": "mercari_m30111545339",
       "name": "鳳凰デザインの金色コイン",
       "price": 1500,
