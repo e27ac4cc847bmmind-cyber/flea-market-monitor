@@ -40,6 +40,32 @@
   ],
   "history": [
     {
+      "id": "rakuma_a8a3fc21d120f86237b303a99fa06968",
+      "name": "#30.0mm迄の硬貨保護カプセル。 非常に便利移動OK 100 個スペーサー付(貨幣)",
+      "price": 1980,
+      "platform": "ラクマ",
+      "url": "https://item.fril.jp/a8a3fc21d120f86237b303a99fa06968",
+      "image_url": "https://img.fril.jp/img/650332813/m/2105103699.jpg?1737398537",
+      "keyword": "純銀 コイン",
+      "ai_comment": "[deepseek-v4-flash] 商品是硬币保护盒，非银制品，不符合纯银投资需求。",
+      "ai_ok": false,
+      "market_info": "銀スポット: ¥377/g（1oz=¥11719）",
+      "detected_at": "2026-06-03T19:46:32.249661"
+    },
+    {
+      "id": "rakuma_c78a8de3f750d8ecbcef8ec4354aefe9",
+      "name": "花のまわりみち　純銀メダル 約4.3g ねずみ(貨幣)",
+      "price": 3200,
+      "platform": "ラクマ",
+      "url": "https://item.fril.jp/c78a8de3f750d8ecbcef8ec4354aefe9",
+      "image_url": "https://img.fril.jp/img/817687747/m/2808193126.jpg?1771851671",
+      "keyword": "純銀 コイン",
+      "ai_comment": "[deepseek-v4-flash] 約4.3gで1オンス未満、投資目的の地金としては重量不足のため。",
+      "ai_ok": false,
+      "market_info": "銀スポット: ¥377/g（1oz=¥11719）",
+      "detected_at": "2026-06-03T19:46:34.745476"
+    },
+    {
       "id": "mercari_m74633658558",
       "name": "造幣局　純銀ミニメダル　ネズミ　桜の通り抜け 2008年　干支",
       "price": 2525,
