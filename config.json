@@ -40,6 +40,32 @@
   ],
   "history": [
     {
+      "id": "mercari_m74844905564",
+      "name": "大日本古銭　旧二十圓金貨明治十三年　近代貨幣　アンティークコレクション遺品整理品",
+      "price": 4800,
+      "platform": "メルカリ",
+      "url": "https://jp.mercari.com/item/m74844905564",
+      "image_url": "https://static.mercdn.net/thumb/item/webp/m74844905564_1.jpg?1780398508",
+      "keyword": "純銀 コイン",
+      "ai_comment": "[deepseek-v4-flash] 商品は金貨であり、銀製品ではないため条件1を満たさない。",
+      "ai_ok": false,
+      "market_info": "銀スポット: ¥379/g（1oz=¥11790）",
+      "detected_at": "2026-06-04T17:25:11.985880"
+    },
+    {
+      "id": "mercari_m69591355324",
+      "name": "「四神 玄武/朱雀/白虎/青龍　日本神話/エリザベス　コイン シルバー」",
+      "price": 1500,
+      "platform": "メルカリ",
+      "url": "https://jp.mercari.com/item/m69591355324",
+      "image_url": "https://static.mercdn.net/thumb/item/webp/m69591355324_1.jpg?1780582864",
+      "keyword": "純銀 コイン",
+      "ai_comment": "[gpt-oss-120b] 装飾用コインで純銀地金ではなく、投資対象外です。",
+      "ai_ok": false,
+      "market_info": "銀スポット: ¥379/g（1oz=¥11790）",
+      "detected_at": "2026-06-04T17:25:19.662613"
+    },
+    {
       "id": "mercari_m48910909326",
       "name": "ガチャポケマシンミニAG",
       "price": 2200,
