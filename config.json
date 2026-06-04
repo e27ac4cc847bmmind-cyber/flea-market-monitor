@@ -40,6 +40,32 @@
   ],
   "history": [
     {
+      "id": "paypay_z620753112",
+      "name": "スコッツデールミント 「ライオン1グラム」純銀インゴット 1グラム 希少",
+      "price": 1480,
+      "platform": "PayPayフリマ",
+      "url": "https://paypayfleamarket.yahoo.co.jp/item/z620753112",
+      "image_url": "https://auc-pctr.c.yimg.jp/i/auctions.c.yimg.jp/images.auctions.yahoo.co.jp/image/dr000/auc0206/users/d34aa27cfcf92ec271a249e3da28bf56e8161a0f/i-img1038x1165-17805219323971c4l7l.jpg?pri=s&w=298&h=298&ccw=298&cch=298&fill=1&fw=298&fh=298&up=0&nf_src=sy&nf_path=images/auc/pc/top/image/1.0.3/na_170x170.png&nf_st=200",
+      "keyword": "純銀 コイン",
+      "ai_comment": "[deepseek-v4-flash] 1g未満の純銀でオンス基準を満たさず、価格もスポット比で割高なため。",
+      "ai_ok": false,
+      "market_info": "銀スポット: ¥378/g（1oz=¥11753）",
+      "detected_at": "2026-06-04T00:04:29.822356"
+    },
+    {
+      "id": "paypay_z601958790",
+      "name": "マーメイド人魚 HEADSコイン １枚",
+      "price": 950,
+      "platform": "PayPayフリマ",
+      "url": "https://paypayfleamarket.yahoo.co.jp/item/z601958790",
+      "image_url": "https://auc-pctr.c.yimg.jp/i/auctions.c.yimg.jp/images.auctions.yahoo.co.jp/image/dr000/auc0205/users/cfb68182b7f5b5735f15d12b1c98d9f04ffc1c81/i-img1200x1200-1777617176992lh3y4j.jpg?pri=s&w=298&h=298&ccw=298&cch=298&fill=1&fw=298&fh=298&up=0&nf_src=sy&nf_path=images/auc/pc/top/image/1.0.3/na_170x170.png&nf_st=200",
+      "keyword": "純銀 コイン",
+      "ai_comment": "[deepseek-v4-flash] 950円で1oz純銀は不可能。偽物か軽量で投資目的に合わない。",
+      "ai_ok": false,
+      "market_info": "銀スポット: ¥378/g（1oz=¥11753）",
+      "detected_at": "2026-06-04T00:04:41.054958"
+    },
+    {
       "id": "mercari_m81561616732",
       "name": "【ハーフダラー銀貨】1964年発行 アメリカ ケネディ 50セント 銀90% ②",
       "price": 4950,
