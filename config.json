@@ -40,6 +40,45 @@
   ],
   "history": [
     {
+      "id": "rakuma_9580192ced7b19a4f0babbfa225dfd71",
+      "name": "1/10 TROY OUNCE 999 FINE SILVER 銀貨 コイン(その他)",
+      "price": 2500,
+      "platform": "ラクマ",
+      "url": "https://item.fril.jp/9580192ced7b19a4f0babbfa225dfd71",
+      "image_url": "https://img.fril.jp/img/835426486/m/2878388355.jpg?1780664148",
+      "keyword": "純銀 コイン",
+      "ai_comment": "[deepseek-v4-flash] 1/10オンス(約3.1g)で重量不足。価格2500円は銀価格1135円の約2.2倍で割高。",
+      "ai_ok": false,
+      "market_info": "銀スポット: ¥365/g（1oz=¥11353）",
+      "detected_at": "2026-06-05T13:40:08.692169"
+    },
+    {
+      "id": "paypay_z581199028",
+      "name": "6/29迄●大阪造幣局★純銀製★銘板★メダル★2006年★桜の通り抜け★戌★貨幣セット出し★ミント",
+      "price": 2400,
+      "platform": "PayPayフリマ",
+      "url": "https://paypayfleamarket.yahoo.co.jp/item/z581199028",
+      "image_url": "https://auc-pctr.c.yimg.jp/i/auctions.c.yimg.jp/images.auctions.yahoo.co.jp/image/dr000/auc0203/users/2b6d4f40ac59016a6e9d5cc7d1c1d885118a866b/i-img903x904-1774332897265x4fkb3.jpg?pri=s&w=298&h=298&ccw=298&cch=298&fill=1&fw=298&fh=298&up=0&nf_src=sy&nf_path=images/auc/pc/top/image/1.0.3/na_170x170.png&nf_st=200",
+      "keyword": "純銀 コイン",
+      "ai_comment": "[deepseek-v4-flash] 重量不明で1オンス以上の確証なし。価格が安すぎるため軽量品と推測され、投資目的の条件に合わない。",
+      "ai_ok": false,
+      "market_info": "銀スポット: ¥365/g（1oz=¥11353）",
+      "detected_at": "2026-06-05T13:40:22.251006"
+    },
+    {
+      "id": "paypay_z581207072",
+      "name": "6/29迄●大阪造幣局★純銀製★銘板★メダル★2008年★桜の通り抜け★子★貨幣セット出し★ミント",
+      "price": 2400,
+      "platform": "PayPayフリマ",
+      "url": "https://paypayfleamarket.yahoo.co.jp/item/z581207072",
+      "image_url": "https://auc-pctr.c.yimg.jp/i/auctions.c.yimg.jp/images.auctions.yahoo.co.jp/image/dr000/auc0203/users/2b6d4f40ac59016a6e9d5cc7d1c1d885118a866b/i-img903x904-1774332815925suyhwe.jpg?pri=s&w=298&h=298&ccw=298&cch=298&fill=1&fw=298&fh=298&up=0&nf_src=sy&nf_path=images/auc/pc/top/image/1.0.3/na_170x170.png&nf_st=200",
+      "keyword": "純銀 コイン",
+      "ai_comment": "[deepseek-v4-flash] 重量不明で1オンス未満の可能性があり、投資目的に不適切。",
+      "ai_ok": false,
+      "market_info": "銀スポット: ¥365/g（1oz=¥11353）",
+      "detected_at": "2026-06-05T13:40:40.612370"
+    },
+    {
       "id": "mercari_m46282412010",
       "name": "造幣局貨幣セット銀メダル　純銀　桜の通り抜け　2025年 蛇　巳年　令和七年",
       "price": 2600,
