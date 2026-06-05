@@ -40,6 +40,19 @@
   ],
   "history": [
     {
+      "id": "mercari_m46282412010",
+      "name": "造幣局貨幣セット銀メダル　純銀　桜の通り抜け　2025年 蛇　巳年　令和七年",
+      "price": 2600,
+      "platform": "メルカリ",
+      "url": "https://jp.mercari.com/item/m46282412010",
+      "image_url": "https://static.mercdn.net/thumb/item/webp/m46282412010_1.jpg?1780641755",
+      "keyword": "純銀 コイン",
+      "ai_comment": "[gpt-oss-120b] 重量が1オンス未満で、銀スポット比でも20%割安ではなく投資対象には不適です。",
+      "ai_ok": false,
+      "market_info": "銀スポット: ¥374/g（1oz=¥11632）",
+      "detected_at": "2026-06-05T10:38:23.205856"
+    },
+    {
       "id": "mercari_m62960976312",
       "name": "記念コイン",
       "price": 2900,
