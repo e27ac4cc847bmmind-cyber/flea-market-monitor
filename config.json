@@ -40,6 +40,32 @@
   ],
   "history": [
     {
+      "id": "mercari_m93152102003",
+      "name": "大阪造幣局★純銀製★銘板★メダル★2006年★桜の通り抜け★戌★貨幣★ミント",
+      "price": 2500,
+      "platform": "メルカリ",
+      "url": "https://jp.mercari.com/item/m93152102003",
+      "image_url": "https://static.mercdn.net/thumb/item/webp/m93152102003_1.jpg?1780769154",
+      "keyword": "純銀 コイン",
+      "ai_comment": "[deepseek-v4-flash] 純銀メダルだが重量不明で1オンス未満の可能性が高く、投資基準に合わない。",
+      "ai_ok": false,
+      "market_info": "銀スポット: ¥349/g（1oz=¥10866）",
+      "detected_at": "2026-06-06T20:37:09.015285"
+    },
+    {
+      "id": "mercari_m70292814323",
+      "name": "大阪造幣局★純銀製★銘板★メダル★2008年★桜の通り抜け★子★貨幣★ミント",
+      "price": 2500,
+      "platform": "メルカリ",
+      "url": "https://jp.mercari.com/item/m70292814323",
+      "image_url": "https://static.mercdn.net/thumb/item/webp/m70292814323_1.jpg?1780769102",
+      "keyword": "純銀 コイン",
+      "ai_comment": "[gpt-oss-120b] 重量が1オンス未満で、投資目的の純銀地金条件を満たさないため。",
+      "ai_ok": false,
+      "market_info": "銀スポット: ¥349/g（1oz=¥10866）",
+      "detected_at": "2026-06-06T20:37:18.788461"
+    },
+    {
       "id": "mercari_m96839125450",
       "name": "A37 日本古錢 大正三年 一圓銀貨 1円銀貨 コイン",
       "price": 3000,
