@@ -40,6 +40,32 @@
   ],
   "history": [
     {
+      "id": "mercari_m45414641511",
+      "name": "大日本古銭　旧十圓金貨　明治十三年　近代貨幣　アンティークコレクション遺品整理品",
+      "price": 2500,
+      "platform": "メルカリ",
+      "url": "https://jp.mercari.com/item/m45414641511",
+      "image_url": "https://static.mercdn.net/thumb/item/webp/m45414641511_1.jpg?1780696099",
+      "keyword": "純銀 コイン",
+      "ai_comment": "[gpt-oss-120b] 金貨で銀製品でなく、投資目的の純銀地金条件を満たさないため。",
+      "ai_ok": false,
+      "market_info": "銀スポット: ¥349/g（1oz=¥10866）",
+      "detected_at": "2026-06-06T10:21:18.718217"
+    },
+    {
+      "id": "paypay_z622121602",
+      "name": "★平成11年 第10回東京国際コイン・コンヴェンション 貨幣セット(純銀製年銘版入)",
+      "price": 2500,
+      "platform": "PayPayフリマ",
+      "url": "https://paypayfleamarket.yahoo.co.jp/item/z622121602",
+      "image_url": "https://auc-pctr.c.yimg.jp/i/auctions.c.yimg.jp/images.auctions.yahoo.co.jp/image/dr000/auc0206/users/d038c04194749134df703ab6440bfa57a5fa1842/i-img1200x900-1780734757449ghwv3m.jpg?pri=s&w=298&h=298&ccw=298&cch=298&fill=1&fw=298&fh=298&up=0&nf_src=sy&nf_path=images/auc/pc/top/image/1.0.3/na_170x170.png&nf_st=200",
+      "keyword": "純銀 コイン",
+      "ai_comment": "[gpt-oss-120b] 純銀製年銘版は含むが、1オンス未満でコイン・セットのため投資用銀貨条件を満たさない。",
+      "ai_ok": false,
+      "market_info": "銀スポット: ¥349/g（1oz=¥10866）",
+      "detected_at": "2026-06-06T10:21:28.928459"
+    },
+    {
       "id": "rakuma_9580192ced7b19a4f0babbfa225dfd71",
       "name": "1/10 TROY OUNCE 999 FINE SILVER 銀貨 コイン(その他)",
       "price": 2500,
