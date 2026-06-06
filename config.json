@@ -40,6 +40,19 @@
   ],
   "history": [
     {
+      "id": "mercari_m96839125450",
+      "name": "A37 日本古錢 大正三年 一圓銀貨 1円銀貨 コイン",
+      "price": 3000,
+      "platform": "メルカリ",
+      "url": "https://jp.mercari.com/item/m96839125450",
+      "image_url": "https://static.mercdn.net/thumb/item/webp/m96839125450_1.jpg?1775301736",
+      "keyword": "純銀 コイン",
+      "ai_comment": "[deepseek-v4-flash] 古銭は純銀だが約26.96gで1オンス未満、投資目的の地金には不向き。",
+      "ai_ok": false,
+      "market_info": "銀スポット: ¥349/g（1oz=¥10866）",
+      "detected_at": "2026-06-06T16:53:51.980410"
+    },
+    {
       "id": "mercari_m45414641511",
       "name": "大日本古銭　旧十圓金貨　明治十三年　近代貨幣　アンティークコレクション遺品整理品",
       "price": 2500,
