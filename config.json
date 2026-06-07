@@ -40,6 +40,45 @@
   ],
   "history": [
     {
+      "id": "mercari_m76253175693",
+      "name": "【185②】記念メダル オールドコインメダル 2000年",
+      "price": 4000,
+      "platform": "メルカリ",
+      "url": "https://jp.mercari.com/item/m76253175693",
+      "image_url": "https://static.mercdn.net/thumb/item/webp/m76253175693_1.jpg?1780837602",
+      "keyword": "純銀 コイン",
+      "ai_comment": "[deepseek-v4-flash] 素材・重量が不明で純銀か確認できず、投資目的に不適合。",
+      "ai_ok": false,
+      "market_info": "銀スポット: ¥349/g（1oz=¥10865）",
+      "detected_at": "2026-06-07T21:21:05.173210"
+    },
+    {
+      "id": "mercari_m56793402521",
+      "name": "【185①】記念メダル オールドコインメダル 1999年",
+      "price": 4000,
+      "platform": "メルカリ",
+      "url": "https://jp.mercari.com/item/m56793402521",
+      "image_url": "https://static.mercdn.net/thumb/item/webp/m56793402521_1.jpg?1780837593",
+      "keyword": "純銀 コイン",
+      "ai_comment": "[deepseek-v4-flash] 商品名に純銀の記載がなく、メッキや合金の可能性が高く投資目的に不適。",
+      "ai_ok": false,
+      "market_info": "銀スポット: ¥349/g（1oz=¥10865）",
+      "detected_at": "2026-06-07T21:21:07.650668"
+    },
+    {
+      "id": "mercari_m53089048351",
+      "name": "【185③】記念メダル オールドコインメダル 2001年",
+      "price": 4000,
+      "platform": "メルカリ",
+      "url": "https://jp.mercari.com/item/m53089048351",
+      "image_url": "https://static.mercdn.net/thumb/item/webp/m53089048351_1.jpg?1780837609",
+      "keyword": "純銀 コイン",
+      "ai_comment": "[deepseek-v4-flash] タイトルのみでは純銀か不明確で、重量も未記載。投資用には不適。",
+      "ai_ok": false,
+      "market_info": "銀スポット: ¥349/g（1oz=¥10865）",
+      "detected_at": "2026-06-07T21:21:15.697901"
+    },
+    {
       "id": "mercari_m77328599771",
       "name": "超ミニミニ金貨　ゴールド　コイン20枚セット（金属製)",
       "price": 899,
