@@ -40,6 +40,32 @@
   ],
   "history": [
     {
+      "id": "mercari_m45317941751",
+      "name": "造幣局　純銀製年銘板　純銀メダル　約4.3ｇ⑰",
+      "price": 2500,
+      "platform": "メルカリ",
+      "url": "https://jp.mercari.com/item/m45317941751",
+      "image_url": "https://static.mercdn.net/thumb/item/webp/m45317941751_1.jpg?1780941324",
+      "keyword": "純銀 コイン",
+      "ai_comment": "[gpt-oss-120b] 純銀4.3 gで1オンス未満、価格はスポット割より割安でなく投資条件を満たさないため。",
+      "ai_ok": false,
+      "market_info": "銀スポット: ¥351/g（1oz=¥10922）",
+      "detected_at": "2026-06-08T19:54:54.496575"
+    },
+    {
+      "id": "mercari_m25794649622",
+      "name": "造幣局　純銀製年銘板　純銀メダル　約4.3ｇ⑱",
+      "price": 2500,
+      "platform": "メルカリ",
+      "url": "https://jp.mercari.com/item/m25794649622",
+      "image_url": "https://static.mercdn.net/thumb/item/webp/m25794649622_1.jpg?1780942214",
+      "keyword": "純銀 コイン",
+      "ai_comment": "[gpt-oss-120b] 重量が約4.3gで1オンス未満、投資条件を満たさないため。",
+      "ai_ok": false,
+      "market_info": "銀スポット: ¥351/g（1oz=¥10922）",
+      "detected_at": "2026-06-08T19:55:04.574423"
+    },
+    {
       "id": "paypay_z623616872",
       "name": "純銀製 干支メダル 酉年 2005年 記念コイン",
       "price": 2280,
