@@ -40,6 +40,32 @@
   ],
   "history": [
     {
+      "id": "paypay_z623773462",
+      "name": "造幣局貨幣セットの年銘板　銀メダル　シルバー　純銀　銀貨　セット出し　桜の通り抜け　2013年　平成25年",
+      "price": 2200,
+      "platform": "PayPayフリマ",
+      "url": "https://paypayfleamarket.yahoo.co.jp/item/z623773462",
+      "image_url": "https://auc-pctr.c.yimg.jp/i/auctions.c.yimg.jp/images.auctions.yahoo.co.jp/image/dr000/auc0206/users/04070c0165f9b854a544c5b91a8a8f743d6d5100/i-img1200x1200-1780968849230oruyo8.jpg?pri=s&w=298&h=298&ccw=298&cch=298&fill=1&fw=298&fh=298&up=0&nf_src=sy&nf_path=images/auc/pc/top/image/1.0.3/na_170x170.png&nf_st=200",
+      "keyword": "純銀 コイン",
+      "ai_comment": "[gpt-oss-120b] 重量不明で1オンス以上と確認できず、投資対象の純銀地金条件を満たさないため。",
+      "ai_ok": false,
+      "market_info": "銀スポット: ¥349/g（1oz=¥10848）",
+      "detected_at": "2026-06-09T04:34:21.958397"
+    },
+    {
+      "id": "paypay_z623775778",
+      "name": "造幣局貨幣セットの年銘板　銀メダル　シルバー　純銀　銀貨　セット出し　桜の通り抜け　2012年　平成24年　辰年　龍　ドラゴン",
+      "price": 2200,
+      "platform": "PayPayフリマ",
+      "url": "https://paypayfleamarket.yahoo.co.jp/item/z623775778",
+      "image_url": "https://auc-pctr.c.yimg.jp/i/auctions.c.yimg.jp/images.auctions.yahoo.co.jp/image/dr000/auc0206/users/04070c0165f9b854a544c5b91a8a8f743d6d5100/i-img1200x1200-1780969069385q8we61.jpg?pri=s&w=298&h=298&ccw=298&cch=298&fill=1&fw=298&fh=298&up=0&nf_src=sy&nf_path=images/auc/pc/top/image/1.0.3/na_170x170.png&nf_st=200",
+      "keyword": "純銀 コイン",
+      "ai_comment": "[gpt-oss-120b] 銀メダルは1オンス未満で重量が不足し、投資向け条件を満たさないため。",
+      "ai_ok": false,
+      "market_info": "銀スポット: ¥349/g（1oz=¥10848）",
+      "detected_at": "2026-06-09T04:34:32.213892"
+    },
+    {
       "id": "mercari_m81264268983",
       "name": "【硬貨セット】10銭(S20) + 1銭(T8・S14×2・S15)",
       "price": 300,
