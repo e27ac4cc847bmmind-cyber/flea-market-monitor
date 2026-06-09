@@ -40,6 +40,58 @@
   ],
   "history": [
     {
+      "id": "rakuma_8657f672390a6aa6871703313d25353b",
+      "name": "造幣局純銀メダル(金属工芸)",
+      "price": 2100,
+      "platform": "ラクマ",
+      "url": "https://item.fril.jp/8657f672390a6aa6871703313d25353b",
+      "image_url": "https://img.fril.jp/img/836041464/m/2880721768.jpg?1780966372",
+      "keyword": "純銀 コイン",
+      "ai_comment": "[gpt-oss-120b] 重量が不明で1オンス未満の可能性が高く、条件をすべて満たせません。",
+      "ai_ok": false,
+      "market_info": "銀スポット: ¥350/g（1oz=¥10883）",
+      "detected_at": "2026-06-09T14:00:31.212198"
+    },
+    {
+      "id": "paypay_z624105092",
+      "name": "敬老貨幣セット出しバイメタル 純銀部分は約3.8g",
+      "price": 1600,
+      "platform": "PayPayフリマ",
+      "url": "https://paypayfleamarket.yahoo.co.jp/item/z624105092",
+      "image_url": "https://auc-pctr.c.yimg.jp/i/auctions.c.yimg.jp/images.auctions.yahoo.co.jp/image/dr000/auc0206/users/8b454e79957c25bd0572a31e172e81c7a77d3898/i-img652x645-1780994796922hmruv6.jpg?pri=s&w=298&h=298&ccw=298&cch=298&fill=1&fw=298&fh=298&up=0&nf_src=sy&nf_path=images/auc/pc/top/image/1.0.3/na_170x170.png&nf_st=200",
+      "keyword": "純銀 コイン",
+      "ai_comment": "[deepseek-v4-flash] 純銀3.8gで1オンス未満、価格も割高。投資目的の地金・銀貨に該当せず。",
+      "ai_ok": false,
+      "market_info": "銀スポット: ¥350/g（1oz=¥10883）",
+      "detected_at": "2026-06-09T14:00:39.961083"
+    },
+    {
+      "id": "paypay_z624105802",
+      "name": "敬老貨幣セット出しバイメタル 純銀部分は約3.8g",
+      "price": 1600,
+      "platform": "PayPayフリマ",
+      "url": "https://paypayfleamarket.yahoo.co.jp/item/z624105802",
+      "image_url": "https://auc-pctr.c.yimg.jp/i/auctions.c.yimg.jp/images.auctions.yahoo.co.jp/image/dr000/auc0206/users/8b454e79957c25bd0572a31e172e81c7a77d3898/i-img674x670-1780994378754qe5mur.jpg?pri=s&w=298&h=298&ccw=298&cch=298&fill=1&fw=298&fh=298&up=0&nf_src=sy&nf_path=images/auc/pc/top/image/1.0.3/na_170x170.png&nf_st=200",
+      "keyword": "純銀 コイン",
+      "ai_comment": "[gpt-oss-120b] 純銀が3.8gしかなく、1オンス以上でも20%以上安くもないため条件未達成。",
+      "ai_ok": false,
+      "market_info": "銀スポット: ¥350/g（1oz=¥10883）",
+      "detected_at": "2026-06-09T14:00:54.022045"
+    },
+    {
+      "id": "paypay_z624104994",
+      "name": "敬老貨幣セット出し純銀メダル 約5.3g",
+      "price": 2500,
+      "platform": "PayPayフリマ",
+      "url": "https://paypayfleamarket.yahoo.co.jp/item/z624104994",
+      "image_url": "https://auc-pctr.c.yimg.jp/i/auctions.c.yimg.jp/images.auctions.yahoo.co.jp/image/dr000/auc0206/users/8b454e79957c25bd0572a31e172e81c7a77d3898/i-img726x726-1780994992677x3v1li.jpg?pri=s&w=298&h=298&ccw=298&cch=298&fill=1&fw=298&fh=298&up=0&nf_src=sy&nf_path=images/auc/pc/top/image/1.0.3/na_170x170.png&nf_st=200",
+      "keyword": "純銀 コイン",
+      "ai_comment": "[deepseek-v4-flash] 重量5.3gで1オンス未満、投資目的の地金条件を満たさず。",
+      "ai_ok": false,
+      "market_info": "銀スポット: ¥350/g（1oz=¥10883）",
+      "detected_at": "2026-06-09T14:01:00.771198"
+    },
+    {
       "id": "paypay_q1232206220",
       "name": "2025 ブリタニア 1/4 oz 銀貨 純銀",
       "price": 4800,
