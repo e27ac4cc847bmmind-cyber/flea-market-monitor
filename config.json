@@ -40,6 +40,32 @@
   ],
   "history": [
     {
+      "id": "paypay_z624286424",
+      "name": "純銀　純銀メダル　年銘板　ミントセット　銀メダル　オールドコインメダルシリーズ　記念メダル　造幣局　2001年　約7g",
+      "price": 3250,
+      "platform": "PayPayフリマ",
+      "url": "https://paypayfleamarket.yahoo.co.jp/item/z624286424",
+      "image_url": "https://auc-pctr.c.yimg.jp/i/auctions.c.yimg.jp/images.auctions.yahoo.co.jp/image/dr000/auc0206/users/9ea3e0eeb4bd00cb5ba08b74cee978aa999d2fe8/i-img900x1200-1781047818957qajpzr.jpg?pri=s&w=298&h=298&ccw=298&cch=298&fill=1&fw=298&fh=298&up=0&nf_src=sy&nf_path=images/auc/pc/top/image/1.0.3/na_170x170.png&nf_st=200",
+      "keyword": "純銀 コイン",
+      "ai_comment": "[deepseek-v4-flash] 商品重量约7g，不足1盎司(31.1g)，不符合投资要求的纯银地金规格。",
+      "ai_ok": false,
+      "market_info": "銀スポット: ¥334/g（1oz=¥10388）",
+      "detected_at": "2026-06-09T23:41:01.826377"
+    },
+    {
+      "id": "paypay_z624275956",
+      "name": "造幣局貨幣セットの年銘板　銀メダル　シルバー　純銀　銀貨　セット出し　花のまわりみち　2025 蛇　巳年　令和7年　令和七年",
+      "price": 2200,
+      "platform": "PayPayフリマ",
+      "url": "https://paypayfleamarket.yahoo.co.jp/item/z624275956",
+      "image_url": "https://auc-pctr.c.yimg.jp/i/auctions.c.yimg.jp/images.auctions.yahoo.co.jp/image/dr000/auc0206/users/04070c0165f9b854a544c5b91a8a8f743d6d5100/i-img1200x1200-1781045997747jtcezc.jpg?pri=s&w=298&h=298&ccw=298&cch=298&fill=1&fw=298&fh=298&up=0&nf_src=sy&nf_path=images/auc/pc/top/image/1.0.3/na_170x170.png&nf_st=200",
+      "keyword": "純銀 コイン",
+      "ai_comment": "[deepseek-v4-flash] 年銘板は通常非銀製で重量も1オンス未満。価格が安すぎ偽装の可能性大。",
+      "ai_ok": false,
+      "market_info": "銀スポット: ¥334/g（1oz=¥10388）",
+      "detected_at": "2026-06-09T23:41:15.649815"
+    },
+    {
       "id": "rakuma_8657f672390a6aa6871703313d25353b",
       "name": "造幣局純銀メダル(金属工芸)",
       "price": 2100,
