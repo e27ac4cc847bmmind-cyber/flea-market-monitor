@@ -40,6 +40,19 @@
   ],
   "history": [
     {
+      "id": "mercari_m92642955603",
+      "name": "純銀　造幣局　トラ2010年　ミニ銀メダル　 桜の通り抜け　シルバー",
+      "price": 2728,
+      "platform": "メルカリ",
+      "url": "https://jp.mercari.com/item/m92642955603",
+      "image_url": "https://static.mercdn.net/thumb/item/webp/m92642955603_1.jpg?1777877772",
+      "keyword": "純銀 コイン",
+      "ai_comment": "[gpt-oss-120b] 1オンス未満のミニメダルで、投資目的の純銀地金条件を満たさない。",
+      "ai_ok": false,
+      "market_info": "銀スポット: ¥330/g（1oz=¥10275）",
+      "detected_at": "2026-06-10T10:21:17.330786"
+    },
+    {
       "id": "paypay_z624395522",
       "name": "造幣局貨幣セットの年銘板　銀メダル　シルバー　純銀　銀貨　セット出し　花のまわりみち　2025 蛇　巳年　令和7年　令和七年",
       "price": 2200,
