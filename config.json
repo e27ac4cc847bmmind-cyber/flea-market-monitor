@@ -40,6 +40,19 @@
   ],
   "history": [
     {
+      "id": "paypay_z624395522",
+      "name": "造幣局貨幣セットの年銘板　銀メダル　シルバー　純銀　銀貨　セット出し　花のまわりみち　2025 蛇　巳年　令和7年　令和七年",
+      "price": 2200,
+      "platform": "PayPayフリマ",
+      "url": "https://paypayfleamarket.yahoo.co.jp/item/z624395522",
+      "image_url": "https://auc-pctr.c.yimg.jp/i/auctions.c.yimg.jp/images.auctions.yahoo.co.jp/image/dr000/auc0206/users/04070c0165f9b854a544c5b91a8a8f743d6d5100/i-img1200x1200-1781063982641y0pgtd.jpg?pri=s&w=298&h=298&ccw=298&cch=298&fill=1&fw=298&fh=298&up=0&nf_src=sy&nf_path=images/auc/pc/top/image/1.0.3/na_170x170.png&nf_st=200",
+      "keyword": "純銀 コイン",
+      "ai_comment": "[deepseek-v4-flash] 価格2200円は1オンス純銀のスポット価格（約10438円）を大幅に下回り、本物の造幣局純銀メダルとしては不自然に安い。商品名に重量記載がなく、「貨幣セットの年銘板」では1オンス未満の可能性が高く、偽物やメッキ品の疑いが強いため、すべての条件を満たさない。",
+      "ai_ok": false,
+      "market_info": "銀スポット: ¥336/g（1oz=¥10438）",
+      "detected_at": "2026-06-10T06:09:52.389447"
+    },
+    {
       "id": "paypay_z624299478",
       "name": "造幣局貨幣セットの年銘板　銀メダル　シルバー　純銀　銀貨　セット出し　桜の通り抜け　2024 辰年　ドラゴン　龍　令和6年",
       "price": 2700,
