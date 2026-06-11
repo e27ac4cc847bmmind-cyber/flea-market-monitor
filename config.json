@@ -40,6 +40,32 @@
   ],
   "history": [
     {
+      "id": "mercari_m53576115988",
+      "name": "古銭　日本コイン　旧一圓　明治十年　背銀龍 z83",
+      "price": 2000,
+      "platform": "メルカリ",
+      "url": "https://jp.mercari.com/item/m53576115988",
+      "image_url": "https://static.mercdn.net/thumb/item/webp/m53576115988_1.jpg?1775913415",
+      "keyword": "純銀 コイン",
+      "ai_comment": "[deepseek-v4-flash] 古銭は純銀だが重量1oz未満、投資用地金でなく装飾的価格設定。",
+      "ai_ok": false,
+      "market_info": "銀スポット: ¥329/g（1oz=¥10226）",
+      "detected_at": "2026-06-11T11:03:05.437894"
+    },
+    {
+      "id": "paypay_z625070284",
+      "name": "純銀　純銀メダル　年銘板　ミントセット　銀メダル　オールドコインメダルシリーズ　記念メダル　造幣局　2001年　約7g",
+      "price": 3250,
+      "platform": "PayPayフリマ",
+      "url": "https://paypayfleamarket.yahoo.co.jp/item/z625070284",
+      "image_url": "https://auc-pctr.c.yimg.jp/i/auctions.c.yimg.jp/images.auctions.yahoo.co.jp/image/dr000/auc0206/users/9ea3e0eeb4bd00cb5ba08b74cee978aa999d2fe8/i-img900x1200-1781166734741su6nw3.jpg?pri=s&w=298&h=298&ccw=298&cch=298&fill=1&fw=298&fh=298&up=0&nf_src=sy&nf_path=images/auc/pc/top/image/1.0.3/na_170x170.png&nf_st=200",
+      "keyword": "純銀 コイン",
+      "ai_comment": "[deepseek-v4-flash] 約7gで1オンス未満、価格がスポット価格の約1.4倍と割高で投資条件不適合。",
+      "ai_ok": false,
+      "market_info": "銀スポット: ¥329/g（1oz=¥10226）",
+      "detected_at": "2026-06-11T11:03:15.150180"
+    },
+    {
       "id": "paypay_n1233186780",
       "name": "2025 ブリタニア 1/4 oz 銀貨 純銀 ②",
       "price": 4500,
