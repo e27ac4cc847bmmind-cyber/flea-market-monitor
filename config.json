@@ -40,6 +40,19 @@
   ],
   "history": [
     {
+      "id": "paypay_z625191010",
+      "name": "1948sリンカーンセント他 　トーンあり",
+      "price": 1999,
+      "platform": "PayPayフリマ",
+      "url": "https://paypayfleamarket.yahoo.co.jp/item/z625191010",
+      "image_url": "https://auc-pctr.c.yimg.jp/i/auctions.c.yimg.jp/images.auctions.yahoo.co.jp/image/dr000/auc0206/users/4afad33e810dc773afef106df613d14b65246ffc/i-img1200x1162-1781181090046p65whs.jpg?pri=s&w=298&h=298&ccw=298&cch=298&fill=1&fw=298&fh=298&up=0&nf_src=sy&nf_path=images/auc/pc/top/image/1.0.3/na_170x170.png&nf_st=200",
+      "keyword": "純銀 コイン",
+      "ai_comment": "[deepseek-v4-flash] 1948年リンカーンセントは銅貨であり、銀製品ではない。ユーザーの希望する純銀地金・1オンス銀貨に該当せず、投資目的に合致しない。",
+      "ai_ok": false,
+      "market_info": "銀スポット: ¥331/g（1oz=¥10288）",
+      "detected_at": "2026-06-11T14:50:10.707013"
+    },
+    {
       "id": "mercari_m53576115988",
       "name": "古銭　日本コイン　旧一圓　明治十年　背銀龍 z83",
       "price": 2000,
