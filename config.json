@@ -40,6 +40,45 @@
   ],
   "history": [
     {
+      "id": "paypay_n1233186780",
+      "name": "2025 ブリタニア 1/4 oz 銀貨 純銀 ②",
+      "price": 4500,
+      "platform": "PayPayフリマ",
+      "url": "https://paypayfleamarket.yahoo.co.jp/item/n1233186780",
+      "image_url": "https://auc-pctr.c.yimg.jp/i/auctions.c.yimg.jp/images.auctions.yahoo.co.jp/image/dr000/auc0206/user/266feccfb0389043ab20774c0efe83222810b8381d8c2e603ad6f4bd294f6c3a/i-img1200x1199-17811542182380kqbyal35501.jpg?pri=s&w=298&h=298&ccw=298&cch=298&fill=1&fw=298&fh=298&up=0&nf_src=sy&nf_path=images/auc/pc/top/image/1.0.3/na_170x170.png&nf_st=200",
+      "keyword": "純銀 コイン",
+      "ai_comment": "[deepseek-v4-flash] 1/4オンス(7.78g)であり、1オンス以上の基準を満たしていないため。",
+      "ai_ok": false,
+      "market_info": "銀スポット: ¥330/g（1oz=¥10253）",
+      "detected_at": "2026-06-11T06:23:21.494643"
+    },
+    {
+      "id": "paypay_j1233188067",
+      "name": "2025 ブリタニア 1/10 oz 銀貨 純銀 ②",
+      "price": 2000,
+      "platform": "PayPayフリマ",
+      "url": "https://paypayfleamarket.yahoo.co.jp/item/j1233188067",
+      "image_url": "https://auc-pctr.c.yimg.jp/i/auctions.c.yimg.jp/images.auctions.yahoo.co.jp/image/dr000/auc0206/user/266feccfb0389043ab20774c0efe83222810b8381d8c2e603ad6f4bd294f6c3a/i-img1200x1162-17811539263121aspvns279584.jpg?pri=s&w=298&h=298&ccw=298&cch=298&fill=1&fw=298&fh=298&up=0&nf_src=sy&nf_path=images/auc/pc/top/image/1.0.3/na_170x170.png&nf_st=200",
+      "keyword": "純銀 コイン",
+      "ai_comment": "[deepseek-v4-flash] 1/10ozで1oz未満、価格がスポット比約2倍と割高、ユーザー希望の1oz銀貨でない。",
+      "ai_ok": false,
+      "market_info": "銀スポット: ¥330/g（1oz=¥10253）",
+      "detected_at": "2026-06-11T06:23:38.652517"
+    },
+    {
+      "id": "paypay_z624961898",
+      "name": "造幣局貨幣セットの年銘板　銀メダル　シルバー　純銀　銀貨　セット出し　花のまわりみち　2025 蛇　巳年　令和7年　令和七年",
+      "price": 2200,
+      "platform": "PayPayフリマ",
+      "url": "https://paypayfleamarket.yahoo.co.jp/item/z624961898",
+      "image_url": "https://auc-pctr.c.yimg.jp/i/auctions.c.yimg.jp/images.auctions.yahoo.co.jp/image/dr000/auc0206/users/04070c0165f9b854a544c5b91a8a8f743d6d5100/i-img1200x1200-1781151969129s1kkor.jpg?pri=s&w=298&h=298&ccw=298&cch=298&fill=1&fw=298&fh=298&up=0&nf_src=sy&nf_path=images/auc/pc/top/image/1.0.3/na_170x170.png&nf_st=200",
+      "keyword": "純銀 コイン",
+      "ai_comment": "[deepseek-v4-flash] 本品は年銘板で重量未記載のため1オンス未満の可能性が高く、価格が割高。",
+      "ai_ok": false,
+      "market_info": "銀スポット: ¥330/g（1oz=¥10253）",
+      "detected_at": "2026-06-11T06:23:41.390597"
+    },
+    {
       "id": "paypay_z624799556",
       "name": "敬老貨幣セット出しバイメタル 純銀部分は約3.8g",
       "price": 1600,
