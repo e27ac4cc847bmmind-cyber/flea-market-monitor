@@ -40,6 +40,19 @@
   ],
   "history": [
     {
+      "id": "mercari_m62493696297",
+      "name": "【187③】TECHNO 2004 記念メダル コイン",
+      "price": 1500,
+      "platform": "メルカリ",
+      "url": "https://jp.mercari.com/item/m62493696297",
+      "image_url": "https://static.mercdn.net/thumb/item/webp/m62493696297_1.jpg?1781280592",
+      "keyword": "純銀 コイン",
+      "ai_comment": "[deepseek-v4-flash] 純銀か不明、重量未記載で1oz未満の可能性が高く投資目的に不適。",
+      "ai_ok": false,
+      "market_info": "銀スポット: ¥351/g（1oz=¥10917）",
+      "detected_at": "2026-06-12T19:23:45.597482"
+    },
+    {
       "id": "paypay_z625622694",
       "name": "純銀　純銀メダル　年銘板　ミントセット　銀メダル　オールドコインメダルシリーズ　記念メダル　造幣局　2001年　約7g",
       "price": 3250,
