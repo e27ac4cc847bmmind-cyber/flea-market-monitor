@@ -40,6 +40,19 @@
   ],
   "history": [
     {
+      "id": "mercari_m80390922678",
+      "name": "一朱銀（嘉永）Gb型　未洗、量目不足",
+      "price": 3499,
+      "platform": "メルカリ",
+      "url": "https://jp.mercari.com/item/m80390922678",
+      "image_url": "https://static.mercdn.net/thumb/item/webp/m80390922678_1.jpg?1781307232",
+      "keyword": "純銀 コイン",
+      "ai_comment": "[gpt-oss-120b] 投資向け純銀1オンス以上でなく、銀貨・メダルは量目不足で銀量が不足し、スポット価格割安条件を満たさないため。",
+      "ai_ok": false,
+      "market_info": "銀スポット: ¥351/g（1oz=¥10917）",
+      "detected_at": "2026-06-13T00:06:56.485599"
+    },
+    {
       "id": "paypay_z625880512",
       "name": "純銀　新品　5.4g メダル コイン 記念メダル コレクション",
       "price": 3000,
