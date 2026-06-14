@@ -40,6 +40,32 @@
   ],
   "history": [
     {
+      "id": "mercari_m19246172951",
+      "name": "GHOST メモリアルコイン 限定版",
+      "price": 3400,
+      "platform": "メルカリ",
+      "url": "https://jp.mercari.com/item/m19246172951",
+      "image_url": "https://static.mercdn.net/thumb/item/webp/m19246172951_1.jpg?1776869142",
+      "keyword": "純銀 コイン",
+      "ai_comment": "[deepseek-v4-flash] メモリアルコインは純銀量不明で装飾品、投資目的に不適。",
+      "ai_ok": false,
+      "market_info": "銀スポット: ¥350/g（1oz=¥10892）",
+      "detected_at": "2026-06-14T06:39:27.134925"
+    },
+    {
+      "id": "rakuma_499c32a1500673f04525b1353229ca6e",
+      "name": "【本物保証 】 2026年 ブリタニア銀貨 1/10オンス 純銀 .999 (貨幣)",
+      "price": 3580,
+      "platform": "ラクマ",
+      "url": "https://item.fril.jp/499c32a1500673f04525b1353229ca6e",
+      "image_url": "https://img.fril.jp/img/837022694/m/2884435261.jpg?1781407590",
+      "keyword": "純銀 コイン",
+      "ai_comment": "[deepseek-v4-flash] 1/10 oz未満で重量不足、価格がスポット比約230%と割高、投資目的の1oz品と不一致。",
+      "ai_ok": false,
+      "market_info": "銀スポット: ¥350/g（1oz=¥10892）",
+      "detected_at": "2026-06-14T06:39:32.100732"
+    },
+    {
       "id": "paypay_z626577608",
       "name": "純銀　純銀メダル　年銘板　ミントセット　銀メダル　オールドコインメダルシリーズ　記念メダル　造幣局　2001年　約7g",
       "price": 3250,
