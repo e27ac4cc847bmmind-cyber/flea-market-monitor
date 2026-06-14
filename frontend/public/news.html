@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ニュースレポート</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<style>
+  .heart-btn { transition: transform 0.15s; }
+  .heart-btn:active { transform: scale(1.3); }
+  .tab-active { background: white; box-shadow: 0 1px 3px rgba(0,0,0,.15); color: #111; }
+  .fade-in { animation: fadeIn .3s ease; }
+  @keyframes fadeIn { from { opacity:0; transform:translateY(6px); } to { opacity:1; transform:none; } }
+</style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+<div class="max-w-xl mx-auto px-4 py-6" id="app">
+
+  <!-- ヘッダー -->
+  <div class="flex items-center justify-between mb-5">
+    <div>
+      <h1 class="text-xl font-bold text-gray-900">📰 ニュースレポート</h1>
+      <p class="text-xs text-gray-500 mt-0.5" id="fav-count">♡ 0件お気に入り済み</p>
+    </div>
+    <button onclick="generateReport()" id="report-btn"
+      class="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-300 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors">
+      📄 レポートを作成
+    </button>
+  </div>
+
+  <!-- タブ -->
+  <div class="flex items-center gap-1 mb-4 overflow-x-auto pb-1">
+    <div class="flex gap-1 bg-gray-100 p-1 rounded-lg flex-shrink-0" id="tab-bar"></div>
+    <button onclick="showAddTab()" id="add-tab-btn"
+      class="flex-shrink-0 flex items-center gap-1 text-gray-400 hover:text-blue-500 text-sm px-2 py-1.5 rounded-lg hover:bg-gray-100 transition-colors">
+      ＋ 追加
+    </button>
+    <div id="add-tab-form" class="hidden flex items-center gap-1 flex-shrink-0">
+      <input id="new-tab-input" type="text" placeholder="分野名"
+        class="border rounded-lg px-3 py-1.5 text-sm w-28 focus:outline-none focus:ring-2 focus:ring-blue-400"
+        onkeydown="if(event.key==='Enter') addTab()">
+      <button onclick="addTab()" class="bg-blue-600 text-white px-3 py-1.5 rounded-lg text-sm font-medium">追加</button>
+      <button onclick="hideAddTab()" class="text-gray-400 hover:text-gray-600 text-lg leading-none">✕</button>
+    </div>
+  </div>
+
+  <!-- 更新ボタン -->
+  <div class="flex justify-end mb-3">
+    <button onclick="loadArticles()" class="text-xs text-gray-500 hover:text-blue-600 flex items-center gap-1 transition-colors">
+      🔄 最新に更新
+    </button>
+  </div>
+
+  <!-- コンテンツ -->
+  <div id="content"></div>
+
+  <!-- レポートオーバーレイ -->
+  <div id="report-overlay" class="hidden fixed inset-0 bg-gray-50 overflow-y-auto z-50">
+    <div class="max-w-xl mx-auto px-4 py-6">
+      <button onclick="closeReport()" class="flex items-center gap-2 text-gray-500 hover:text-gray-700 mb-4 text-sm">
+        ← 戻る
+      </button>
+      <div id="report-content"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ==================== データ ====================
+const MOCK = {
+  "AI & IT": [
+    { id:"ai1", title:"OpenAI、GPT-5の商用提供を開始", summary:"OpenAIは次世代モデルGPT-5の一般提供を開始。従来比3倍の推論精度を持ち、マルチモーダル対応も強化された。", detail:"GPT-5はコーディング・数学・科学分野で人間の専門家レベルを超えるベンチマークを記録。APIコストは従来の40%削減となり、中小企業への普及が加速すると見られる。", source:"TechCrunch", publishedAt:"2026-06-14", tags:["AI","OpenAI","LLM"], isDiscovery:false },
+    { id:"ai2", title:"Apple「Intelligence 2.0」発表—端末上で完結", summary:"WWDC 2026でAppleがデバイス上で完結するAI新機能を発表。プライバシー保護とパフォーマンスを両立した。", detail:"新モデルはiPhone 17以降で動作し、クラウド送信なしにメール要約・画像生成・翻訳が可能。Siriの会話能力も大幅向上。", source:"The Verge", publishedAt:"2026-06-13", tags:["Apple","オンデバイスAI","プライバシー"], isDiscovery:false },
+    { id:"ai3", title:"量子×AIで新薬開発期間を1/10に短縮", summary:"IBMとファイザーの共同研究で、量子AIが従来5年かかる候補探索を半年に短縮することを実証した。", detail:"量子アニーリングと深層学習を組み合わせたハイブリッド手法により、タンパク質の折り畳み予測精度が8倍に向上。2028年の実用化を目指す。", source:"Nature", publishedAt:"2026-06-12", tags:["量子コンピューティング","創薬","IBM"], isDiscovery:true },
+    { id:"ai4", title:"国内AI規制法が参院通過、2027年施行へ", summary:"生成AI利用企業に透明性報告書の提出を義務づける「AI適正利用促進法」が参院で可決された。", detail:"高リスクAIシステムの事前審査制度や、偽情報生成AIへの罰則規定が盛り込まれた。中小企業への猶予期間は2年間。", source:"日経新聞", publishedAt:"2026-06-13", tags:["規制","AI法","政策"], isDiscovery:false },
+    { id:"ai5", title:"Anthropic「Computer Use 2.0」でRPA市場に参入", summary:"PCやブラウザを自律操作できるエージェントAPIがアップデート。企業のRPA市場に波紋を広げる。", detail:"ファイル操作・Webブラウズ・コード実行を組み合わせた複合タスクの成功率が従来比60%向上。月次コストも50%削減されエンタープライズ採用が加速。", source:"Anthropic Blog", publishedAt:"2026-06-14", tags:["Anthropic","エージェント","RPA"], isDiscovery:false },
+  ],
+  "経済": [
+    { id:"eco1", title:"日経平均4万5千円台回復、半導体株が牽引", summary:"米国のAI投資拡大期待を背景に半導体関連株が急騰。東京市場は約3ヶ月ぶりに45,000円台を回復した。", detail:"東京エレクトロン・ソニー・レーザーテックが揃って年初来高値を更新。外国人投資家の買い越しが続き、需給面での下支えが続く見通し。", source:"日経新聞", publishedAt:"2026-06-14", tags:["株式","半導体","日経平均"], isDiscovery:false },
+    { id:"eco2", title:"FRB、年内2回利下げを示唆—インフレ鈍化で", summary:"パウエル議長の議会証言でFRBが9月・12月の利下げ可能性を示唆。ドル円は152円台まで円高が進んだ。", detail:"CPIが前年比2.3%まで低下し、FRBの目標値2%に近づいた。住宅ローン金利の低下から不動産市場の回復も期待される。", source:"Bloomberg", publishedAt:"2026-06-13", tags:["FRB","金利","為替"], isDiscovery:false },
+    { id:"eco3", title:"中東情勢緊張で原油価格が一時90ドル超", summary:"ホルムズ海峡周辺での衝突報道を受け、WTI原油先物が急騰。ガソリン価格への波及が懸念される。", detail:"産油国の供給制約と地政学リスクが重なりエネルギー市場は不安定な状態。IEAは戦略備蓄放出の検討を開始している。", source:"Reuters", publishedAt:"2026-06-14", tags:["原油","地政学","エネルギー"], isDiscovery:true },
+    { id:"eco4", title:"国内スタートアップ調達が過去最高—AI関連6割", summary:"2026年上半期の国内スタートアップ調達総額が1.2兆円に達し、過去最高を記録。AI・ロボット分野が急増。", detail:"政府の「スタートアップ育成5か年計画」の成果が表れ始めた形。海外VCの参入も活発化し、グローバルな資金流入が国内エコシステムを底上げ。", source:"東洋経済", publishedAt:"2026-06-12", tags:["スタートアップ","資金調達","VC"], isDiscovery:false },
+    { id:"eco5", title:"少子化加速で2030年に労働力250万人不足", summary:"厚労省の推計で、2030年には現状比250万人の労働力不足が生じる見通し。自動化投資の加速が急務に。", detail:"特に介護・物流・建設分野での不足が深刻。政府はロボット導入補助金を倍増させる方針で、AIと自動化が経済の持続性を左右する。", source:"厚生労働省", publishedAt:"2026-06-11", tags:["少子化","労働力","人口動態"], isDiscovery:true },
+  ],
+};
+
+function getArticles(cat) {
+  if (MOCK[cat]) return MOCK[cat];
+  const d = new Date().toISOString().split("T")[0];
+  return [
+    { id:cat+"1", title:`${cat}分野の最新動向`, summary:`${cat}に関する注目トピックが相次いでいる。業界関係者は今後の展開を注視している。`, detail:`専門家によると、${cat}分野は今後5年で大きな変革期を迎えるとされる。技術革新と規制整備が同時進行しており、プレイヤーの動向から目が離せない。`, source:"業界メディア", publishedAt:d, tags:[cat,"トレンド"], isDiscovery:false },
+    { id:cat+"2", title:`${cat}市場で新プレイヤーが台頭`, summary:`新興企業が${cat}市場に参入し、既存大手との競争が激化。ユーザー目線での革新が評価を集めている。`, detail:`資金調達も好調で、直近ラウンドでは100億円規模の調達を実施。グローバル展開も視野に入れており、今後12ヶ月が勝負どころ。`, source:"経済誌", publishedAt:d, tags:[cat,"スタートアップ"], isDiscovery:false },
+    { id:cat+"3", title:`${cat}×AIの融合が加速`, summary:`AI技術との融合により${cat}分野の生産性が飛躍的に向上。人材育成と技術導入が急務となっている。`, detail:`国内外の企業が積極的に投資を拡大しており、2027年には市場規模が現在の2倍に達するという予測も出ている。`, source:"専門誌", publishedAt:d, tags:[cat,"AI","イノベーション"], isDiscovery:true },
+  ];
+}
+
+// ==================== 状態 ====================
+let tabs = JSON.parse(localStorage.getItem("tabs")||'["AI & IT","経済"]');
+let activeTab = tabs[0];
+let favorites = new Set(JSON.parse(localStorage.getItem("favs")||'[]'));
+let prefScore = JSON.parse(localStorage.getItem("prefs")||'{}');
+let expandedIds = new Set();
+
+function save() {
+  localStorage.setItem("tabs", JSON.stringify(tabs));
+  localStorage.setItem("favs", JSON.stringify([...favorites]));
+  localStorage.setItem("prefs", JSON.stringify(prefScore));
+}
+
+// ==================== タブ ====================
+function renderTabs() {
+  const bar = document.getElementById("tab-bar");
+  bar.innerHTML = tabs.map(t => `
+    <div class="relative flex-shrink-0">
+      <button onclick="switchTab('${t}')"
+        class="py-1.5 px-3 text-sm font-medium rounded-md transition-colors whitespace-nowrap ${t===activeTab?'tab-active':'text-gray-500 hover:text-gray-700'}">
+        ${t}
+      </button>
+      ${!["AI & IT","経済"].includes(t)?`<button onclick="removeTab('${t}')" class="absolute -top-1 -right-1 w-4 h-4 bg-gray-400 hover:bg-red-500 text-white rounded-full text-xs flex items-center justify-center leading-none transition-colors">✕</button>`:''}
+    </div>
+  `).join("");
+  document.getElementById("fav-count").textContent = `♡ ${favorites.size}件お気に入り済み`;
+}
+
+function switchTab(t) { activeTab = t; renderTabs(); renderArticles(); }
+function removeTab(t) {
+  tabs = tabs.filter(x=>x!==t);
+  if (activeTab===t) activeTab=tabs[0];
+  save(); renderTabs(); renderArticles();
+}
+function showAddTab() {
+  document.getElementById("add-tab-btn").classList.add("hidden");
+  document.getElementById("add-tab-form").classList.remove("hidden");
+  document.getElementById("new-tab-input").focus();
+}
+function hideAddTab() {
+  document.getElementById("add-tab-btn").classList.remove("hidden");
+  document.getElementById("add-tab-form").classList.add("hidden");
+  document.getElementById("new-tab-input").value = "";
+}
+function addTab() {
+  const name = document.getElementById("new-tab-input").value.trim();
+  if (!name || tabs.includes(name)) return hideAddTab();
+  tabs.push(name); activeTab = name;
+  save(); hideAddTab(); renderTabs(); renderArticles();
+}
+
+// ==================== 記事 ====================
+function loadArticles() {
+  const c = document.getElementById("content");
+  c.innerHTML = `<div class="flex flex-col items-center py-20 text-gray-400">
+    <div class="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mb-4"></div>
+    <p class="text-sm">ニュースを読み込み中...</p>
+  </div>`;
+  setTimeout(renderArticles, 600);
+}
+
+function renderArticles() {
+  const articles = getArticles(activeTab);
+  const c = document.getElementById("content");
+  c.innerHTML = articles.map(a => articleCard(a)).join("");
+}
+
+function articleCard(a) {
+  const fav = favorites.has(a.id);
+  const exp = expandedIds.has(a.id);
+  return `<div class="fade-in bg-white border rounded-xl shadow-sm p-4 mb-3 ${a.isDiscovery?'border-amber-200 bg-amber-50/30':''}">
+    <div class="flex items-start justify-between gap-3">
+      <div class="flex-1 min-w-0">
+        ${a.isDiscovery?'<span class="inline-flex items-center gap-1 text-xs bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full font-medium mb-1">💡 新しい発見</span><br>':''}
+        <h3 class="font-semibold text-gray-900 text-sm leading-snug">${a.title}</h3>
+        <p class="text-xs text-gray-500 mt-1">${a.source} · ${a.publishedAt}</p>
+        <p class="text-sm text-gray-700 mt-2 leading-relaxed">${a.summary}</p>
+        ${exp?`<p class="text-sm text-gray-600 mt-2 leading-relaxed border-t pt-2">${a.detail}</p>`:''}
+        <div class="flex flex-wrap gap-1 mt-2">
+          ${a.tags.map(tag=>`<span class="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full">#${tag}</span>`).join('')}
+        </div>
+        <button onclick="toggleExpand('${a.id}')" class="text-xs text-blue-500 hover:text-blue-700 mt-2">
+          ${exp?'閉じる':'詳しく読む'}
+        </button>
+      </div>
+      <button onclick="toggleFav('${a.id}')" class="heart-btn flex-shrink-0 p-2 rounded-full transition-colors ${fav?'text-red-500 bg-red-50':'text-gray-300 hover:text-red-400 hover:bg-red-50'}">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="${fav?'currentColor':'none'}" stroke="currentColor" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path></svg>
+      </button>
+    </div>
+  </div>`;
+}
+
+function toggleExpand(id) {
+  if (expandedIds.has(id)) expandedIds.delete(id); else expandedIds.add(id);
+  renderArticles();
+}
+
+function toggleFav(id) {
+  const articles = getArticles(activeTab);
+  const a = articles.find(x=>x.id===id);
+  if (!a) return;
+  if (favorites.has(id)) {
+    favorites.delete(id);
+  } else {
+    favorites.add(id);
+    a.tags.forEach(tag => { prefScore[tag] = (prefScore[tag]||0)+1; });
+  }
+  save();
+  renderTabs();
+  renderArticles();
+}
+
+// ==================== レポート ====================
+function generateReport() {
+  const articles = getArticles(activeTab);
+  const favArticles = articles.filter(a=>favorites.has(a.id));
+
+  document.getElementById("report-content").innerHTML = `
+    <div class="flex flex-col items-center py-20 text-gray-400">
+      <div class="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mb-4"></div>
+      <p class="text-sm">レポートを生成中...</p>
+    </div>`;
+  document.getElementById("report-overlay").classList.remove("hidden");
+
+  setTimeout(() => {
+    document.getElementById("report-content").innerHTML = buildReport(activeTab, articles, favArticles);
+  }, 900);
+}
+
+function closeReport() {
+  document.getElementById("report-overlay").classList.add("hidden");
+}
+
+function buildReport(cat, articles, favArticles) {
+  const today = new Date().toLocaleDateString("ja-JP");
+  return `
+    <h2 class="text-lg font-bold text-gray-900 mb-4">${cat} 週次レポート <span class="text-sm font-normal text-gray-400">${today}</span></h2>
+
+    <div class="bg-blue-50 border border-blue-200 rounded-xl p-4 mb-4">
+      <p class="text-sm text-blue-800 leading-relaxed">
+        今週の${cat}分野は複数の重要トレンドが交差する展開となった。AI技術の実用化加速、規制動向、市場変動が複合的に影響しており、今後3〜6ヶ月は変革の加速期と見られる。
+        ${favArticles.length>0?`あなたが注目した${favArticles.length}件の記事を中心に分析した。`:''}
+      </p>
+    </div>
+
+    <!-- SVG図解 -->
+    <div class="bg-white border rounded-xl p-4 mb-4">
+      <h3 class="text-sm font-semibold text-gray-700 mb-3">📊 ${cat} トレンドマップ</h3>
+      <svg viewBox="0 0 600 360" class="w-full" xmlns="http://www.w3.org/2000/svg">
+        <rect width="600" height="360" fill="#F8FAFC" rx="12"/>
+        <circle cx="300" cy="180" r="52" fill="#3B82F6" opacity="0.9"/>
+        <text x="300" y="175" text-anchor="middle" font-family="sans-serif" font-size="13" font-weight="bold" fill="white">${cat}</text>
+        <text x="300" y="193" text-anchor="middle" font-family="sans-serif" font-size="11" fill="#BFDBFE">市場動向</text>
+        <line x1="300" y1="180" x2="130" y2="90" stroke="#94A3B8" stroke-width="2" stroke-dasharray="4"/>
+        <circle cx="130" cy="90" r="40" fill="#1D4ED8" opacity="0.85"/>
+        <text x="130" y="85" text-anchor="middle" font-family="sans-serif" font-size="12" font-weight="bold" fill="white">技術革新</text>
+        <text x="130" y="102" text-anchor="middle" font-family="sans-serif" font-size="10" fill="#BFDBFE">AI・自動化</text>
+        <line x1="300" y1="180" x2="470" y2="90" stroke="#94A3B8" stroke-width="2" stroke-dasharray="4"/>
+        <circle cx="470" cy="90" r="40" fill="#7C3AED" opacity="0.85"/>
+        <text x="470" y="85" text-anchor="middle" font-family="sans-serif" font-size="12" font-weight="bold" fill="white">規制動向</text>
+        <text x="470" y="102" text-anchor="middle" font-family="sans-serif" font-size="10" fill="#DDD6FE">法整備</text>
+        <line x1="300" y1="180" x2="130" y2="280" stroke="#94A3B8" stroke-width="2" stroke-dasharray="4"/>
+        <circle cx="130" cy="280" r="40" fill="#10B981" opacity="0.85"/>
+        <text x="130" y="275" text-anchor="middle" font-family="sans-serif" font-size="12" font-weight="bold" fill="white">投資・資本</text>
+        <text x="130" y="292" text-anchor="middle" font-family="sans-serif" font-size="10" fill="#D1FAE5">市場拡大</text>
+        <line x1="300" y1="180" x2="470" y2="280" stroke="#94A3B8" stroke-width="2" stroke-dasharray="4"/>
+        <circle cx="470" cy="280" r="40" fill="#F59E0B" opacity="0.85"/>
+        <text x="470" y="275" text-anchor="middle" font-family="sans-serif" font-size="12" font-weight="bold" fill="white">人材・組織</text>
+        <text x="470" y="292" text-anchor="middle" font-family="sans-serif" font-size="10" fill="#FEF3C7">スキル不足</text>
+      </svg>
+    </div>
+
+    ${[
+      ["📈 今週のハイライト", `${cat}分野では技術革新と市場の変化が同時進行している。特に大手プレイヤーの動向が業界全体の方向性を左右しており、新規参入企業との競争激化が注目を集めている。`],
+      ["🔍 注目トレンド分析", `規制・技術・資本の三つのベクトルが収束しつつある。政府の政策動向が民間投資の方向性に直接影響を与えており、グローバルな標準化の動きとローカル規制の整合性が課題として浮上している。`],
+      ["🌏 海外動向との比較", `米国・EUと国内の動向を比較すると、日本は技術採用速度では後れを取りつつも、安全性・品質面での強みを活かした差別化が進んでいる。海外資本の流入も活発化している。`],
+    ].map(([h,b])=>`
+      <div class="bg-white border rounded-xl p-4 mb-3">
+        <h3 class="font-semibold text-gray-900 mb-2">${h}</h3>
+        <p class="text-sm text-gray-700 leading-relaxed">${b}</p>
+      </div>
+    `).join('')}
+
+    <div class="bg-green-50 border border-green-200 rounded-xl p-4 mb-4">
+      <div class="flex items-start gap-2">
+        <span class="text-green-600 mt-0.5">✨</span>
+        <div>
+          <p class="text-xs font-semibold text-green-700 mb-1">今週のキーインサイト</p>
+          <p class="text-sm text-green-800 leading-relaxed">${cat}分野の最重要変数は「規制の明確化」と「人材確保」の2点。この2つが整備されれば市場は急速に拡大するポテンシャルを持っている。</p>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+// ==================== 初期化 ====================
+renderTabs();
+loadArticles();
+</script>
+</body>
+</html>
