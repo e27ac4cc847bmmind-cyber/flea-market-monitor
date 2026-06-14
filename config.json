@@ -40,6 +40,19 @@
   ],
   "history": [
     {
+      "id": "mercari_m38759002186",
+      "name": "造幣局発行 純銀 ちびメダル 古銭デザイン 縁起物 開運 御守り",
+      "price": 2600,
+      "platform": "メルカリ",
+      "url": "https://jp.mercari.com/item/m38759002186",
+      "image_url": "https://static.mercdn.net/thumb/item/webp/m38759002186_1.jpg?1781436374",
+      "keyword": "純銀 コイン",
+      "ai_comment": "[deepseek-v4-flash] 商品名から重量不明で1オンス未満の可能性が高く、価格からも割安ではないため。",
+      "ai_ok": false,
+      "market_info": "銀スポット: ¥350/g（1oz=¥10887）",
+      "detected_at": "2026-06-14T17:38:38.209587"
+    },
+    {
       "id": "mercari_m14517461926",
       "name": "小型50銭銀貨 大正14年",
       "price": 4000,
