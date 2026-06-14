@@ -40,6 +40,32 @@
   ],
   "history": [
     {
+      "id": "mercari_m14517461926",
+      "name": "小型50銭銀貨 大正14年",
+      "price": 4000,
+      "platform": "メルカリ",
+      "url": "https://jp.mercari.com/item/m14517461926",
+      "image_url": "https://static.mercdn.net/thumb/item/webp/m14517461926_1.jpg?1781424220",
+      "keyword": "純銀 コイン",
+      "ai_comment": "[deepseek-v4-flash] 銀含有量約3.24gで1oz未満、純銀地金でなく投資目的に合致しない。",
+      "ai_ok": false,
+      "market_info": "銀スポット: ¥350/g（1oz=¥10887）",
+      "detected_at": "2026-06-14T10:06:58.877657"
+    },
+    {
+      "id": "rakuma_1b8044018820d5932d48420ddea3b542",
+      "name": "純銀メダル入り　敬老貨幣セット(金属工芸)",
+      "price": 3333,
+      "platform": "ラクマ",
+      "url": "https://item.fril.jp/1b8044018820d5932d48420ddea3b542",
+      "image_url": "https://img.fril.jp/img/836903305/m/2884054649.jpg?1781346353",
+      "keyword": "純銀 コイン",
+      "ai_comment": "[deepseek-v4-flash] 商品名に「敬老貨幣セット」とあり、装飾品の可能性が高く、純銀地金としての投資目的に合わない。",
+      "ai_ok": false,
+      "market_info": "銀スポット: ¥350/g（1oz=¥10887）",
+      "detected_at": "2026-06-14T10:07:01.770074"
+    },
+    {
       "id": "mercari_m19246172951",
       "name": "GHOST メモリアルコイン 限定版",
       "price": 3400,
