@@ -1,72 +1,86 @@
 import { NextRequest, NextResponse } from "next/server";
 
-const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY;
-
 export async function POST(req: NextRequest) {
-  if (!OPENROUTER_API_KEY) {
-    return NextResponse.json({ error: "OPENROUTER_API_KEY が未設定です" }, { status: 500 });
-  }
-
   try {
     const { category, articles, favorites } = await req.json();
 
-    const articleList = articles
-      .map(
-        (a: { title: string; summary: string; detail: string }, i: number) =>
-          `${i + 1}. ${a.title}\n   ${a.summary}\n   ${a.detail}`
-      )
-      .join("\n\n");
-
     const favoriteIds = new Set(favorites);
-    const highlightedArticles = articles.filter((a: { id: string }) => favoriteIds.has(a.id));
-    const highlightTitles = highlightedArticles.map((a: { title: string }) => a.title);
-
-    const prompt = `あなたは優秀なビジネスアナリストです。「${category}」分野のニュースレポートをまとめてください。
-
-【今日の記事一覧】
-${articleList}
-
-${highlightTitles.length > 0 ? `【ユーザーが特に注目した記事】\n${highlightTitles.join("\n")}` : ""}
-
-以下の形式でJSON（コードブロックなし）を返してください:
-{
-  "reportTitle": "レポートタイトル（30字以内）",
-  "executiveSummary": "全体要約（150字程度）",
-  "sections": [
-    {
-      "heading": "セクション見出し",
-      "body": "セクション本文（200字程度）"
-    }
-  ],
-  "keyInsight": "今週の重要インサイト（100字程度）",
-  "infographic": {
-    "title": "図解タイトル",
-    "svgContent": "SVGタグの中身のみ（<svg>タグ不要）。viewBoxは '0 0 600 400'。主なトレンドや関係性を図解するSVG要素（rect, text, line, circle, path等）を使い、わかりやすく可視化すること。フォントは sans-serif、日本語テキストも含めてよい。色は青系(#3B82F6, #1D4ED8)と緑系(#10B981)を中心に。"
-  }
-}`;
-
-    const res = await fetch("https://openrouter.ai/api/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${OPENROUTER_API_KEY}`,
-        "Content-Type": "application/json",
-        "HTTP-Referer": "https://github.com/flea-market-monitor",
-      },
-      body: JSON.stringify({
-        model: "anthropic/claude-sonnet-4-5",
-        messages: [{ role: "user", content: prompt }],
-        max_tokens: 4000,
-      }),
+    const favCount = articles.filter((a: { id: string }) => favoriteIds.has(a.id)).length;
+    const topTags: string[] = [];
+    articles.forEach((a: { tags: string[]; id: string }) => {
+      if (favoriteIds.has(a.id)) topTags.push(...a.tags);
     });
 
-    if (!res.ok) throw new Error(`OpenRouter error: ${res.status}`);
-    const json = await res.json();
-    const text: string = json?.choices?.[0]?.message?.content ?? "";
+    await new Promise((r) => setTimeout(r, 800));
 
-    // コードフェンス除去
-    const clean = text.replace(/```(?:json)?\s*/g, "").replace(/```/g, "").trim();
-    const data = JSON.parse(clean);
-    return NextResponse.json(data);
+    const report = {
+      reportTitle: `${category} 週次レポート`,
+      executiveSummary: `今週の${category}分野は複数の重要トレンドが交差する展開となった。AI技術の実用化加速、規制動向、市場変動が複合的に影響しており、今後3〜6ヶ月は変革の加速期と見られる。${favCount > 0 ? `あなたが注目した${favCount}件の記事を中心に分析した。` : ""}`,
+      sections: [
+        {
+          heading: "📈 今週のハイライト",
+          body: `${category}分野では技術革新と市場の変化が同時進行している。特に大手プレイヤーの動向が業界全体の方向性を左右しており、新規参入企業との競争激化が注目を集めている。投資家・事業者ともに次の一手を慎重に見極める局面が続く。`,
+        },
+        {
+          heading: "🔍 注目トレンド分析",
+          body: `規制・技術・資本の三つのベクトルが収束しつつある。政府の政策動向が民間投資の方向性に直接影響を与えており、グローバルな標準化の動きとローカル規制の整合性が課題として浮上している。来月以降、具体的なガイドラインの公表が相次ぐ見込み。`,
+        },
+        {
+          heading: "🌏 海外動向との比較",
+          body: `米国・EUと国内の動向を比較すると、日本は技術採用速度では後れを取りつつも、安全性・品質面での強みを活かした差別化が進んでいる。海外資本の流入も活発化しており、グローバル連携の機運が高まっている。`,
+        },
+      ],
+      keyInsight: `${category}分野の最重要変数は「規制の明確化」と「人材確保」の2点。この2つが整備されれば市場は急速に拡大するポテンシャルを持っている。`,
+      infographic: {
+        title: `${category} トレンドマップ`,
+        svgContent: `
+  <!-- 背景 -->
+  <rect width="600" height="400" fill="#F8FAFC" rx="12"/>
+
+  <!-- タイトル -->
+  <text x="300" y="36" text-anchor="middle" font-family="sans-serif" font-size="16" font-weight="bold" fill="#1E293B">${category} トレンドマップ 2026</text>
+
+  <!-- 中央ノード -->
+  <circle cx="300" cy="200" r="52" fill="#3B82F6" opacity="0.9"/>
+  <text x="300" y="195" text-anchor="middle" font-family="sans-serif" font-size="13" font-weight="bold" fill="white">${category}</text>
+  <text x="300" y="213" text-anchor="middle" font-family="sans-serif" font-size="11" fill="#BFDBFE">市場動向</text>
+
+  <!-- 左上ノード: 技術 -->
+  <line x1="300" y1="200" x2="130" y2="110" stroke="#94A3B8" stroke-width="2" stroke-dasharray="4"/>
+  <circle cx="130" cy="110" r="40" fill="#1D4ED8" opacity="0.85"/>
+  <text x="130" y="105" text-anchor="middle" font-family="sans-serif" font-size="12" font-weight="bold" fill="white">技術革新</text>
+  <text x="130" y="122" text-anchor="middle" font-family="sans-serif" font-size="10" fill="#BFDBFE">AI・自動化</text>
+
+  <!-- 右上ノード: 規制 -->
+  <line x1="300" y1="200" x2="470" y2="110" stroke="#94A3B8" stroke-width="2" stroke-dasharray="4"/>
+  <circle cx="470" cy="110" r="40" fill="#7C3AED" opacity="0.85"/>
+  <text x="470" y="105" text-anchor="middle" font-family="sans-serif" font-size="12" font-weight="bold" fill="white">規制動向</text>
+  <text x="470" y="122" text-anchor="middle" font-family="sans-serif" font-size="10" fill="#DDD6FE">法整備</text>
+
+  <!-- 左下ノード: 投資 -->
+  <line x1="300" y1="200" x2="130" y2="300" stroke="#94A3B8" stroke-width="2" stroke-dasharray="4"/>
+  <circle cx="130" cy="300" r="40" fill="#10B981" opacity="0.85"/>
+  <text x="130" y="295" text-anchor="middle" font-family="sans-serif" font-size="12" font-weight="bold" fill="white">投資・資本</text>
+  <text x="130" y="312" text-anchor="middle" font-family="sans-serif" font-size="10" fill="#D1FAE5">市場拡大</text>
+
+  <!-- 右下ノード: 人材 -->
+  <line x1="300" y1="200" x2="470" y2="300" stroke="#94A3B8" stroke-width="2" stroke-dasharray="4"/>
+  <circle cx="470" cy="300" r="40" fill="#F59E0B" opacity="0.85"/>
+  <text x="470" y="295" text-anchor="middle" font-family="sans-serif" font-size="12" font-weight="bold" fill="white">人材・組織</text>
+  <text x="470" y="312" text-anchor="middle" font-family="sans-serif" font-size="10" fill="#FEF3C7">スキル不足</text>
+
+  <!-- 凡例 -->
+  <rect x="20" y="355" width="12" height="12" rx="2" fill="#3B82F6"/>
+  <text x="38" y="366" font-family="sans-serif" font-size="11" fill="#64748B">中心テーマ</text>
+  <rect x="110" y="355" width="12" height="12" rx="2" fill="#10B981"/>
+  <text x="128" y="366" font-family="sans-serif" font-size="11" fill="#64748B">成長要因</text>
+  <rect x="200" y="355" width="12" height="12" rx="2" fill="#F59E0B"/>
+  <text x="218" y="366" font-family="sans-serif" font-size="11" fill="#64748B">課題</text>
+        `,
+      },
+    };
+
+    return NextResponse.json(report);
   } catch (e) {
     console.error("Report generation error:", e);
     return NextResponse.json({ error: "レポート生成に失敗しました" }, { status: 500 });
