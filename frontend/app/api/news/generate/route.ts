@@ -1,9 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
-import Anthropic from "@anthropic-ai/sdk";
 
-const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY;
 
 export async function POST(req: NextRequest) {
+  if (!OPENROUTER_API_KEY) {
+    return NextResponse.json({ error: "OPENROUTER_API_KEY が未設定です" }, { status: 500 });
+  }
+
   try {
     const { category, preferences, discoveryTopics } = await req.json();
 
@@ -40,14 +43,27 @@ ${discoveryContext}
   ]
 }`;
 
-    const message = await client.messages.create({
-      model: "claude-sonnet-4-6",
-      max_tokens: 2000,
-      messages: [{ role: "user", content: prompt }],
+    const res = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${OPENROUTER_API_KEY}`,
+        "Content-Type": "application/json",
+        "HTTP-Referer": "https://github.com/flea-market-monitor",
+      },
+      body: JSON.stringify({
+        model: "anthropic/claude-sonnet-4-5",
+        messages: [{ role: "user", content: prompt }],
+        max_tokens: 2000,
+      }),
     });
 
-    const text = (message.content[0] as { type: string; text: string }).text;
-    const data = JSON.parse(text);
+    if (!res.ok) throw new Error(`OpenRouter error: ${res.status}`);
+    const json = await res.json();
+    const text: string = json?.choices?.[0]?.message?.content ?? "";
+
+    // コードフェンス除去
+    const clean = text.replace(/```(?:json)?\s*/g, "").replace(/```/g, "").trim();
+    const data = JSON.parse(clean);
     return NextResponse.json(data);
   } catch (e) {
     console.error("News generation error:", e);
