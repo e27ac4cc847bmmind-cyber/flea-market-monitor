@@ -45,22 +45,20 @@ interface CategoryData {
   loadedAt: number;
 }
 
+interface TabConfig {
+  name: string;
+  prompt: string;
+}
+
 interface Preferences {
   topics: string[];
   score: Record<string, number>;
 }
 
-const DEFAULT_TABS = ["AI & IT", "経済"];
-
-const DISCOVERY_MAP: Record<string, string[]> = {
-  "AI & IT": ["量子コンピューティング", "バイオテック", "宇宙開発", "サイバーセキュリティ"],
-  "経済": ["地政学リスク", "エネルギー政策", "人口動態", "サプライチェーン"],
-};
-
-function getDiscoveryTopics(category: string, prefs: Preferences): string[] {
-  const base = DISCOVERY_MAP[category] ?? ["隣接分野の最新動向"];
-  return base.slice(0, 2);
-}
+const DEFAULT_TABS: TabConfig[] = [
+  { name: "AI & IT", prompt: "" },
+  { name: "経済", prompt: "" },
+];
 
 function getTopPreferences(prefs: Preferences): string[] {
   return Object.entries(prefs.score)
@@ -144,12 +142,10 @@ function ReportView({
         <h2 className="text-lg font-bold text-gray-900">{report.reportTitle}</h2>
       </div>
 
-      {/* 要約 */}
       <div className="bg-blue-50 border border-blue-200 rounded-xl p-4">
         <p className="text-sm text-blue-800 leading-relaxed">{report.executiveSummary}</p>
       </div>
 
-      {/* SVGインフォグラフィック */}
       <div className="bg-white border rounded-xl p-4">
         <h3 className="text-sm font-semibold text-gray-700 mb-3">📊 {report.infographic.title}</h3>
         <div className="overflow-x-auto">
@@ -162,7 +158,6 @@ function ReportView({
         </div>
       </div>
 
-      {/* セクション */}
       {report.sections.map((section, i) => (
         <div key={i} className="bg-white border rounded-xl p-4">
           <h3 className="font-semibold text-gray-900 mb-2">{section.heading}</h3>
@@ -170,7 +165,6 @@ function ReportView({
         </div>
       ))}
 
-      {/* キーインサイト */}
       <div className="bg-green-50 border border-green-200 rounded-xl p-4">
         <div className="flex items-start gap-2">
           <Sparkles size={16} className="text-green-600 mt-0.5 flex-shrink-0" />
@@ -186,9 +180,10 @@ function ReportView({
 
 // ==================== メインページ ====================
 export default function NewsPage() {
-  const [tabs, setTabs] = useState<string[]>(DEFAULT_TABS);
-  const [activeTab, setActiveTab] = useState(DEFAULT_TABS[0]);
+  const [tabs, setTabs] = useState<TabConfig[]>(DEFAULT_TABS);
+  const [activeTabName, setActiveTabName] = useState(DEFAULT_TABS[0].name);
   const [newTabName, setNewTabName] = useState("");
+  const [newTabPrompt, setNewTabPrompt] = useState("");
   const [showAddTab, setShowAddTab] = useState(false);
 
   const [categoryData, setCategoryData] = useState<Record<string, CategoryData>>({});
@@ -200,7 +195,8 @@ export default function NewsPage() {
   const [report, setReport] = useState<Report | null>(null);
   const [error, setError] = useState("");
 
-  // localStorageから復元
+  const activeTab = tabs.find((t) => t.name === activeTabName) ?? tabs[0];
+
   useEffect(() => {
     try {
       const savedFavs = localStorage.getItem("news_favorites");
@@ -209,9 +205,9 @@ export default function NewsPage() {
       if (savedFavs) setFavorites(new Set(JSON.parse(savedFavs)));
       if (savedPrefs) setPreferences(JSON.parse(savedPrefs));
       if (savedTabs) {
-        const t = JSON.parse(savedTabs);
+        const t: TabConfig[] = JSON.parse(savedTabs);
         setTabs(t);
-        setActiveTab(t[0]);
+        setActiveTabName(t[0].name);
       }
     } catch {}
   }, []);
@@ -224,40 +220,40 @@ export default function NewsPage() {
     localStorage.setItem("news_preferences", JSON.stringify(prefs));
   };
 
-  const saveTabs = (t: string[]) => {
+  const saveTabs = (t: TabConfig[]) => {
     localStorage.setItem("news_tabs", JSON.stringify(t));
   };
 
   const loadArticles = useCallback(
-    async (category: string) => {
+    async (tab: TabConfig) => {
       setLoading(true);
       setError("");
       try {
-        const topPrefs = getTopPreferences(preferences);
-        const discoveryTopics = getDiscoveryTopics(category, preferences);
         const res = await fetch("/api/news/generate", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ category, preferences: topPrefs, discoveryTopics }),
+          body: JSON.stringify({ category: tab.name, prompt: tab.prompt }),
         });
-        if (!res.ok) throw new Error();
+        if (!res.ok) {
+          const err = await res.json();
+          throw new Error(err.error ?? "取得失敗");
+        }
         const data = await res.json();
         setCategoryData((prev) => ({
           ...prev,
-          [category]: { articles: data.articles, loadedAt: Date.now() },
+          [tab.name]: { articles: data.articles, loadedAt: Date.now() },
         }));
-      } catch {
-        setError("ニュースの取得に失敗しました。APIキーを確認してください。");
+      } catch (e) {
+        setError(e instanceof Error ? e.message : "ニュースの取得に失敗しました。");
       } finally {
         setLoading(false);
       }
     },
-    [preferences]
+    []
   );
 
-  // タブ切り替え時に未読のカテゴリは自動取得
   useEffect(() => {
-    if (!categoryData[activeTab]) {
+    if (activeTab && !categoryData[activeTab.name]) {
       loadArticles(activeTab);
     }
   }, [activeTab, categoryData, loadArticles]);
@@ -269,7 +265,6 @@ export default function NewsPage() {
         next.delete(article.id);
       } else {
         next.add(article.id);
-        // 好みスコアを加算
         setPreferences((prefs) => {
           const newScore = { ...prefs.score };
           article.tags.forEach((tag) => {
@@ -287,25 +282,27 @@ export default function NewsPage() {
 
   const addTab = () => {
     const name = newTabName.trim();
-    if (!name || tabs.includes(name)) return;
-    const newTabs = [...tabs, name];
+    if (!name || tabs.find((t) => t.name === name)) return;
+    const newTab: TabConfig = { name, prompt: newTabPrompt.trim() };
+    const newTabs = [...tabs, newTab];
     setTabs(newTabs);
     saveTabs(newTabs);
-    setActiveTab(name);
+    setActiveTabName(name);
     setNewTabName("");
+    setNewTabPrompt("");
     setShowAddTab(false);
   };
 
-  const removeTab = (tab: string) => {
-    if (DEFAULT_TABS.includes(tab)) return;
-    const newTabs = tabs.filter((t) => t !== tab);
+  const removeTab = (tabName: string) => {
+    if (DEFAULT_TABS.find((t) => t.name === tabName)) return;
+    const newTabs = tabs.filter((t) => t.name !== tabName);
     setTabs(newTabs);
     saveTabs(newTabs);
-    if (activeTab === tab) setActiveTab(newTabs[0]);
+    if (activeTabName === tabName) setActiveTabName(newTabs[0].name);
   };
 
   const generateReport = async () => {
-    const articles = categoryData[activeTab]?.articles ?? [];
+    const articles = categoryData[activeTabName]?.articles ?? [];
     if (articles.length === 0) return;
     setReportLoading(true);
     setError("");
@@ -314,7 +311,7 @@ export default function NewsPage() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          category: activeTab,
+          category: activeTabName,
           articles,
           favorites: Array.from(favorites),
         }),
@@ -329,9 +326,8 @@ export default function NewsPage() {
     }
   };
 
-  const currentArticles = categoryData[activeTab]?.articles ?? [];
+  const currentArticles = categoryData[activeTabName]?.articles ?? [];
 
-  // レポート表示中
   if (report) {
     return (
       <div className="max-w-2xl mx-auto px-4 py-6">
@@ -346,9 +342,7 @@ export default function NewsPage() {
       <div className="flex items-center justify-between mb-5">
         <div>
           <h1 className="text-xl font-bold text-gray-900">📰 ニュースレポート</h1>
-          <p className="text-xs text-gray-500 mt-0.5">
-            ♡ {favorites.size}件お気に入り済み
-          </p>
+          <p className="text-xs text-gray-500 mt-0.5">♡ {favorites.size}件お気に入り済み</p>
         </div>
         <button
           onClick={generateReport}
@@ -356,15 +350,9 @@ export default function NewsPage() {
           className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-300 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors"
         >
           {reportLoading ? (
-            <>
-              <RefreshCw size={14} className="animate-spin" />
-              生成中...
-            </>
+            <><RefreshCw size={14} className="animate-spin" />生成中...</>
           ) : (
-            <>
-              <FileText size={14} />
-              レポートを作成
-            </>
+            <><FileText size={14} />レポートを作成</>
           )}
         </button>
       </div>
@@ -373,18 +361,18 @@ export default function NewsPage() {
       <div className="flex items-center gap-1 mb-4 overflow-x-auto pb-1">
         <div className="flex gap-1 bg-gray-100 p-1 rounded-lg flex-shrink-0">
           {tabs.map((tab) => (
-            <div key={tab} className="relative flex-shrink-0">
+            <div key={tab.name} className="relative flex-shrink-0">
               <button
-                onClick={() => setActiveTab(tab)}
+                onClick={() => setActiveTabName(tab.name)}
                 className={`py-1.5 px-3 text-sm font-medium rounded-md transition-colors whitespace-nowrap ${
-                  activeTab === tab ? "bg-white shadow text-gray-900" : "text-gray-500 hover:text-gray-700"
+                  activeTabName === tab.name ? "bg-white shadow text-gray-900" : "text-gray-500 hover:text-gray-700"
                 }`}
               >
-                {tab}
+                {tab.name}
               </button>
-              {!DEFAULT_TABS.includes(tab) && (
+              {!DEFAULT_TABS.find((t) => t.name === tab.name) && (
                 <button
-                  onClick={() => removeTab(tab)}
+                  onClick={() => removeTab(tab.name)}
                   className="absolute -top-1 -right-1 w-4 h-4 bg-gray-400 hover:bg-red-500 text-white rounded-full flex items-center justify-center transition-colors"
                 >
                   <X size={10} />
@@ -395,28 +383,37 @@ export default function NewsPage() {
         </div>
 
         {showAddTab ? (
-          <div className="flex items-center gap-1 flex-shrink-0">
+          <div className="flex flex-col gap-2 flex-shrink-0 bg-white border rounded-xl p-3 shadow-sm min-w-[240px]">
             <input
               type="text"
               value={newTabName}
               onChange={(e) => setNewTabName(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && addTab()}
-              placeholder="分野名"
+              placeholder="タブ名（例: テスラ・EV）"
               autoFocus
-              className="border rounded-lg px-3 py-1.5 text-sm w-28 focus:outline-none focus:ring-2 focus:ring-blue-400"
+              className="border rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
             />
-            <button
-              onClick={addTab}
-              className="bg-blue-600 text-white px-3 py-1.5 rounded-lg text-sm font-medium"
-            >
-              追加
-            </button>
-            <button
-              onClick={() => setShowAddTab(false)}
-              className="text-gray-400 hover:text-gray-600"
-            >
-              <X size={16} />
-            </button>
+            <textarea
+              value={newTabPrompt}
+              onChange={(e) => setNewTabPrompt(e.target.value)}
+              placeholder="関心の詳細（例: テスラ株、電気自動車市場、イーロン・マスクの動向を中心に。投資判断に役立つ情報が欲しい）"
+              rows={3}
+              className="border rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 resize-none"
+            />
+            <div className="flex gap-2">
+              <button
+                onClick={addTab}
+                disabled={!newTabName.trim()}
+                className="flex-1 bg-blue-600 disabled:bg-blue-300 text-white px-3 py-1.5 rounded-lg text-sm font-medium"
+              >
+                追加
+              </button>
+              <button
+                onClick={() => { setShowAddTab(false); setNewTabName(""); setNewTabPrompt(""); }}
+                className="text-gray-400 hover:text-gray-600 px-2"
+              >
+                <X size={16} />
+              </button>
+            </div>
           </div>
         ) : (
           <button
@@ -429,6 +426,14 @@ export default function NewsPage() {
         )}
       </div>
 
+      {/* アクティブタブのプロンプト表示 */}
+      {activeTab?.prompt && (
+        <div className="flex items-start gap-2 bg-purple-50 border border-purple-100 rounded-lg px-3 py-2 mb-3">
+          <Sparkles size={13} className="text-purple-400 mt-0.5 flex-shrink-0" />
+          <p className="text-xs text-purple-700 leading-relaxed">{activeTab.prompt}</p>
+        </div>
+      )}
+
       {/* エラー */}
       {error && (
         <div className="bg-red-50 border border-red-200 rounded-lg p-3 mb-4 text-red-700 text-sm">
@@ -436,10 +441,10 @@ export default function NewsPage() {
         </div>
       )}
 
-      {/* リフレッシュボタン */}
+      {/* リフレッシュ */}
       <div className="flex justify-end mb-3">
         <button
-          onClick={() => loadArticles(activeTab)}
+          onClick={() => activeTab && loadArticles(activeTab)}
           disabled={loading}
           className="flex items-center gap-1.5 text-xs text-gray-500 hover:text-blue-600 transition-colors"
         >
@@ -452,7 +457,7 @@ export default function NewsPage() {
       {loading ? (
         <div className="flex flex-col items-center justify-center py-20 text-gray-400">
           <div className="animate-spin w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full mb-4" />
-          <p className="text-sm">Claudeがニュースを生成中...</p>
+          <p className="text-sm">AIがニュースを生成中...</p>
         </div>
       ) : (
         <div className="space-y-3">
