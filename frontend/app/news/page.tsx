@@ -229,10 +229,11 @@ export default function NewsPage() {
       setLoading(true);
       setError("");
       try {
+        const topPrefs = getTopPreferences(preferences);
         const res = await fetch("/api/news/generate", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ category: tab.name, prompt: tab.prompt }),
+          body: JSON.stringify({ category: tab.name, prompt: tab.prompt, preferences: topPrefs }),
         });
         if (!res.ok) {
           const err = await res.json();
@@ -249,7 +250,7 @@ export default function NewsPage() {
         setLoading(false);
       }
     },
-    []
+    [preferences]
   );
 
   useEffect(() => {

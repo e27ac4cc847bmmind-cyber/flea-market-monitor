@@ -1,64 +1,82 @@
 import { NextRequest, NextResponse } from "next/server";
+import { chat, extractJSON } from "@/lib/openrouter";
 
-const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY;
-const TODAY = new Date().toISOString().split("T")[0];
+const MODEL = "perplexity/sonar";
 
-async function generateWithAI(category: string, prompt: string): Promise<object[]> {
-  const systemPrompt = `あなたは日本語のニュースキュレーターです。今日は${TODAY}です。指定されたカテゴリとユーザーの関心に基づいて、最新のリアルなニュース記事を5件生成してください。
+interface Article {
+  id: string;
+  title: string;
+  summary: string;
+  detail: string;
+  source: string;
+  publishedAt: string;
+  tags: string[];
+  isDiscovery: boolean;
+}
 
-以下のJSON配列形式で返してください（コードブロックなし、JSONのみ）:
+function buildSystemPrompt(today: string): string {
+  return `あなたは優秀な日本語ニュースリサーチャーです。今日は${today}です。
+Web検索を使い、指定されたカテゴリと条件に合う「実際の最新ニュース」を調べて5件にまとめてください。
+できるだけ直近（数日以内）の本物の出来事を選び、推測や創作はしないこと。
+
+出力は必ず次のJSON配列のみ（説明文やコードフェンスは一切付けない）:
 [
   {
-    "id": "一意のID",
-    "title": "記事タイトル",
+    "id": "短い英数字ID",
+    "title": "記事の見出し（日本語）",
     "summary": "2〜3文の要約",
-    "detail": "詳細説明（3〜4文）",
-    "source": "メディア名",
-    "publishedAt": "${TODAY}",
+    "detail": "背景・影響を含む詳しい説明（3〜4文）",
+    "source": "実際の報道機関名",
+    "publishedAt": "YYYY-MM-DD（記事の日付。不明なら${today}）",
     "tags": ["タグ1", "タグ2", "タグ3"],
     "isDiscovery": false
   }
 ]
 
-重要: 最後の1件は isDiscovery: true にして、ユーザーが知らなそうな隣接分野の発見的な記事にしてください。`;
+ルール:
+- 5件のうち4件はユーザーの関心ど真ん中の話題にする。
+- 残り1件は isDiscovery: true とし、ユーザーの関心に隣接するが本人がまだ追っていなさそうな「発見」記事にする。`;
+}
 
-  const userMessage = `カテゴリ: ${category}${prompt ? `\nユーザーの関心・条件: ${prompt}` : ""}`;
-
-  const res = await fetch("https://openrouter.ai/api/v1/chat/completions", {
-    method: "POST",
-    headers: {
-      "Authorization": `Bearer ${OPENROUTER_API_KEY}`,
-      "Content-Type": "application/json",
-      "HTTP-Referer": "https://flea-market-monitor.vercel.app",
-    },
-    body: JSON.stringify({
-      model: "deepseek/deepseek-v4:free",
-      messages: [
-        { role: "system", content: systemPrompt },
-        { role: "user", content: userMessage },
-      ],
-      temperature: 0.7,
-    }),
-  });
-
-  if (!res.ok) throw new Error(`OpenRouter error: ${res.status}`);
-  const data = await res.json();
-  const text = data.choices[0].message.content.trim();
-  return JSON.parse(text);
+function buildUserPrompt(category: string, prompt: string, preferences: string[]): string {
+  const lines = [`カテゴリ: ${category}`];
+  if (prompt) lines.push(`重視したい関心・条件: ${prompt}`);
+  if (preferences.length > 0) {
+    lines.push(`これまでこのユーザーが「いいね」した傾向（タグ）: ${preferences.join("、")}`);
+    lines.push("→ この傾向を踏まえつつ、発見記事(isDiscovery)はあえて少し違う角度のものにすること。");
+  }
+  return lines.join("\n");
 }
 
 export async function POST(req: NextRequest) {
   try {
-    const { category, prompt } = await req.json();
+    const { category, prompt, preferences } = await req.json();
+    const today = new Date().toISOString().split("T")[0];
 
-    if (!OPENROUTER_API_KEY) {
-      return NextResponse.json({ error: "APIキーが設定されていません" }, { status: 500 });
+    const content = await chat({
+      model: MODEL,
+      system: buildSystemPrompt(today),
+      user: buildUserPrompt(category ?? "", prompt ?? "", Array.isArray(preferences) ? preferences : []),
+      temperature: 0.5,
+    });
+
+    const articles = extractJSON<Article[]>(content);
+    if (!Array.isArray(articles) || articles.length === 0) {
+      throw new Error("記事が生成されませんでした");
     }
 
-    const articles = await generateWithAI(category, prompt ?? "");
-    return NextResponse.json({ articles });
+    // IDが重複・欠落しても安全になるよう補正
+    const normalized = articles.map((a, i) => ({
+      ...a,
+      id: a.id || `${category}-${Date.now()}-${i}`,
+      tags: Array.isArray(a.tags) ? a.tags : [],
+      isDiscovery: Boolean(a.isDiscovery),
+    }));
+
+    return NextResponse.json({ articles: normalized });
   } catch (e) {
     console.error("News generation error:", e);
-    return NextResponse.json({ error: "ニュース生成に失敗しました" }, { status: 500 });
+    const msg = e instanceof Error ? e.message : "ニュース生成に失敗しました";
+    return NextResponse.json({ error: msg }, { status: 500 });
   }
 }
