@@ -32,7 +32,7 @@ async function generateWithAI(category: string, prompt: string): Promise<object[
       "HTTP-Referer": "https://flea-market-monitor.vercel.app",
     },
     body: JSON.stringify({
-      model: "google/gemini-flash-1.5",
+      model: "deepseek/deepseek-chat-v3-0324:free",
       messages: [
         { role: "system", content: systemPrompt },
         { role: "user", content: userMessage },
