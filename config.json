@@ -40,6 +40,19 @@
   ],
   "history": [
     {
+      "id": "mercari_m90165345965",
+      "name": "大日本古銭　旧五圓金貨　明治十三年　近代貨幣　アンティークコレクション遺品整理品",
+      "price": 1800,
+      "platform": "メルカリ",
+      "url": "https://jp.mercari.com/item/m90165345965",
+      "image_url": "https://static.mercdn.net/thumb/item/webp/m90165345965_1.jpg?1781526312",
+      "keyword": "純銀 コイン",
+      "ai_comment": "[gpt-oss-120b] 金貨で銀製品ではなく、投資目的の純銀地金条件を満たさないため。",
+      "ai_ok": false,
+      "market_info": "銀スポット: ¥366/g（1oz=¥11379）",
+      "detected_at": "2026-06-15T14:46:43.669892"
+    },
+    {
       "id": "paypay_z627273628",
       "name": "純銀　純銀メダル　年銘板　ミントセット　銀メダル　オールドコインメダルシリーズ　記念メダル　造幣局　2001年　約7g",
       "price": 3250,
