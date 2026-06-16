@@ -14,6 +14,8 @@ import {
   Sparkles,
   ShoppingBag,
   Bot,
+  Link,
+  Heart,
 } from "lucide-react";
 
 // ==================== 型定義 ====================
@@ -57,9 +59,56 @@ interface Config {
   history: HistoryItem[];
 }
 
+interface GitHubConfig {
+  token: string;
+  owner: string;
+  repo: string;
+  branch: string;
+}
+
+interface LearnProposal {
+  note: string;
+  exclude_words: string[];
+  require_words: string[];
+  explanation: string;
+}
+
+// ==================== GitHub認証ヘルパー ====================
+function getGitHubHeaders(): Record<string, string> {
+  try {
+    const stored = localStorage.getItem("github_config");
+    if (!stored) return {};
+    const gc: GitHubConfig = JSON.parse(stored);
+    if (!gc.token || !gc.owner || !gc.repo) return {};
+    return {
+      "x-github-token": gc.token,
+      "x-github-owner": gc.owner,
+      "x-github-repo": gc.repo,
+      "x-github-branch": gc.branch || "main",
+    };
+  } catch {
+    return {};
+  }
+}
+
+function loadGitHubConfig(): GitHubConfig | null {
+  try {
+    const stored = localStorage.getItem("github_config");
+    if (!stored) return null;
+    const gc: GitHubConfig = JSON.parse(stored);
+    if (!gc.token || !gc.owner || !gc.repo) return null;
+    return gc;
+  } catch {
+    return null;
+  }
+}
+
 // ==================== API関数 ====================
 async function fetchConfig(): Promise<Config> {
-  const res = await fetch("/api/config");
+  const res = await fetch("/api/config", {
+    headers: getGitHubHeaders(),
+    cache: "no-store",
+  });
   if (!res.ok) throw new Error("設定読み込み失敗");
   return res.json();
 }
@@ -67,10 +116,13 @@ async function fetchConfig(): Promise<Config> {
 async function saveConfig(config: Config): Promise<void> {
   const res = await fetch("/api/config", {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: { "Content-Type": "application/json", ...getGitHubHeaders() },
     body: JSON.stringify(config),
   });
-  if (!res.ok) throw new Error("設定保存失敗");
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}));
+    throw new Error(data.error || "設定保存失敗");
+  }
 }
 
 // ==================== プラットフォームバッジ ====================
@@ -92,7 +144,17 @@ function PlatformBadge({ platform }: { platform: string }) {
 }
 
 // ==================== 新着カード ====================
-function ArrivalCard({ item, isNew }: { item: HistoryItem; isNew: boolean }) {
+function ArrivalCard({
+  item,
+  isNew,
+  isLiked,
+  onToggleLike,
+}: {
+  item: HistoryItem;
+  isNew: boolean;
+  isLiked: boolean;
+  onToggleLike: () => void;
+}) {
   const [imgError, setImgError] = useState(false);
 
   const relativeTime = () => {
@@ -106,7 +168,6 @@ function ArrivalCard({ item, isNew }: { item: HistoryItem; isNew: boolean }) {
 
   return (
     <div className="border rounded-lg bg-white shadow-sm p-3 flex gap-3">
-      {/* サムネイル */}
       <div className="w-20 h-20 flex-shrink-0 rounded-md overflow-hidden bg-gray-100 flex items-center justify-center">
         {item.image_url && !imgError ? (
           <img
@@ -121,7 +182,6 @@ function ArrivalCard({ item, isNew }: { item: HistoryItem; isNew: boolean }) {
         )}
       </div>
 
-      {/* 内容 */}
       <div className="flex-1 min-w-0">
         <div className="flex items-start justify-between gap-2">
           <p className="font-medium text-sm leading-snug line-clamp-2 flex-1">{item.name}</p>
@@ -150,19 +210,201 @@ function ArrivalCard({ item, isNew }: { item: HistoryItem; isNew: boolean }) {
           <span className="text-xs text-gray-400">#{item.keyword}</span>
         </div>
 
-        <div className="flex items-start gap-1 mt-1">
-          {item.ai_ok ? (
-            <CheckCircle size={13} className="text-green-500 flex-shrink-0 mt-0.5" />
-          ) : (
-            <Bot size={13} className="text-gray-300 flex-shrink-0 mt-0.5" />
-          )}
-          <p className="text-xs text-gray-500 line-clamp-1">
-            {item.ai_comment.replace(/^\[.*?\]\s*/, "")}
-          </p>
+        <div className="flex items-center gap-1 mt-1">
+          <div className="flex items-start gap-1 flex-1 min-w-0">
+            {item.ai_ok ? (
+              <CheckCircle size={13} className="text-green-500 flex-shrink-0 mt-0.5" />
+            ) : (
+              <Bot size={13} className="text-gray-300 flex-shrink-0 mt-0.5" />
+            )}
+            <p className="text-xs text-gray-500 line-clamp-1">
+              {item.ai_comment.replace(/^\[.*?\]\s*/, "")}
+            </p>
+          </div>
+          <button
+            onClick={onToggleLike}
+            className="flex-shrink-0 px-1 text-base leading-none transition-transform hover:scale-125 active:scale-110"
+            title={isLiked ? "お気に入り解除" : "お気に入り登録"}
+          >
+            {isLiked ? (
+              <span className="text-red-500">♥</span>
+            ) : (
+              <span className="text-gray-300 hover:text-red-300">♡</span>
+            )}
+          </button>
         </div>
 
         <p className="text-xs text-gray-400 mt-0.5">{relativeTime()}</p>
       </div>
+    </div>
+  );
+}
+
+// ==================== GitHub接続設定カード ====================
+function GitHubSettingsCard({ onConfigured }: { onConfigured: () => void }) {
+  const [gc, setGc] = useState<GitHubConfig>(() => ({
+    token: "",
+    owner: "",
+    repo: "flea-market-monitor",
+    branch: "main",
+  }));
+  const [expanded, setExpanded] = useState(false);
+  const [testing, setTesting] = useState(false);
+  const [result, setResult] = useState<"ok" | "error" | null>(null);
+  const [resultMsg, setResultMsg] = useState("");
+  const configured = !!loadGitHubConfig();
+
+  useEffect(() => {
+    const saved = loadGitHubConfig();
+    if (saved) setGc(saved);
+    else setExpanded(true);
+  }, []);
+
+  const connect = async () => {
+    if (!gc.token || !gc.owner || !gc.repo) return;
+    setTesting(true);
+    setResult(null);
+    try {
+      localStorage.setItem("github_config", JSON.stringify(gc));
+      const res = await fetch("/api/config", {
+        headers: {
+          "x-github-token": gc.token,
+          "x-github-owner": gc.owner,
+          "x-github-repo": gc.repo,
+          "x-github-branch": gc.branch || "main",
+        },
+        cache: "no-store",
+      });
+      if (res.ok) {
+        setResult("ok");
+        setResultMsg("接続成功！設定が読み込まれました。");
+        setExpanded(false);
+        onConfigured();
+      } else {
+        const data = await res.json().catch(() => ({}));
+        setResult("error");
+        setResultMsg(data.error || "接続に失敗しました。");
+        localStorage.removeItem("github_config");
+      }
+    } catch {
+      setResult("error");
+      setResultMsg("ネットワークエラーが発生しました。");
+      localStorage.removeItem("github_config");
+    } finally {
+      setTesting(false);
+    }
+  };
+
+  return (
+    <div
+      className={`border rounded-lg bg-white shadow-sm ${
+        !configured ? "border-amber-300" : ""
+      }`}
+    >
+      <div className="flex items-center justify-between p-4">
+        <div className="flex items-center gap-2">
+          <Link size={16} className="text-gray-500" />
+          <span className="font-medium text-sm text-gray-800">GitHub接続設定</span>
+          {configured ? (
+            <span className="text-xs text-green-700 bg-green-100 px-2 py-0.5 rounded">
+              接続済み
+            </span>
+          ) : (
+            <span className="text-xs text-amber-700 bg-amber-100 px-2 py-0.5 rounded">
+              ⚠ 要設定
+            </span>
+          )}
+        </div>
+        <button
+          onClick={() => setExpanded(!expanded)}
+          className="text-gray-400 hover:text-gray-600"
+        >
+          {expanded ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
+        </button>
+      </div>
+
+      {expanded && (
+        <div className="border-t px-4 pb-4 pt-3 space-y-3">
+          <p className="text-xs text-gray-500 leading-relaxed">
+            キーワードを保存・監視するには GitHub Personal Access Token が必要です。
+            <br />
+            <a
+              href="https://github.com/settings/tokens/new?scopes=repo&description=flea-market-monitor"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-blue-500 underline"
+            >
+              こちらでトークンを発行（repoスコープにチェック）→
+            </a>
+          </p>
+
+          <div>
+            <label className="text-xs font-medium text-gray-700">
+              Personal Access Token <span className="text-red-500">*</span>
+            </label>
+            <input
+              type="password"
+              value={gc.token}
+              onChange={(e) => setGc({ ...gc, token: e.target.value })}
+              placeholder="ghp_xxxxxxxxxxxx"
+              className="mt-1 w-full border rounded px-3 py-2 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-blue-400"
+            />
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="text-xs font-medium text-gray-700">
+                GitHubユーザー名 <span className="text-red-500">*</span>
+              </label>
+              <input
+                type="text"
+                value={gc.owner}
+                onChange={(e) => setGc({ ...gc, owner: e.target.value })}
+                placeholder="username"
+                className="mt-1 w-full border rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
+              />
+            </div>
+            <div>
+              <label className="text-xs font-medium text-gray-700">リポジトリ名</label>
+              <input
+                type="text"
+                value={gc.repo}
+                onChange={(e) => setGc({ ...gc, repo: e.target.value })}
+                className="mt-1 w-full border rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
+              />
+            </div>
+          </div>
+
+          {result === "ok" && (
+            <p className="text-xs text-green-700 bg-green-50 border border-green-200 rounded p-2">
+              ✓ {resultMsg}
+            </p>
+          )}
+          {result === "error" && (
+            <p className="text-xs text-red-700 bg-red-50 border border-red-200 rounded p-2">
+              ✗ {resultMsg}
+            </p>
+          )}
+
+          <button
+            onClick={connect}
+            disabled={testing || !gc.token || !gc.owner || !gc.repo}
+            className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-blue-300 text-white font-medium py-2 rounded-lg text-sm transition-colors flex items-center justify-center gap-2"
+          >
+            {testing ? (
+              <>
+                <RefreshCw size={15} className="animate-spin" />
+                接続テスト中...
+              </>
+            ) : (
+              <>
+                <Link size={15} />
+                接続して保存
+              </>
+            )}
+          </button>
+        </div>
+      )}
     </div>
   );
 }
@@ -172,12 +414,56 @@ function KeywordCard({
   kw,
   onChange,
   onDelete,
+  likedItems,
+  onClearLiked,
 }: {
   kw: KeywordConfig;
   onChange: (updated: KeywordConfig) => void;
   onDelete: () => void;
+  likedItems: HistoryItem[];
+  onClearLiked: (ids: string[]) => void;
 }) {
   const [expanded, setExpanded] = useState(false);
+  const [proposalLoading, setProposalLoading] = useState(false);
+  const [proposal, setProposal] = useState<LearnProposal | null>(null);
+  const [proposalError, setProposalError] = useState("");
+
+  const learnFromLikes = async () => {
+    setProposalLoading(true);
+    setProposal(null);
+    setProposalError("");
+    try {
+      const res = await fetch("/api/learn-preference", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ keyword_config: kw, liked_items: likedItems }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.ok) throw new Error(data.error || "学習に失敗しました");
+      setProposal({
+        note: data.note,
+        exclude_words: data.exclude_words,
+        require_words: data.require_words,
+        explanation: data.explanation,
+      });
+    } catch (e) {
+      setProposalError(e instanceof Error ? e.message : "学習に失敗しました");
+    } finally {
+      setProposalLoading(false);
+    }
+  };
+
+  const applyProposal = () => {
+    if (!proposal) return;
+    onChange({
+      ...kw,
+      note: proposal.note,
+      exclude_words: proposal.exclude_words,
+      require_words: proposal.require_words,
+    });
+    onClearLiked(likedItems.map((i) => i.id));
+    setProposal(null);
+  };
 
   return (
     <div className={`border rounded-lg bg-white shadow-sm ${!kw.enabled ? "opacity-60" : ""}`}>
@@ -196,6 +482,9 @@ function KeywordCard({
         </button>
 
         <span className="font-medium flex-1 truncate">{kw.keyword || "（キーワード未設定）"}</span>
+        {likedItems.length > 0 && (
+          <span className="text-xs text-red-400 font-medium">♥ {likedItems.length}</span>
+        )}
         <span className="text-sm text-gray-500">¥{kw.max_price.toLocaleString()}以下</span>
 
         <button onClick={() => setExpanded(!expanded)} className="text-gray-400 hover:text-gray-600">
@@ -229,12 +518,12 @@ function KeywordCard({
             </div>
             <div className="sm:col-span-2">
               <label className="text-sm font-medium text-gray-700">
-                お得判定閾値（相場より何%以下）
+                お得判定閾値（相場より何%以下で通知）
               </label>
               <div className="flex items-center gap-2 mt-1">
                 <input
                   type="range"
-                  min={5}
+                  min={0}
                   max={80}
                   value={kw.discount_threshold}
                   onChange={(e) =>
@@ -246,6 +535,11 @@ function KeywordCard({
                   {kw.discount_threshold}%
                 </span>
               </div>
+              <p className="text-xs text-gray-400 mt-0.5">
+                {kw.discount_threshold === 0
+                  ? "0% = 上限価格以下なら全て通知"
+                  : `相場より${kw.discount_threshold}%以上安い場合のみ通知`}
+              </p>
             </div>
           </div>
 
@@ -325,6 +619,80 @@ function KeywordCard({
               className="mt-1 w-full border rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 resize-y"
             />
           </div>
+
+          {/* ❤️ 学習ボタン */}
+          {likedItems.length >= 3 && (
+            <div className="rounded-lg bg-pink-50 border border-pink-200 p-3 space-y-2">
+              <p className="text-sm font-medium text-pink-800">
+                ❤️ {likedItems.length}件のお気に入りから学習
+              </p>
+              <p className="text-xs text-pink-600">
+                お気に入りした商品の共通点をAIが分析し、検索条件（note・除外ワード・必須ワード）を自動改善します。
+              </p>
+              {proposalError && (
+                <p className="text-xs text-red-600 bg-red-50 rounded p-2">{proposalError}</p>
+              )}
+              {!proposal && (
+                <button
+                  onClick={learnFromLikes}
+                  disabled={proposalLoading}
+                  className="w-full bg-pink-500 hover:bg-pink-600 disabled:bg-pink-300 text-white text-sm font-medium py-2 rounded-lg flex items-center justify-center gap-2 transition-colors"
+                >
+                  {proposalLoading ? (
+                    <>
+                      <RefreshCw size={14} className="animate-spin" />
+                      AIが分析中...
+                    </>
+                  ) : (
+                    <>
+                      <Heart size={14} />
+                      好みを分析して条件を改善
+                    </>
+                  )}
+                </button>
+              )}
+              {proposal && (
+                <div className="space-y-2">
+                  <div className="text-xs bg-white border border-pink-200 rounded p-2 space-y-1.5">
+                    <p className="font-medium text-gray-700">AIの提案:</p>
+                    <p>
+                      <span className="text-gray-400">note: </span>
+                      <span className="text-gray-700">{proposal.note}</span>
+                    </p>
+                    {proposal.exclude_words.length > 0 && (
+                      <p>
+                        <span className="text-gray-400">除外ワード: </span>
+                        <span className="text-gray-700">{proposal.exclude_words.join(", ")}</span>
+                      </p>
+                    )}
+                    {proposal.require_words.length > 0 && (
+                      <p>
+                        <span className="text-gray-400">必須ワード: </span>
+                        <span className="text-gray-700">{proposal.require_words.join(", ")}</span>
+                      </p>
+                    )}
+                    <p className="text-gray-400 italic border-t border-pink-100 pt-1">
+                      {proposal.explanation}
+                    </p>
+                  </div>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={applyProposal}
+                      className="flex-1 bg-pink-500 hover:bg-pink-600 text-white text-sm font-medium py-2 rounded-lg transition-colors"
+                    >
+                      適用する
+                    </button>
+                    <button
+                      onClick={() => setProposal(null)}
+                      className="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-600 text-sm font-medium py-2 rounded-lg transition-colors"
+                    >
+                      キャンセル
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
         </div>
       )}
     </div>
@@ -338,16 +706,53 @@ export default function Home() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
+  const [githubConfigured, setGithubConfigured] = useState(false);
   const [activeTab, setActiveTab] = useState<"arrivals" | "settings">("arrivals");
   const [filter, setFilter] = useState<"all" | "ai_ok" | "recent">("all");
   const [nlText, setNlText] = useState("");
   const [nlLoading, setNlLoading] = useState(false);
 
-  // セッション開始時の既読タイムスタンプ（セッション中は変わらない）
   const [lastSeenAt] = useState<string>(() => {
     if (typeof window === "undefined") return new Date(0).toISOString();
     return localStorage.getItem("arrivals_last_seen_at") ?? new Date(0).toISOString();
   });
+
+  const [likedIds, setLikedIds] = useState<Set<string>>(() => {
+    if (typeof window === "undefined") return new Set();
+    try {
+      const stored = localStorage.getItem("liked_items");
+      return new Set(JSON.parse(stored ?? "[]") as string[]);
+    } catch {
+      return new Set();
+    }
+  });
+
+  const toggleLike = useCallback((itemId: string) => {
+    setLikedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(itemId)) next.delete(itemId);
+      else next.add(itemId);
+      localStorage.setItem("liked_items", JSON.stringify(Array.from(next)));
+      return next;
+    });
+  }, []);
+
+  const clearLikedIds = useCallback((ids: string[]) => {
+    setLikedIds((prev) => {
+      const next = new Set(prev);
+      ids.forEach((id) => next.delete(id));
+      localStorage.setItem("liked_items", JSON.stringify(Array.from(next)));
+      return next;
+    });
+  }, []);
+
+  useEffect(() => {
+    setGithubConfigured(!!loadGitHubConfig());
+  }, []);
+
+  useEffect(() => {
+    if (!githubConfigured) setActiveTab("settings");
+  }, [githubConfigured]);
 
   const load = useCallback(async () => {
     try {
@@ -372,7 +777,6 @@ export default function Home() {
     load();
   }, [load]);
 
-  // 新着タブを開いたら既読タイムスタンプをlocalStorageに記録
   useEffect(() => {
     if (activeTab === "arrivals" && config && typeof window !== "undefined") {
       localStorage.setItem("arrivals_last_seen_at", new Date().toISOString());
@@ -405,8 +809,8 @@ export default function Home() {
       await saveConfig(config);
       setSuccess("設定を保存しました！");
       setTimeout(() => setSuccess(""), 3000);
-    } catch {
-      setError("保存に失敗しました。");
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "保存に失敗しました。");
     } finally {
       setSaving(false);
     }
@@ -418,7 +822,7 @@ export default function Home() {
       id: Date.now().toString(),
       keyword: "",
       max_price: 10000,
-      discount_threshold: 20,
+      discount_threshold: 0,
       platforms: { mercari: true, rakuma: true, paypay: true },
       precious_metal_mode: false,
       metal_type: "silver",
@@ -551,17 +955,37 @@ export default function Home() {
         </button>
         <button
           onClick={() => setActiveTab("settings")}
-          className={`flex-1 py-2 text-sm font-medium rounded-md transition-colors ${
+          className={`flex-1 py-2 text-sm font-medium rounded-md transition-colors flex items-center justify-center gap-1.5 ${
             activeTab === "settings" ? "bg-white shadow text-gray-900" : "text-gray-500"
           }`}
         >
           ⚙️ 検索設定
+          {!githubConfigured && (
+            <span className="bg-amber-400 text-white text-xs px-1.5 py-0.5 rounded-full font-bold leading-none">
+              !
+            </span>
+          )}
         </button>
       </div>
 
       {/* 新着タブ */}
       {activeTab === "arrivals" && (
         <div>
+          {!githubConfigured && (
+            <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 mb-3 text-sm">
+              <p className="font-medium text-amber-800">GitHub接続が未設定です</p>
+              <p className="text-amber-700 text-xs mt-1">
+                「検索設定」タブでGitHubトークンを設定するとキーワードの保存・監視が開始されます。
+              </p>
+              <button
+                onClick={() => setActiveTab("settings")}
+                className="mt-2 text-xs text-blue-600 underline"
+              >
+                設定タブへ →
+              </button>
+            </div>
+          )}
+
           {/* フィルターバー */}
           <div className="flex gap-2 mb-3">
             {(["all", "ai_ok", "recent"] as const).map((f) => {
@@ -598,7 +1022,13 @@ export default function Home() {
               </div>
             ) : (
               filteredHistory.map((item) => (
-                <ArrivalCard key={item.id} item={item} isNew={item.detected_at > lastSeenAt} />
+                <ArrivalCard
+                  key={item.id}
+                  item={item}
+                  isNew={item.detected_at > lastSeenAt}
+                  isLiked={likedIds.has(item.id)}
+                  onToggleLike={() => toggleLike(item.id)}
+                />
               ))
             )}
           </div>
@@ -608,6 +1038,14 @@ export default function Home() {
       {/* 設定タブ */}
       {activeTab === "settings" && (
         <div className="space-y-3">
+          {/* GitHub接続設定 */}
+          <GitHubSettingsCard
+            onConfigured={() => {
+              setGithubConfigured(true);
+              load();
+            }}
+          />
+
           {/* 監視ON/OFF */}
           <div
             className={`flex items-center justify-between p-3 rounded-xl ${
@@ -689,14 +1127,21 @@ export default function Home() {
               <p className="text-sm mt-1">上の入力か、下のボタンから追加してください</p>
             </div>
           )}
-          {config.keywords.map((kw) => (
-            <KeywordCard
-              key={kw.id}
-              kw={kw}
-              onChange={(updated) => updateKeyword(kw.id, updated)}
-              onDelete={() => deleteKeyword(kw.id)}
-            />
-          ))}
+          {config.keywords.map((kw) => {
+            const likedForKw = config.history.filter(
+              (item) => item.keyword === kw.keyword && likedIds.has(item.id)
+            );
+            return (
+              <KeywordCard
+                key={kw.id}
+                kw={kw}
+                onChange={(updated) => updateKeyword(kw.id, updated)}
+                onDelete={() => deleteKeyword(kw.id)}
+                likedItems={likedForKw}
+                onClearLiked={clearLikedIds}
+              />
+            );
+          })}
 
           <button
             onClick={addKeyword}
