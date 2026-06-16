@@ -14,6 +14,7 @@ import {
   Sparkles,
   ShoppingBag,
   Bot,
+  Link,
 } from "lucide-react";
 
 // ==================== 型定義 ====================
@@ -57,9 +58,49 @@ interface Config {
   history: HistoryItem[];
 }
 
+interface GitHubConfig {
+  token: string;
+  owner: string;
+  repo: string;
+  branch: string;
+}
+
+// ==================== GitHub認証ヘルパー ====================
+function getGitHubHeaders(): Record<string, string> {
+  try {
+    const stored = localStorage.getItem("github_config");
+    if (!stored) return {};
+    const gc: GitHubConfig = JSON.parse(stored);
+    if (!gc.token || !gc.owner || !gc.repo) return {};
+    return {
+      "x-github-token": gc.token,
+      "x-github-owner": gc.owner,
+      "x-github-repo": gc.repo,
+      "x-github-branch": gc.branch || "main",
+    };
+  } catch {
+    return {};
+  }
+}
+
+function loadGitHubConfig(): GitHubConfig | null {
+  try {
+    const stored = localStorage.getItem("github_config");
+    if (!stored) return null;
+    const gc: GitHubConfig = JSON.parse(stored);
+    if (!gc.token || !gc.owner || !gc.repo) return null;
+    return gc;
+  } catch {
+    return null;
+  }
+}
+
 // ==================== API関数 ====================
 async function fetchConfig(): Promise<Config> {
-  const res = await fetch("/api/config");
+  const res = await fetch("/api/config", {
+    headers: getGitHubHeaders(),
+    cache: "no-store",
+  });
   if (!res.ok) throw new Error("設定読み込み失敗");
   return res.json();
 }
@@ -67,10 +108,13 @@ async function fetchConfig(): Promise<Config> {
 async function saveConfig(config: Config): Promise<void> {
   const res = await fetch("/api/config", {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: { "Content-Type": "application/json", ...getGitHubHeaders() },
     body: JSON.stringify(config),
   });
-  if (!res.ok) throw new Error("設定保存失敗");
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}));
+    throw new Error(data.error || "設定保存失敗");
+  }
 }
 
 // ==================== プラットフォームバッジ ====================
@@ -106,7 +150,6 @@ function ArrivalCard({ item, isNew }: { item: HistoryItem; isNew: boolean }) {
 
   return (
     <div className="border rounded-lg bg-white shadow-sm p-3 flex gap-3">
-      {/* サムネイル */}
       <div className="w-20 h-20 flex-shrink-0 rounded-md overflow-hidden bg-gray-100 flex items-center justify-center">
         {item.image_url && !imgError ? (
           <img
@@ -121,7 +164,6 @@ function ArrivalCard({ item, isNew }: { item: HistoryItem; isNew: boolean }) {
         )}
       </div>
 
-      {/* 内容 */}
       <div className="flex-1 min-w-0">
         <div className="flex items-start justify-between gap-2">
           <p className="font-medium text-sm leading-snug line-clamp-2 flex-1">{item.name}</p>
@@ -163,6 +205,175 @@ function ArrivalCard({ item, isNew }: { item: HistoryItem; isNew: boolean }) {
 
         <p className="text-xs text-gray-400 mt-0.5">{relativeTime()}</p>
       </div>
+    </div>
+  );
+}
+
+// ==================== GitHub接続設定カード ====================
+function GitHubSettingsCard({ onConfigured }: { onConfigured: () => void }) {
+  const [gc, setGc] = useState<GitHubConfig>(() => ({
+    token: "",
+    owner: "",
+    repo: "flea-market-monitor",
+    branch: "main",
+  }));
+  const [expanded, setExpanded] = useState(false);
+  const [testing, setTesting] = useState(false);
+  const [result, setResult] = useState<"ok" | "error" | null>(null);
+  const [resultMsg, setResultMsg] = useState("");
+  const configured = !!loadGitHubConfig();
+
+  useEffect(() => {
+    const saved = loadGitHubConfig();
+    if (saved) setGc(saved);
+    else setExpanded(true); // 未設定なら最初から開く
+  }, []);
+
+  const connect = async () => {
+    if (!gc.token || !gc.owner || !gc.repo) return;
+    setTesting(true);
+    setResult(null);
+    try {
+      localStorage.setItem("github_config", JSON.stringify(gc));
+      const res = await fetch("/api/config", {
+        headers: {
+          "x-github-token": gc.token,
+          "x-github-owner": gc.owner,
+          "x-github-repo": gc.repo,
+          "x-github-branch": gc.branch || "main",
+        },
+        cache: "no-store",
+      });
+      if (res.ok) {
+        setResult("ok");
+        setResultMsg("接続成功！設定が読み込まれました。");
+        setExpanded(false);
+        onConfigured();
+      } else {
+        const data = await res.json().catch(() => ({}));
+        setResult("error");
+        setResultMsg(data.error || "接続に失敗しました。");
+        localStorage.removeItem("github_config");
+      }
+    } catch {
+      setResult("error");
+      setResultMsg("ネットワークエラーが発生しました。");
+      localStorage.removeItem("github_config");
+    } finally {
+      setTesting(false);
+    }
+  };
+
+  return (
+    <div
+      className={`border rounded-lg bg-white shadow-sm ${
+        !configured ? "border-amber-300" : ""
+      }`}
+    >
+      <div className="flex items-center justify-between p-4">
+        <div className="flex items-center gap-2">
+          <Link size={16} className="text-gray-500" />
+          <span className="font-medium text-sm text-gray-800">GitHub接続設定</span>
+          {configured ? (
+            <span className="text-xs text-green-700 bg-green-100 px-2 py-0.5 rounded">
+              接続済み
+            </span>
+          ) : (
+            <span className="text-xs text-amber-700 bg-amber-100 px-2 py-0.5 rounded">
+              ⚠ 要設定
+            </span>
+          )}
+        </div>
+        <button
+          onClick={() => setExpanded(!expanded)}
+          className="text-gray-400 hover:text-gray-600"
+        >
+          {expanded ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
+        </button>
+      </div>
+
+      {expanded && (
+        <div className="border-t px-4 pb-4 pt-3 space-y-3">
+          <p className="text-xs text-gray-500 leading-relaxed">
+            キーワードを保存・監視するには GitHub Personal Access Token が必要です。
+            <br />
+            <a
+              href="https://github.com/settings/tokens/new?scopes=repo&description=flea-market-monitor"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-blue-500 underline"
+            >
+              こちらでトークンを発行（repoスコープにチェック）→
+            </a>
+          </p>
+
+          <div>
+            <label className="text-xs font-medium text-gray-700">
+              Personal Access Token <span className="text-red-500">*</span>
+            </label>
+            <input
+              type="password"
+              value={gc.token}
+              onChange={(e) => setGc({ ...gc, token: e.target.value })}
+              placeholder="ghp_xxxxxxxxxxxx"
+              className="mt-1 w-full border rounded px-3 py-2 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-blue-400"
+            />
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="text-xs font-medium text-gray-700">
+                GitHubユーザー名 <span className="text-red-500">*</span>
+              </label>
+              <input
+                type="text"
+                value={gc.owner}
+                onChange={(e) => setGc({ ...gc, owner: e.target.value })}
+                placeholder="username"
+                className="mt-1 w-full border rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
+              />
+            </div>
+            <div>
+              <label className="text-xs font-medium text-gray-700">リポジトリ名</label>
+              <input
+                type="text"
+                value={gc.repo}
+                onChange={(e) => setGc({ ...gc, repo: e.target.value })}
+                className="mt-1 w-full border rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
+              />
+            </div>
+          </div>
+
+          {result === "ok" && (
+            <p className="text-xs text-green-700 bg-green-50 border border-green-200 rounded p-2">
+              ✓ {resultMsg}
+            </p>
+          )}
+          {result === "error" && (
+            <p className="text-xs text-red-700 bg-red-50 border border-red-200 rounded p-2">
+              ✗ {resultMsg}
+            </p>
+          )}
+
+          <button
+            onClick={connect}
+            disabled={testing || !gc.token || !gc.owner || !gc.repo}
+            className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-blue-300 text-white font-medium py-2 rounded-lg text-sm transition-colors flex items-center justify-center gap-2"
+          >
+            {testing ? (
+              <>
+                <RefreshCw size={15} className="animate-spin" />
+                接続テスト中...
+              </>
+            ) : (
+              <>
+                <Link size={15} />
+                接続して保存
+              </>
+            )}
+          </button>
+        </div>
+      )}
     </div>
   );
 }
@@ -338,16 +549,26 @@ export default function Home() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
+  const [githubConfigured, setGithubConfigured] = useState(false);
   const [activeTab, setActiveTab] = useState<"arrivals" | "settings">("arrivals");
   const [filter, setFilter] = useState<"all" | "ai_ok" | "recent">("all");
   const [nlText, setNlText] = useState("");
   const [nlLoading, setNlLoading] = useState(false);
 
-  // セッション開始時の既読タイムスタンプ（セッション中は変わらない）
   const [lastSeenAt] = useState<string>(() => {
     if (typeof window === "undefined") return new Date(0).toISOString();
     return localStorage.getItem("arrivals_last_seen_at") ?? new Date(0).toISOString();
   });
+
+  // GitHub設定の状態をマウント後に確認
+  useEffect(() => {
+    setGithubConfigured(!!loadGitHubConfig());
+  }, []);
+
+  // GitHub未設定なら設定タブをデフォルトに
+  useEffect(() => {
+    if (!githubConfigured) setActiveTab("settings");
+  }, [githubConfigured]);
 
   const load = useCallback(async () => {
     try {
@@ -372,7 +593,6 @@ export default function Home() {
     load();
   }, [load]);
 
-  // 新着タブを開いたら既読タイムスタンプをlocalStorageに記録
   useEffect(() => {
     if (activeTab === "arrivals" && config && typeof window !== "undefined") {
       localStorage.setItem("arrivals_last_seen_at", new Date().toISOString());
@@ -405,8 +625,8 @@ export default function Home() {
       await saveConfig(config);
       setSuccess("設定を保存しました！");
       setTimeout(() => setSuccess(""), 3000);
-    } catch {
-      setError("保存に失敗しました。");
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "保存に失敗しました。");
     } finally {
       setSaving(false);
     }
@@ -551,17 +771,37 @@ export default function Home() {
         </button>
         <button
           onClick={() => setActiveTab("settings")}
-          className={`flex-1 py-2 text-sm font-medium rounded-md transition-colors ${
+          className={`flex-1 py-2 text-sm font-medium rounded-md transition-colors flex items-center justify-center gap-1.5 ${
             activeTab === "settings" ? "bg-white shadow text-gray-900" : "text-gray-500"
           }`}
         >
           ⚙️ 検索設定
+          {!githubConfigured && (
+            <span className="bg-amber-400 text-white text-xs px-1.5 py-0.5 rounded-full font-bold leading-none">
+              !
+            </span>
+          )}
         </button>
       </div>
 
       {/* 新着タブ */}
       {activeTab === "arrivals" && (
         <div>
+          {!githubConfigured && (
+            <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 mb-3 text-sm">
+              <p className="font-medium text-amber-800">GitHub接続が未設定です</p>
+              <p className="text-amber-700 text-xs mt-1">
+                「検索設定」タブでGitHubトークンを設定するとキーワードの保存・監視が開始されます。
+              </p>
+              <button
+                onClick={() => setActiveTab("settings")}
+                className="mt-2 text-xs text-blue-600 underline"
+              >
+                設定タブへ →
+              </button>
+            </div>
+          )}
+
           {/* フィルターバー */}
           <div className="flex gap-2 mb-3">
             {(["all", "ai_ok", "recent"] as const).map((f) => {
@@ -608,6 +848,14 @@ export default function Home() {
       {/* 設定タブ */}
       {activeTab === "settings" && (
         <div className="space-y-3">
+          {/* GitHub接続設定 */}
+          <GitHubSettingsCard
+            onConfigured={() => {
+              setGithubConfigured(true);
+              load();
+            }}
+          />
+
           {/* 監視ON/OFF */}
           <div
             className={`flex items-center justify-between p-3 rounded-xl ${

@@ -3,22 +3,34 @@ import { readFileSync, writeFileSync, existsSync } from "fs";
 import { join } from "path";
 
 const CONFIG_PATH = join(process.cwd(), "..", "config.json");
-
-// GitHub API経由でconfig.jsonを読み書き（Vercel環境用）
-const GITHUB_TOKEN = process.env.GITHUB_TOKEN;
-const GITHUB_OWNER = process.env.GITHUB_OWNER;
-const GITHUB_REPO = process.env.GITHUB_REPO;
-const GITHUB_BRANCH = process.env.GITHUB_BRANCH ?? "main";
 const CONFIG_FILE_PATH = "config.json";
 
-async function readConfigGitHub(): Promise<object | null> {
-  if (!GITHUB_TOKEN || !GITHUB_OWNER || !GITHUB_REPO) return null;
+interface GitHubCreds {
+  token: string;
+  owner: string;
+  repo: string;
+  branch: string;
+}
+
+function getCredsFromRequest(req: NextRequest): GitHubCreds | null {
+  // クライアントヘッダー優先、なければ環境変数にフォールバック
+  const token = req.headers.get("x-github-token") || process.env.GITHUB_TOKEN;
+  const owner = req.headers.get("x-github-owner") || process.env.GITHUB_OWNER;
+  const repo = req.headers.get("x-github-repo") || process.env.GITHUB_REPO;
+  const branch = req.headers.get("x-github-branch") || process.env.GITHUB_BRANCH || "main";
+  if (!token || !owner || !repo) return null;
+  return { token, owner, repo, branch };
+}
+
+async function readConfigGitHub(
+  creds: GitHubCreds
+): Promise<{ config: object; sha: string } | null> {
   try {
     const res = await fetch(
-      `https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/contents/${CONFIG_FILE_PATH}?ref=${GITHUB_BRANCH}`,
+      `https://api.github.com/repos/${creds.owner}/${creds.repo}/contents/${CONFIG_FILE_PATH}?ref=${creds.branch}`,
       {
         headers: {
-          Authorization: `Bearer ${GITHUB_TOKEN}`,
+          Authorization: `Bearer ${creds.token}`,
           Accept: "application/vnd.github.v3+json",
         },
         cache: "no-store",
@@ -33,16 +45,19 @@ async function readConfigGitHub(): Promise<object | null> {
   }
 }
 
-async function writeConfigGitHub(config: object, sha: string): Promise<boolean> {
-  if (!GITHUB_TOKEN || !GITHUB_OWNER || !GITHUB_REPO) return false;
+async function writeConfigGitHub(
+  creds: GitHubCreds,
+  config: object,
+  sha: string
+): Promise<boolean> {
   try {
     const content = Buffer.from(JSON.stringify(config, null, 2)).toString("base64");
     const res = await fetch(
-      `https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/contents/${CONFIG_FILE_PATH}`,
+      `https://api.github.com/repos/${creds.owner}/${creds.repo}/contents/${CONFIG_FILE_PATH}`,
       {
         method: "PUT",
         headers: {
-          Authorization: `Bearer ${GITHUB_TOKEN}`,
+          Authorization: `Bearer ${creds.token}`,
           Accept: "application/vnd.github.v3+json",
           "Content-Type": "application/json",
         },
@@ -50,7 +65,7 @@ async function writeConfigGitHub(config: object, sha: string): Promise<boolean> 
           message: "chore: UI設定更新",
           content,
           sha,
-          branch: GITHUB_BRANCH,
+          branch: creds.branch,
         }),
       }
     );
@@ -78,11 +93,11 @@ function writeConfigLocal(config: object): boolean {
   }
 }
 
-export async function GET() {
-  // GitHub API優先（Vercel環境）、なければローカルファイル
-  const ghResult = await readConfigGitHub() as { config: object; sha: string } | null;
-  if (ghResult) {
-    return NextResponse.json(ghResult.config);
+export async function GET(req: NextRequest) {
+  const creds = getCredsFromRequest(req);
+  if (creds) {
+    const result = await readConfigGitHub(creds);
+    if (result) return NextResponse.json(result.config);
   }
   return NextResponse.json(readConfigLocal());
 }
@@ -95,22 +110,27 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "invalid payload" }, { status: 400 });
     }
 
-    // GitHub API経由で保存（Vercel）
-    const ghResult = await readConfigGitHub() as { config: object; sha: string } | null;
-    if (GITHUB_TOKEN || GITHUB_OWNER || GITHUB_REPO) {
-      // GitHub環境変数が設定されているのに読み込めない = トークン問題
+    const creds = getCredsFromRequest(req);
+    if (creds) {
+      const ghResult = await readConfigGitHub(creds);
       if (!ghResult) {
         return NextResponse.json(
-          { error: "GitHubへの接続に失敗しました。VercelのGITHUB_TOKEN環境変数が正しく設定されているか確認してください。" },
+          { error: "GitHubへの接続に失敗しました。トークンとユーザー名を確認してください。" },
           { status: 500 }
         );
       }
       const current = ghResult.config as Record<string, unknown>;
-      const updated = { ...body, history: body.history ?? (current as Record<string, unknown>).history ?? [] };
-      const ok = await writeConfigGitHub(updated, ghResult.sha);
+      const updated = {
+        ...body,
+        history: body.history ?? current.history ?? [],
+      };
+      const ok = await writeConfigGitHub(creds, updated, ghResult.sha);
       if (ok) return NextResponse.json({ ok: true });
       return NextResponse.json(
-        { error: "GitHubへの書き込みに失敗しました。GITHUB_TOKENにrepoスコープの書き込み権限があるか確認してください。" },
+        {
+          error:
+            "GitHubへの書き込みに失敗しました。トークンにrepoスコープの権限があるか確認してください。",
+        },
         { status: 500 }
       );
     }
