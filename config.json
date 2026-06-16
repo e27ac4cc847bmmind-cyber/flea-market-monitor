@@ -1,5 +1,29 @@
 {
   "monitoring_enabled": true,
-  "keywords": [],
+  "keywords": [
+    {
+      "id": "1781615859758",
+      "keyword": "F48 BMW X1 ラバー フロアマット",
+      "max_price": 15000,
+      "discount_threshold": 20,
+      "platforms": {
+        "mercari": true,
+        "rakuma": true,
+        "paypay": true
+      },
+      "precious_metal_mode": false,
+      "metal_type": "silver",
+      "exclude_words": [
+        "ジャンク",
+        "部品取り",
+        "破損",
+        "レプリカ",
+        "コピー"
+      ],
+      "require_words": [],
+      "note": "F48 BMW X1用のラバー製フロアマットを探しています。中古でも構いませんが、汚れや破損がないものを希望します。ジャンク品やレプリカは避けてください。",
+      "enabled": true
+    }
+  ],
   "history": []
 }
