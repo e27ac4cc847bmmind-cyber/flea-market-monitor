@@ -27,6 +27,19 @@
   ],
   "history": [
     {
+      "id": "mercari_m14426917933",
+      "name": "BMW X5 フロアマット◆助手席＋リアマット【新品】",
+      "price": 3590,
+      "platform": "メルカリ",
+      "url": "https://jp.mercari.com/item/m14426917933",
+      "image_url": "https://static.mercdn.net/thumb/item/webp/m14426917933_1.jpg?1771186144",
+      "keyword": "F48 BMW X1 ラバー フロアマット",
+      "ai_comment": "[gpt-oss-120b] 車種が異なり、ユーザー希望のX1ラバー製マットと合致しないため。",
+      "ai_ok": false,
+      "market_info": "メルカリ相場: ¥7959（売れ済み平均）",
+      "detected_at": "2026-06-16T17:32:11.245123"
+    },
+    {
       "id": "mercari_m92086985019",
       "name": "BMW X1 MスポーツフロアマットF48",
       "price": 12900,
