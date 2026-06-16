@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import {
   Plus,
   Trash2,
@@ -10,9 +10,10 @@ import {
   ExternalLink,
   ChevronDown,
   ChevronUp,
-  AlertCircle,
   CheckCircle,
   Sparkles,
+  ShoppingBag,
+  Bot,
 } from "lucide-react";
 
 // ==================== 型定義 ====================
@@ -42,6 +43,7 @@ interface HistoryItem {
   price: number;
   platform: string;
   url: string;
+  image_url: string;
   keyword: string;
   ai_comment: string;
   ai_ok: boolean;
@@ -71,7 +73,101 @@ async function saveConfig(config: Config): Promise<void> {
   if (!res.ok) throw new Error("設定保存失敗");
 }
 
-// ==================== コンポーネント ====================
+// ==================== プラットフォームバッジ ====================
+function PlatformBadge({ platform }: { platform: string }) {
+  const styles: Record<string, string> = {
+    メルカリ: "bg-red-100 text-red-700",
+    ラクマ: "bg-orange-100 text-orange-700",
+    PayPayフリマ: "bg-yellow-100 text-yellow-800",
+  };
+  return (
+    <span
+      className={`text-xs px-1.5 py-0.5 rounded font-medium ${
+        styles[platform] ?? "bg-gray-100 text-gray-600"
+      }`}
+    >
+      {platform}
+    </span>
+  );
+}
+
+// ==================== 新着カード ====================
+function ArrivalCard({ item, isNew }: { item: HistoryItem; isNew: boolean }) {
+  const [imgError, setImgError] = useState(false);
+
+  const relativeTime = () => {
+    const diff = Date.now() - new Date(item.detected_at).getTime();
+    const mins = Math.floor(diff / 60000);
+    if (mins < 60) return `${Math.max(0, mins)}分前`;
+    const hours = Math.floor(diff / 3600000);
+    if (hours < 24) return `${hours}時間前`;
+    return `${Math.floor(hours / 24)}日前`;
+  };
+
+  return (
+    <div className="border rounded-lg bg-white shadow-sm p-3 flex gap-3">
+      {/* サムネイル */}
+      <div className="w-20 h-20 flex-shrink-0 rounded-md overflow-hidden bg-gray-100 flex items-center justify-center">
+        {item.image_url && !imgError ? (
+          <img
+            src={item.image_url}
+            alt={item.name}
+            referrerPolicy="no-referrer"
+            className="w-full h-full object-cover"
+            onError={() => setImgError(true)}
+          />
+        ) : (
+          <ShoppingBag size={24} className="text-gray-300" />
+        )}
+      </div>
+
+      {/* 内容 */}
+      <div className="flex-1 min-w-0">
+        <div className="flex items-start justify-between gap-2">
+          <p className="font-medium text-sm leading-snug line-clamp-2 flex-1">{item.name}</p>
+          <div className="flex items-center gap-1.5 flex-shrink-0">
+            {isNew && (
+              <span className="text-xs bg-teal-500 text-white px-1.5 py-0.5 rounded font-bold">
+                NEW
+              </span>
+            )}
+            <a
+              href={item.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-blue-400 hover:text-blue-600"
+            >
+              <ExternalLink size={15} />
+            </a>
+          </div>
+        </div>
+
+        <div className="flex flex-wrap items-center gap-1.5 mt-1">
+          <span className="font-bold text-gray-900 text-sm">
+            ¥{item.price.toLocaleString()}
+          </span>
+          <PlatformBadge platform={item.platform} />
+          <span className="text-xs text-gray-400">#{item.keyword}</span>
+        </div>
+
+        <div className="flex items-start gap-1 mt-1">
+          {item.ai_ok ? (
+            <CheckCircle size={13} className="text-green-500 flex-shrink-0 mt-0.5" />
+          ) : (
+            <Bot size={13} className="text-gray-300 flex-shrink-0 mt-0.5" />
+          )}
+          <p className="text-xs text-gray-500 line-clamp-1">
+            {item.ai_comment.replace(/^\[.*?\]\s*/, "")}
+          </p>
+        </div>
+
+        <p className="text-xs text-gray-400 mt-0.5">{relativeTime()}</p>
+      </div>
+    </div>
+  );
+}
+
+// ==================== キーワードカード ====================
 function KeywordCard({
   kw,
   onChange,
@@ -131,7 +227,7 @@ function KeywordCard({
                 className="mt-1 w-full border rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
               />
             </div>
-            <div>
+            <div className="sm:col-span-2">
               <label className="text-sm font-medium text-gray-700">
                 お得判定閾値（相場より何%以下）
               </label>
@@ -141,39 +237,14 @@ function KeywordCard({
                   min={5}
                   max={80}
                   value={kw.discount_threshold}
-                  onChange={(e) => onChange({ ...kw, discount_threshold: Number(e.target.value) })}
+                  onChange={(e) =>
+                    onChange({ ...kw, discount_threshold: Number(e.target.value) })
+                  }
                   className="flex-1"
                 />
-                <span className="text-sm font-bold w-12 text-right">{kw.discount_threshold}%</span>
-              </div>
-            </div>
-            <div>
-              <label className="text-sm font-medium text-gray-700">貴金属モード</label>
-              <div className="flex items-center gap-3 mt-2">
-                <button
-                  onClick={() => onChange({ ...kw, precious_metal_mode: !kw.precious_metal_mode })}
-                  className={`w-10 h-6 rounded-full transition-colors ${
-                    kw.precious_metal_mode ? "bg-yellow-500" : "bg-gray-300"
-                  }`}
-                >
-                  <div
-                    className={`w-4 h-4 bg-white rounded-full transition-transform mx-1 ${
-                      kw.precious_metal_mode ? "translate-x-4" : "translate-x-0"
-                    }`}
-                  />
-                </button>
-                {kw.precious_metal_mode && (
-                  <select
-                    value={kw.metal_type}
-                    onChange={(e) =>
-                      onChange({ ...kw, metal_type: e.target.value as "silver" | "gold" })
-                    }
-                    className="border rounded px-2 py-1 text-sm"
-                  >
-                    <option value="silver">銀（Silver）</option>
-                    <option value="gold">金（Gold）</option>
-                  </select>
-                )}
+                <span className="text-sm font-bold w-12 text-right">
+                  {kw.discount_threshold}%
+                </span>
               </div>
             </div>
           </div>
@@ -202,7 +273,7 @@ function KeywordCard({
 
           <div>
             <label className="text-sm font-medium text-gray-700">
-              除外ワード（これを含む出品は通知しない・カンマ区切り）
+              除外ワード（カンマ区切り）
             </label>
             <input
               type="text"
@@ -216,14 +287,14 @@ function KeywordCard({
                     .filter(Boolean),
                 })
               }
-              placeholder="例: レプリカ, メッキ, ジャンク, ネックレス"
+              placeholder="例: ジャンク, 部品取り, 破損"
               className="mt-1 w-full border rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
             />
           </div>
 
           <div>
             <label className="text-sm font-medium text-gray-700">
-              必須ワード（すべて含む出品のみ通知・カンマ区切り）
+              必須ワード（カンマ区切り）
             </label>
             <input
               type="text"
@@ -237,60 +308,25 @@ function KeywordCard({
                     .filter(Boolean),
                 })
               }
-              placeholder="例: 純銀, 1オンス"
+              placeholder="例: 動作確認済み, 美品"
               className="mt-1 w-full border rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
             />
           </div>
 
           <div>
             <label className="text-sm font-medium text-gray-700">
-              希望条件メモ（AIがこの条件に合うか判定します）
+              希望条件メモ（AIの判定基準）
             </label>
             <textarea
               value={kw.note}
               onChange={(e) => onChange({ ...kw, note: e.target.value })}
-              placeholder="例: 投資用の純銀地金。アクセサリーや装飾品は不要。本物で状態の良いものだけ。"
+              placeholder="例: 動作確認済みの良品が欲しい。外観の傷は少しくらい許容。"
               rows={2}
               className="mt-1 w-full border rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 resize-y"
             />
           </div>
         </div>
       )}
-    </div>
-  );
-}
-
-function HistoryCard({ item }: { item: HistoryItem }) {
-  return (
-    <div className="border rounded-lg bg-white shadow-sm p-4">
-      <div className="flex items-start justify-between gap-2">
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2 mb-1">
-            {item.ai_ok ? (
-              <CheckCircle size={16} className="text-green-500 flex-shrink-0" />
-            ) : (
-              <AlertCircle size={16} className="text-red-400 flex-shrink-0" />
-            )}
-            <span className="font-medium text-sm truncate">{item.name}</span>
-          </div>
-          <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-gray-500">
-            <span className="font-bold text-gray-800">¥{item.price.toLocaleString()}</span>
-            <span>{item.platform}</span>
-            <span>🔍 {item.keyword}</span>
-            <span>{new Date(item.detected_at).toLocaleString("ja-JP")}</span>
-          </div>
-          <p className="text-xs text-gray-600 mt-1">{item.market_info}</p>
-          <p className="text-xs text-blue-600 mt-1">🤖 {item.ai_comment}</p>
-        </div>
-        <a
-          href={item.url}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="text-blue-500 hover:text-blue-700 flex-shrink-0"
-        >
-          <ExternalLink size={16} />
-        </a>
-      </div>
     </div>
   );
 }
@@ -302,16 +338,22 @@ export default function Home() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
-  const [activeTab, setActiveTab] = useState<"settings" | "history">("settings");
+  const [activeTab, setActiveTab] = useState<"arrivals" | "settings">("arrivals");
+  const [filter, setFilter] = useState<"all" | "ai_ok" | "recent">("all");
   const [nlText, setNlText] = useState("");
   const [nlLoading, setNlLoading] = useState(false);
+
+  // セッション開始時の既読タイムスタンプ（セッション中は変わらない）
+  const [lastSeenAt] = useState<string>(() => {
+    if (typeof window === "undefined") return new Date(0).toISOString();
+    return localStorage.getItem("arrivals_last_seen_at") ?? new Date(0).toISOString();
+  });
 
   const load = useCallback(async () => {
     try {
       setLoading(true);
       setError("");
       const data = await fetchConfig();
-      // 旧データに新フィールドが無い場合の補完
       data.keywords = (data.keywords ?? []).map((k) => ({
         ...k,
         exclude_words: k.exclude_words ?? [],
@@ -319,7 +361,7 @@ export default function Home() {
         note: k.note ?? "",
       }));
       setConfig(data);
-    } catch (e) {
+    } catch {
       setError("設定の読み込みに失敗しました。");
     } finally {
       setLoading(false);
@@ -330,6 +372,30 @@ export default function Home() {
     load();
   }, [load]);
 
+  // 新着タブを開いたら既読タイムスタンプをlocalStorageに記録
+  useEffect(() => {
+    if (activeTab === "arrivals" && config && typeof window !== "undefined") {
+      localStorage.setItem("arrivals_last_seen_at", new Date().toISOString());
+    }
+  }, [activeTab, config]);
+
+  const unreadCount = useMemo(() => {
+    if (!config) return 0;
+    return config.history.filter((item) => item.detected_at > lastSeenAt).length;
+  }, [config, lastSeenAt]);
+
+  const filteredHistory = useMemo(() => {
+    if (!config) return [];
+    const cutoff24h = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+    return config.history
+      .filter((item) => {
+        if (filter === "ai_ok") return item.ai_ok;
+        if (filter === "recent") return item.detected_at >= cutoff24h;
+        return true;
+      })
+      .sort((a, b) => b.detected_at.localeCompare(a.detected_at));
+  }, [config, filter]);
+
   const handleSave = async () => {
     if (!config) return;
     setSaving(true);
@@ -339,7 +405,7 @@ export default function Home() {
       await saveConfig(config);
       setSuccess("設定を保存しました！");
       setTimeout(() => setSuccess(""), 3000);
-    } catch (e) {
+    } catch {
       setError("保存に失敗しました。");
     } finally {
       setSaving(false);
@@ -386,8 +452,8 @@ export default function Home() {
         max_price: c.max_price,
         discount_threshold: c.discount_threshold,
         platforms: { mercari: true, rakuma: true, paypay: true },
-        precious_metal_mode: c.precious_metal_mode,
-        metal_type: c.metal_type,
+        precious_metal_mode: false,
+        metal_type: "silver",
         exclude_words: c.exclude_words,
         require_words: c.require_words,
         note: c.note,
@@ -444,42 +510,15 @@ export default function Home() {
   return (
     <div className="max-w-3xl mx-auto px-4 py-6">
       {/* ヘッダー */}
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex items-center justify-between mb-5">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">🛍️ フリマ監視システム</h1>
-          <p className="text-sm text-gray-500 mt-1">メルカリ・ラクマ・PayPayフリマを自動監視</p>
+          <h1 className="text-2xl font-bold text-gray-900">🛍️ 買い物ウォッチ</h1>
+          <p className="text-sm text-gray-500 mt-0.5">
+            メルカリ・ラクマ・PayPayフリマの新着を通知
+          </p>
         </div>
         <button onClick={load} className="text-gray-400 hover:text-gray-600">
           <RefreshCw size={20} />
-        </button>
-      </div>
-
-      {/* 監視ON/OFF */}
-      <div
-        className={`flex items-center justify-between p-4 rounded-xl mb-6 ${
-          config.monitoring_enabled ? "bg-green-50 border border-green-200" : "bg-red-50 border border-red-200"
-        }`}
-      >
-        <div className="flex items-center gap-3">
-          <Power size={20} className={config.monitoring_enabled ? "text-green-600" : "text-red-400"} />
-          <div>
-            <p className="font-semibold text-gray-800">監視システム</p>
-            <p className={`text-sm ${config.monitoring_enabled ? "text-green-600" : "text-red-500"}`}>
-              {config.monitoring_enabled ? "稼働中 — 1分ごとに実行" : "停止中"}
-            </p>
-          </div>
-        </div>
-        <button
-          onClick={() => setConfig({ ...config, monitoring_enabled: !config.monitoring_enabled })}
-          className={`w-12 h-7 rounded-full transition-colors ${
-            config.monitoring_enabled ? "bg-green-500" : "bg-gray-300"
-          }`}
-        >
-          <div
-            className={`w-5 h-5 bg-white rounded-full transition-transform mx-1 ${
-              config.monitoring_enabled ? "translate-x-5" : "translate-x-0"
-            }`}
-          />
         </button>
       </div>
 
@@ -498,31 +537,122 @@ export default function Home() {
       {/* タブ */}
       <div className="flex gap-1 mb-4 bg-gray-100 p-1 rounded-lg">
         <button
+          onClick={() => setActiveTab("arrivals")}
+          className={`flex-1 py-2 text-sm font-medium rounded-md transition-colors flex items-center justify-center gap-1.5 ${
+            activeTab === "arrivals" ? "bg-white shadow text-gray-900" : "text-gray-500"
+          }`}
+        >
+          🛍️ 新着アイテム
+          {unreadCount > 0 && (
+            <span className="bg-teal-500 text-white text-xs px-1.5 py-0.5 rounded-full font-bold leading-none">
+              {unreadCount}
+            </span>
+          )}
+        </button>
+        <button
           onClick={() => setActiveTab("settings")}
           className={`flex-1 py-2 text-sm font-medium rounded-md transition-colors ${
             activeTab === "settings" ? "bg-white shadow text-gray-900" : "text-gray-500"
           }`}
         >
-          ⚙️ キーワード設定
-        </button>
-        <button
-          onClick={() => setActiveTab("history")}
-          className={`flex-1 py-2 text-sm font-medium rounded-md transition-colors ${
-            activeTab === "history" ? "bg-white shadow text-gray-900" : "text-gray-500"
-          }`}
-        >
-          📋 ヒット履歴 ({config.history.length})
+          ⚙️ 検索設定
         </button>
       </div>
+
+      {/* 新着タブ */}
+      {activeTab === "arrivals" && (
+        <div>
+          {/* フィルターバー */}
+          <div className="flex gap-2 mb-3">
+            {(["all", "ai_ok", "recent"] as const).map((f) => {
+              const labels = { all: "すべて", ai_ok: "✓ AI推薦", recent: "24時間以内" };
+              return (
+                <button
+                  key={f}
+                  onClick={() => setFilter(f)}
+                  className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
+                    filter === f
+                      ? "bg-blue-600 text-white"
+                      : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                  }`}
+                >
+                  {labels[f]}
+                </button>
+              );
+            })}
+          </div>
+
+          {/* アイテム一覧 */}
+          <div className="space-y-2">
+            {filteredHistory.length === 0 ? (
+              <div className="text-center py-12 text-gray-400">
+                {filter === "all" && (
+                  <>
+                    <ShoppingBag size={32} className="mx-auto mb-2 opacity-40" />
+                    <p>まだ新着アイテムがありません</p>
+                    <p className="text-sm mt-1">検索設定でキーワードを登録すると表示されます</p>
+                  </>
+                )}
+                {filter === "ai_ok" && <p>AI推薦の商品はまだありません</p>}
+                {filter === "recent" && <p>直近24時間の新着はありません</p>}
+              </div>
+            ) : (
+              filteredHistory.map((item) => (
+                <ArrivalCard key={item.id} item={item} isNew={item.detected_at > lastSeenAt} />
+              ))
+            )}
+          </div>
+        </div>
+      )}
 
       {/* 設定タブ */}
       {activeTab === "settings" && (
         <div className="space-y-3">
+          {/* 監視ON/OFF */}
+          <div
+            className={`flex items-center justify-between p-3 rounded-xl ${
+              config.monitoring_enabled
+                ? "bg-green-50 border border-green-200"
+                : "bg-gray-50 border border-gray-200"
+            }`}
+          >
+            <div className="flex items-center gap-2">
+              <Power
+                size={18}
+                className={config.monitoring_enabled ? "text-green-600" : "text-gray-400"}
+              />
+              <div>
+                <p className="font-medium text-sm text-gray-800">自動監視</p>
+                <p
+                  className={`text-xs ${
+                    config.monitoring_enabled ? "text-green-600" : "text-gray-400"
+                  }`}
+                >
+                  {config.monitoring_enabled ? "稼働中 — 1分ごとに実行" : "停止中"}
+                </p>
+              </div>
+            </div>
+            <button
+              onClick={() =>
+                setConfig({ ...config, monitoring_enabled: !config.monitoring_enabled })
+              }
+              className={`w-11 h-6 rounded-full transition-colors ${
+                config.monitoring_enabled ? "bg-green-500" : "bg-gray-300"
+              }`}
+            >
+              <div
+                className={`w-4 h-4 bg-white rounded-full transition-transform mx-1 ${
+                  config.monitoring_enabled ? "translate-x-5" : "translate-x-0"
+                }`}
+              />
+            </button>
+          </div>
+
           {/* 言葉で追加 */}
           <div className="bg-gradient-to-br from-purple-50 to-blue-50 border border-purple-200 rounded-xl p-4">
             <div className="flex items-center gap-2 mb-2">
               <Sparkles size={18} className="text-purple-500" />
-              <span className="font-semibold text-gray-800 text-sm">言葉で監視を追加</span>
+              <span className="font-semibold text-gray-800 text-sm">言葉で検索を追加</span>
             </div>
             <p className="text-xs text-gray-500 mb-2">
               探したいものを文章で書くと、AIがキーワード・除外条件・上限価格を自動設定します。
@@ -554,9 +684,9 @@ export default function Home() {
           </div>
 
           {config.keywords.length === 0 && (
-            <div className="text-center py-10 text-gray-400">
-              <p>キーワードが登録されていません</p>
-              <p className="text-sm mt-1">下のボタンから追加してください</p>
+            <div className="text-center py-8 text-gray-400">
+              <p>検索キーワードが登録されていません</p>
+              <p className="text-sm mt-1">上の入力か、下のボタンから追加してください</p>
             </div>
           )}
           {config.keywords.map((kw) => (
@@ -584,21 +714,6 @@ export default function Home() {
             <Save size={18} />
             {saving ? "保存中..." : "設定を保存"}
           </button>
-        </div>
-      )}
-
-      {/* 履歴タブ */}
-      {activeTab === "history" && (
-        <div className="space-y-3">
-          {config.history.length === 0 && (
-            <div className="text-center py-10 text-gray-400">
-              <p>まだヒット履歴がありません</p>
-              <p className="text-sm mt-1">監視を開始すると商品が表示されます</p>
-            </div>
-          )}
-          {config.history.map((item) => (
-            <HistoryCard key={item.id} item={item} />
-          ))}
         </div>
       )}
     </div>
