@@ -800,6 +800,16 @@ export default function Home() {
       .sort((a, b) => b.detected_at.localeCompare(a.detected_at));
   }, [config, filter]);
 
+  // キーワードごとにグループ化（filteredHistory は新着順ソート済みなので先頭が最新）
+  const groupedHistory = useMemo(() => {
+    const groups = new Map<string, HistoryItem[]>();
+    for (const item of filteredHistory) {
+      const existing = groups.get(item.keyword) ?? [];
+      groups.set(item.keyword, [...existing, item]);
+    }
+    return Array.from(groups.entries());
+  }, [filteredHistory]);
+
   const handleSave = async () => {
     if (!config) return;
     setSaving(true);
@@ -987,7 +997,7 @@ export default function Home() {
           )}
 
           {/* フィルターバー */}
-          <div className="flex gap-2 mb-3">
+          <div className="flex gap-2 mb-1">
             {(["all", "ai_ok", "recent"] as const).map((f) => {
               const labels = { all: "すべて", ai_ok: "✓ AI推薦", recent: "24時間以内" };
               return (
@@ -1005,10 +1015,15 @@ export default function Home() {
               );
             })}
           </div>
+          {groupedHistory.length > 0 && (
+            <p className="text-xs text-gray-400 mb-3">
+              各商品の ♡ を押すとお気に入り登録 → 3件以上で「検索設定」タブから好みを学習できます
+            </p>
+          )}
 
-          {/* アイテム一覧 */}
-          <div className="space-y-2">
-            {filteredHistory.length === 0 ? (
+          {/* キーワード別グループ表示 */}
+          <div className="space-y-5">
+            {groupedHistory.length === 0 ? (
               <div className="text-center py-12 text-gray-400">
                 {filter === "all" && (
                   <>
@@ -1021,14 +1036,29 @@ export default function Home() {
                 {filter === "recent" && <p>直近24時間の新着はありません</p>}
               </div>
             ) : (
-              filteredHistory.map((item) => (
-                <ArrivalCard
-                  key={item.id}
-                  item={item}
-                  isNew={item.detected_at > lastSeenAt}
-                  isLiked={likedIds.has(item.id)}
-                  onToggleLike={() => toggleLike(item.id)}
-                />
+              groupedHistory.map(([keyword, items]) => (
+                <div key={keyword}>
+                  <div className="flex items-center gap-2 mb-2 px-1">
+                    <span className="text-sm font-bold text-gray-800">#{keyword}</span>
+                    <span className="text-xs text-gray-400">{items.length}件</span>
+                    {items.some((i) => likedIds.has(i.id)) && (
+                      <span className="text-xs text-red-400 font-medium">
+                        ♥ {items.filter((i) => likedIds.has(i.id)).length}件お気に入り
+                      </span>
+                    )}
+                  </div>
+                  <div className="space-y-2">
+                    {items.map((item) => (
+                      <ArrivalCard
+                        key={item.id}
+                        item={item}
+                        isNew={item.detected_at > lastSeenAt}
+                        isLiked={likedIds.has(item.id)}
+                        onToggleLike={() => toggleLike(item.id)}
+                      />
+                    ))}
+                  </div>
+                </div>
               ))
             )}
           </div>
