@@ -97,15 +97,25 @@ export async function POST(req: NextRequest) {
 
     // GitHub API経由で保存（Vercel）
     const ghResult = await readConfigGitHub() as { config: object; sha: string } | null;
-    if (ghResult) {
+    if (GITHUB_TOKEN || GITHUB_OWNER || GITHUB_REPO) {
+      // GitHub環境変数が設定されているのに読み込めない = トークン問題
+      if (!ghResult) {
+        return NextResponse.json(
+          { error: "GitHubへの接続に失敗しました。VercelのGITHUB_TOKEN環境変数が正しく設定されているか確認してください。" },
+          { status: 500 }
+        );
+      }
       const current = ghResult.config as Record<string, unknown>;
       const updated = { ...body, history: body.history ?? (current as Record<string, unknown>).history ?? [] };
       const ok = await writeConfigGitHub(updated, ghResult.sha);
       if (ok) return NextResponse.json({ ok: true });
-      return NextResponse.json({ error: "GitHub書き込み失敗" }, { status: 500 });
+      return NextResponse.json(
+        { error: "GitHubへの書き込みに失敗しました。GITHUB_TOKENにrepoスコープの書き込み権限があるか確認してください。" },
+        { status: 500 }
+      );
     }
 
-    // ローカルファイル保存
+    // ローカルファイル保存（ローカル開発環境のみ）
     const current = readConfigLocal() as Record<string, unknown>;
     const updated = { ...body, history: body.history ?? current.history ?? [] };
     writeConfigLocal(updated);
