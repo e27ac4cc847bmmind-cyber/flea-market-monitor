@@ -40,6 +40,58 @@
   ],
   "history": [
     {
+      "id": "mercari_m40736210986",
+      "name": "10銭 穴ずれエラーコイン 鳳凰50銭",
+      "price": 3300,
+      "platform": "メルカリ",
+      "url": "https://jp.mercari.com/item/m40736210986",
+      "image_url": "https://static.mercdn.net/thumb/item/webp/m40736210986_1.jpg?1769525229",
+      "keyword": "純銀 コイン",
+      "ai_comment": "[gpt-oss-120b] 1オンス未満の銀貨で、投資目的の純銀地金条件を満たさない。",
+      "ai_ok": false,
+      "market_info": "銀スポット: ¥360/g（1oz=¥11198）",
+      "detected_at": "2026-06-16T07:37:45.593402"
+    },
+    {
+      "id": "paypay_z627829514",
+      "name": "純銀メダル 寅年 虎 10 記念メダル コレクション",
+      "price": 2350,
+      "platform": "PayPayフリマ",
+      "url": "https://paypayfleamarket.yahoo.co.jp/item/z627829514",
+      "image_url": "https://auc-pctr.c.yimg.jp/i/auctions.c.yimg.jp/images.auctions.yahoo.co.jp/image/dr000/auc0206/users/cf48fbb51c6aeff7041f0a7acf54524e47196c1b/i-img1200x1200-17815796505418xf8cs.jpg?pri=s&w=298&h=298&ccw=298&cch=298&fill=1&fw=298&fh=298&up=0&nf_src=sy&nf_path=images/auc/pc/top/image/1.0.3/na_170x170.png&nf_st=200",
+      "keyword": "純銀 コイン",
+      "ai_comment": "[gpt-oss-120b] 1オンス未満の記念メダルで、投資用銀貨条件を満たさないため。",
+      "ai_ok": false,
+      "market_info": "銀スポット: ¥360/g（1oz=¥11198）",
+      "detected_at": "2026-06-16T07:37:55.662277"
+    },
+    {
+      "id": "paypay_z627833756",
+      "name": "純銀製 干支記念メダル 巳年 2013年 蛇 コイン コレクション",
+      "price": 2300,
+      "platform": "PayPayフリマ",
+      "url": "https://paypayfleamarket.yahoo.co.jp/item/z627833756",
+      "image_url": "https://auc-pctr.c.yimg.jp/i/auctions.c.yimg.jp/images.auctions.yahoo.co.jp/image/dr000/auc0206/users/cf48fbb51c6aeff7041f0a7acf54524e47196c1b/i-img1200x1200-17815797450989ef9wj.jpg?pri=s&w=298&h=298&ccw=298&cch=298&fill=1&fw=298&fh=298&up=0&nf_src=sy&nf_path=images/auc/pc/top/image/1.0.3/na_170x170.png&nf_st=200",
+      "keyword": "純銀 コイン",
+      "ai_comment": "[deepseek-v4-flash] 重量未記載で希少価格設定。投資目的の地金には該当せず。",
+      "ai_ok": false,
+      "market_info": "銀スポット: ¥360/g（1oz=¥11198）",
+      "detected_at": "2026-06-16T07:37:58.093616"
+    },
+    {
+      "id": "paypay_z627846462",
+      "name": "第12回 東京国際コイン・コンヴェンション 新世紀記念メダル入り",
+      "price": 2800,
+      "platform": "PayPayフリマ",
+      "url": "https://paypayfleamarket.yahoo.co.jp/item/z627846462",
+      "image_url": "https://auc-pctr.c.yimg.jp/i/auctions.c.yimg.jp/images.auctions.yahoo.co.jp/image/dr000/auc0206/users/2d458405498831b1e059b77ff10f06638d97c8e8/i-img1200x1200-1781581359188xjyh0e.jpg?pri=s&w=298&h=298&ccw=298&cch=298&fill=1&fw=298&fh=298&up=0&nf_src=sy&nf_path=images/auc/pc/top/image/1.0.3/na_170x170.png&nf_st=200",
+      "keyword": "純銀 コイン",
+      "ai_comment": "[deepseek-v4-flash] 記念メダルは装飾品扱いで投資目的の純銀地金に合致せず、重量も不明。",
+      "ai_ok": false,
+      "market_info": "銀スポット: ¥360/g（1oz=¥11198）",
+      "detected_at": "2026-06-16T07:38:00.642903"
+    },
+    {
       "id": "paypay_z627798672",
       "name": "造幣局貨幣セットの年銘板　銀メダル　シルバー　純銀　銀貨　セット出し　桜の通り抜け　2012年　平成24年　辰年　龍　ドラゴン",
       "price": 2200,
