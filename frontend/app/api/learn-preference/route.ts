@@ -3,9 +3,8 @@ import { NextRequest, NextResponse } from "next/server";
 const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY;
 
 const MODELS = [
-  "openai/gpt-oss-120b:free",
-  "meta-llama/llama-3.3-70b-instruct:free",
   "deepseek/deepseek-v4-flash",
+  "meta-llama/llama-3.3-70b-instruct:free",
 ];
 
 function extractJson(text: string): Record<string, unknown> | null {

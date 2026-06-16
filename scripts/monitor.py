@@ -412,12 +412,9 @@ REASON: 50文字以内の理由"""
 JUDGMENT: YES または NO
 REASON: 50文字以内の理由"""
 
-    # 無料モデル優先。有料版はクレジットがある場合のみ末尾で使用
     MODELS = [
-        "openai/gpt-oss-120b:free",
-        "openai/gpt-oss-20b:free",
-        "meta-llama/llama-3.3-70b-instruct:free",
         "deepseek/deepseek-v4-flash",
+        "meta-llama/llama-3.3-70b-instruct:free",
     ]
 
     for model in MODELS:

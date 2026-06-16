@@ -2,11 +2,9 @@ import { NextRequest, NextResponse } from "next/server";
 
 const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY;
 
-// 無料モデル優先（クレジット不要）。有料版はクレジットがある場合のみ末尾に追加
 const MODELS = [
-  "openai/gpt-oss-120b:free",
-  "meta-llama/llama-3.3-70b-instruct:free",
   "deepseek/deepseek-v4-flash",
+  "meta-llama/llama-3.3-70b-instruct:free",
 ];
 
 const SYSTEM_PROMPT = `You convert a Japanese flea-market shopping request into a JSON search config.
