@@ -15,6 +15,7 @@ import {
   ShoppingBag,
   Bot,
   Link,
+  Heart,
 } from "lucide-react";
 
 // ==================== 型定義 ====================
@@ -63,6 +64,13 @@ interface GitHubConfig {
   owner: string;
   repo: string;
   branch: string;
+}
+
+interface LearnProposal {
+  note: string;
+  exclude_words: string[];
+  require_words: string[];
+  explanation: string;
 }
 
 // ==================== GitHub認証ヘルパー ====================
@@ -136,7 +144,17 @@ function PlatformBadge({ platform }: { platform: string }) {
 }
 
 // ==================== 新着カード ====================
-function ArrivalCard({ item, isNew }: { item: HistoryItem; isNew: boolean }) {
+function ArrivalCard({
+  item,
+  isNew,
+  isLiked,
+  onToggleLike,
+}: {
+  item: HistoryItem;
+  isNew: boolean;
+  isLiked: boolean;
+  onToggleLike: () => void;
+}) {
   const [imgError, setImgError] = useState(false);
 
   const relativeTime = () => {
@@ -192,15 +210,28 @@ function ArrivalCard({ item, isNew }: { item: HistoryItem; isNew: boolean }) {
           <span className="text-xs text-gray-400">#{item.keyword}</span>
         </div>
 
-        <div className="flex items-start gap-1 mt-1">
-          {item.ai_ok ? (
-            <CheckCircle size={13} className="text-green-500 flex-shrink-0 mt-0.5" />
-          ) : (
-            <Bot size={13} className="text-gray-300 flex-shrink-0 mt-0.5" />
-          )}
-          <p className="text-xs text-gray-500 line-clamp-1">
-            {item.ai_comment.replace(/^\[.*?\]\s*/, "")}
-          </p>
+        <div className="flex items-center gap-1 mt-1">
+          <div className="flex items-start gap-1 flex-1 min-w-0">
+            {item.ai_ok ? (
+              <CheckCircle size={13} className="text-green-500 flex-shrink-0 mt-0.5" />
+            ) : (
+              <Bot size={13} className="text-gray-300 flex-shrink-0 mt-0.5" />
+            )}
+            <p className="text-xs text-gray-500 line-clamp-1">
+              {item.ai_comment.replace(/^\[.*?\]\s*/, "")}
+            </p>
+          </div>
+          <button
+            onClick={onToggleLike}
+            className="flex-shrink-0 px-1 text-base leading-none transition-transform hover:scale-125 active:scale-110"
+            title={isLiked ? "お気に入り解除" : "お気に入り登録"}
+          >
+            {isLiked ? (
+              <span className="text-red-500">♥</span>
+            ) : (
+              <span className="text-gray-300 hover:text-red-300">♡</span>
+            )}
+          </button>
         </div>
 
         <p className="text-xs text-gray-400 mt-0.5">{relativeTime()}</p>
@@ -226,7 +257,7 @@ function GitHubSettingsCard({ onConfigured }: { onConfigured: () => void }) {
   useEffect(() => {
     const saved = loadGitHubConfig();
     if (saved) setGc(saved);
-    else setExpanded(true); // 未設定なら最初から開く
+    else setExpanded(true);
   }, []);
 
   const connect = async () => {
@@ -383,12 +414,56 @@ function KeywordCard({
   kw,
   onChange,
   onDelete,
+  likedItems,
+  onClearLiked,
 }: {
   kw: KeywordConfig;
   onChange: (updated: KeywordConfig) => void;
   onDelete: () => void;
+  likedItems: HistoryItem[];
+  onClearLiked: (ids: string[]) => void;
 }) {
   const [expanded, setExpanded] = useState(false);
+  const [proposalLoading, setProposalLoading] = useState(false);
+  const [proposal, setProposal] = useState<LearnProposal | null>(null);
+  const [proposalError, setProposalError] = useState("");
+
+  const learnFromLikes = async () => {
+    setProposalLoading(true);
+    setProposal(null);
+    setProposalError("");
+    try {
+      const res = await fetch("/api/learn-preference", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ keyword_config: kw, liked_items: likedItems }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.ok) throw new Error(data.error || "学習に失敗しました");
+      setProposal({
+        note: data.note,
+        exclude_words: data.exclude_words,
+        require_words: data.require_words,
+        explanation: data.explanation,
+      });
+    } catch (e) {
+      setProposalError(e instanceof Error ? e.message : "学習に失敗しました");
+    } finally {
+      setProposalLoading(false);
+    }
+  };
+
+  const applyProposal = () => {
+    if (!proposal) return;
+    onChange({
+      ...kw,
+      note: proposal.note,
+      exclude_words: proposal.exclude_words,
+      require_words: proposal.require_words,
+    });
+    onClearLiked(likedItems.map((i) => i.id));
+    setProposal(null);
+  };
 
   return (
     <div className={`border rounded-lg bg-white shadow-sm ${!kw.enabled ? "opacity-60" : ""}`}>
@@ -407,6 +482,9 @@ function KeywordCard({
         </button>
 
         <span className="font-medium flex-1 truncate">{kw.keyword || "（キーワード未設定）"}</span>
+        {likedItems.length > 0 && (
+          <span className="text-xs text-red-400 font-medium">♥ {likedItems.length}</span>
+        )}
         <span className="text-sm text-gray-500">¥{kw.max_price.toLocaleString()}以下</span>
 
         <button onClick={() => setExpanded(!expanded)} className="text-gray-400 hover:text-gray-600">
@@ -440,12 +518,12 @@ function KeywordCard({
             </div>
             <div className="sm:col-span-2">
               <label className="text-sm font-medium text-gray-700">
-                お得判定閾値（相場より何%以下）
+                お得判定閾値（相場より何%以下で通知）
               </label>
               <div className="flex items-center gap-2 mt-1">
                 <input
                   type="range"
-                  min={5}
+                  min={0}
                   max={80}
                   value={kw.discount_threshold}
                   onChange={(e) =>
@@ -457,6 +535,11 @@ function KeywordCard({
                   {kw.discount_threshold}%
                 </span>
               </div>
+              <p className="text-xs text-gray-400 mt-0.5">
+                {kw.discount_threshold === 0
+                  ? "0% = 上限価格以下なら全て通知"
+                  : `相場より${kw.discount_threshold}%以上安い場合のみ通知`}
+              </p>
             </div>
           </div>
 
@@ -536,6 +619,80 @@ function KeywordCard({
               className="mt-1 w-full border rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 resize-y"
             />
           </div>
+
+          {/* ❤️ 学習ボタン */}
+          {likedItems.length >= 3 && (
+            <div className="rounded-lg bg-pink-50 border border-pink-200 p-3 space-y-2">
+              <p className="text-sm font-medium text-pink-800">
+                ❤️ {likedItems.length}件のお気に入りから学習
+              </p>
+              <p className="text-xs text-pink-600">
+                お気に入りした商品の共通点をAIが分析し、検索条件（note・除外ワード・必須ワード）を自動改善します。
+              </p>
+              {proposalError && (
+                <p className="text-xs text-red-600 bg-red-50 rounded p-2">{proposalError}</p>
+              )}
+              {!proposal && (
+                <button
+                  onClick={learnFromLikes}
+                  disabled={proposalLoading}
+                  className="w-full bg-pink-500 hover:bg-pink-600 disabled:bg-pink-300 text-white text-sm font-medium py-2 rounded-lg flex items-center justify-center gap-2 transition-colors"
+                >
+                  {proposalLoading ? (
+                    <>
+                      <RefreshCw size={14} className="animate-spin" />
+                      AIが分析中...
+                    </>
+                  ) : (
+                    <>
+                      <Heart size={14} />
+                      好みを分析して条件を改善
+                    </>
+                  )}
+                </button>
+              )}
+              {proposal && (
+                <div className="space-y-2">
+                  <div className="text-xs bg-white border border-pink-200 rounded p-2 space-y-1.5">
+                    <p className="font-medium text-gray-700">AIの提案:</p>
+                    <p>
+                      <span className="text-gray-400">note: </span>
+                      <span className="text-gray-700">{proposal.note}</span>
+                    </p>
+                    {proposal.exclude_words.length > 0 && (
+                      <p>
+                        <span className="text-gray-400">除外ワード: </span>
+                        <span className="text-gray-700">{proposal.exclude_words.join(", ")}</span>
+                      </p>
+                    )}
+                    {proposal.require_words.length > 0 && (
+                      <p>
+                        <span className="text-gray-400">必須ワード: </span>
+                        <span className="text-gray-700">{proposal.require_words.join(", ")}</span>
+                      </p>
+                    )}
+                    <p className="text-gray-400 italic border-t border-pink-100 pt-1">
+                      {proposal.explanation}
+                    </p>
+                  </div>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={applyProposal}
+                      className="flex-1 bg-pink-500 hover:bg-pink-600 text-white text-sm font-medium py-2 rounded-lg transition-colors"
+                    >
+                      適用する
+                    </button>
+                    <button
+                      onClick={() => setProposal(null)}
+                      className="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-600 text-sm font-medium py-2 rounded-lg transition-colors"
+                    >
+                      キャンセル
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
         </div>
       )}
     </div>
@@ -560,12 +717,39 @@ export default function Home() {
     return localStorage.getItem("arrivals_last_seen_at") ?? new Date(0).toISOString();
   });
 
-  // GitHub設定の状態をマウント後に確認
+  const [likedIds, setLikedIds] = useState<Set<string>>(() => {
+    if (typeof window === "undefined") return new Set();
+    try {
+      const stored = localStorage.getItem("liked_items");
+      return new Set(JSON.parse(stored ?? "[]") as string[]);
+    } catch {
+      return new Set();
+    }
+  });
+
+  const toggleLike = useCallback((itemId: string) => {
+    setLikedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(itemId)) next.delete(itemId);
+      else next.add(itemId);
+      localStorage.setItem("liked_items", JSON.stringify(Array.from(next)));
+      return next;
+    });
+  }, []);
+
+  const clearLikedIds = useCallback((ids: string[]) => {
+    setLikedIds((prev) => {
+      const next = new Set(prev);
+      ids.forEach((id) => next.delete(id));
+      localStorage.setItem("liked_items", JSON.stringify(Array.from(next)));
+      return next;
+    });
+  }, []);
+
   useEffect(() => {
     setGithubConfigured(!!loadGitHubConfig());
   }, []);
 
-  // GitHub未設定なら設定タブをデフォルトに
   useEffect(() => {
     if (!githubConfigured) setActiveTab("settings");
   }, [githubConfigured]);
@@ -638,7 +822,7 @@ export default function Home() {
       id: Date.now().toString(),
       keyword: "",
       max_price: 10000,
-      discount_threshold: 20,
+      discount_threshold: 0,
       platforms: { mercari: true, rakuma: true, paypay: true },
       precious_metal_mode: false,
       metal_type: "silver",
@@ -838,7 +1022,13 @@ export default function Home() {
               </div>
             ) : (
               filteredHistory.map((item) => (
-                <ArrivalCard key={item.id} item={item} isNew={item.detected_at > lastSeenAt} />
+                <ArrivalCard
+                  key={item.id}
+                  item={item}
+                  isNew={item.detected_at > lastSeenAt}
+                  isLiked={likedIds.has(item.id)}
+                  onToggleLike={() => toggleLike(item.id)}
+                />
               ))
             )}
           </div>
@@ -937,14 +1127,21 @@ export default function Home() {
               <p className="text-sm mt-1">上の入力か、下のボタンから追加してください</p>
             </div>
           )}
-          {config.keywords.map((kw) => (
-            <KeywordCard
-              key={kw.id}
-              kw={kw}
-              onChange={(updated) => updateKeyword(kw.id, updated)}
-              onDelete={() => deleteKeyword(kw.id)}
-            />
-          ))}
+          {config.keywords.map((kw) => {
+            const likedForKw = config.history.filter(
+              (item) => item.keyword === kw.keyword && likedIds.has(item.id)
+            );
+            return (
+              <KeywordCard
+                key={kw.id}
+                kw={kw}
+                onChange={(updated) => updateKeyword(kw.id, updated)}
+                onDelete={() => deleteKeyword(kw.id)}
+                likedItems={likedForKw}
+                onClearLiked={clearLikedIds}
+              />
+            );
+          })}
 
           <button
             onClick={addKeyword}

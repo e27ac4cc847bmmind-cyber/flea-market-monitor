@@ -16,7 +16,7 @@ JSON keys:
 {
   "keyword": string — search terms only (the product name). Space-separated, concise. Do NOT include price or conditions here.
   "max_price": integer — the user's max budget in yen. Parse Japanese units: 万=10000, 千=1000 (e.g. "2万円"=20000, "1万5千"=15000). If unspecified, estimate a reasonable value for the item.
-  "discount_threshold": integer — percent below market to count as a good deal. Default 20 if unspecified.
+  "discount_threshold": integer — percent below market to count as a good deal. Default 0 if unspecified (0 = notify whenever price is under max_price).
   "exclude_words": string[] — Japanese words to exclude. Add words like "ジャンク","部品取り","破損","レプリカ","コピー" as appropriate for the item type.
   "require_words": string[] — Japanese words that MUST appear in the title. Empty array if none.
   "note": string — 1-2 sentences in JAPANESE summarizing the buyer's intent (use, desired condition, what to avoid). MUST be written in Japanese.
@@ -29,7 +29,7 @@ Rules:
 
 Example input: "Nintendo Switch 有機ELを2万円以下で。ジャンクや本体なしは除いて、動作品だけ欲しい。"
 Example output:
-{"keyword":"Nintendo Switch 有機EL","max_price":20000,"discount_threshold":20,"exclude_words":["ジャンク","本体なし","部品取り","破損"],"require_words":[],"note":"動作確認済みの良品が欲しい。ジャンク品・本体なし・破損品は不要。"}`;
+{"keyword":"Nintendo Switch 有機EL","max_price":20000,"discount_threshold":0,"exclude_words":["ジャンク","本体なし","部品取り","破損"],"require_words":[],"note":"動作確認済みの良品が欲しい。ジャンク品・本体なし・破損品は不要。"}`;
 
 function extractJson(text: string): Record<string, unknown> | null {
   // コードフェンスや前後テキストを除去してJSON部分を抜く
