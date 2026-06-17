@@ -36,7 +36,9 @@
       },
       "precious_metal_mode": false,
       "metal_type": "silver",
-      "exclude_words": [],
+      "exclude_words": [
+        "ジャンク"
+      ],
       "require_words": [],
       "note": "",
       "enabled": true
