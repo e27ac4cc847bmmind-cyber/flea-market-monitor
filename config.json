@@ -37,7 +37,8 @@
       "precious_metal_mode": false,
       "metal_type": "silver",
       "exclude_words": [
-        "ジャンク"
+        "ジャンク",
+        "モバイル"
       ],
       "require_words": [],
       "note": "",
