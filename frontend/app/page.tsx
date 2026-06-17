@@ -432,6 +432,16 @@ const GENRE_LABELS: Record<string, string> = {
   interior: "インテリア・家具",
 };
 
+const GENRE_EXCLUDE_WORDS_FRONT: Record<string, string[]> = {
+  electronics: ["y2k", "ファッション", "服", "古着", "レディース", "メンズ", "コーデ", "アパレル", "ウェア", "シャツ", "パンツ"],
+  fashion: ["家電", "スマホ", "パソコン", "モニター", "プリンター", "カメラ"],
+  automotive: ["ミニカー", "プラモデル", "おもちゃ", "フィギュア", "模型", "ラジコン"],
+  sports: ["フィギュア", "プラモデル", "おもちゃ"],
+  games: ["工具", "部品", "素材"],
+  books: ["工具", "部品"],
+  interior: ["フィギュア", "プラモデル", "ミニチュア"],
+};
+
 // ==================== キーワードカード ====================
 function KeywordCard({
   kw,
@@ -857,6 +867,12 @@ export default function Home() {
     return config.history.filter((item) => item.detected_at > lastSeenAt).length;
   }, [config, lastSeenAt]);
 
+  const keywordGenreMap = useMemo(() => {
+    const map: Record<string, string> = {};
+    config?.keywords.forEach((kw) => { map[kw.keyword] = kw.genre ?? ""; });
+    return map;
+  }, [config]);
+
   const filteredHistory = useMemo(() => {
     if (!config) return [];
     const cutoff24h = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
@@ -867,8 +883,15 @@ export default function Home() {
         if (filter === "recent") return item.detected_at >= cutoff24h;
         return true;
       })
+      .filter((item) => {
+        const genre = keywordGenreMap[item.keyword] ?? "";
+        const excludes = GENRE_EXCLUDE_WORDS_FRONT[genre] ?? [];
+        if (excludes.length === 0) return true;
+        const nameLower = item.name.toLowerCase();
+        return !excludes.some((w) => nameLower.includes(w.toLowerCase()));
+      })
       .sort((a, b) => b.detected_at.localeCompare(a.detected_at));
-  }, [config, filter, dislikedIds]);
+  }, [config, filter, dislikedIds, keywordGenreMap]);
 
   // キーワードごとにグループ化（filteredHistory は新着順ソート済みなので先頭が最新）
   const groupedHistory = useMemo(() => {
