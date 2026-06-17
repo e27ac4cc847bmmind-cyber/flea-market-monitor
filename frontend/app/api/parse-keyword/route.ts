@@ -15,7 +15,14 @@ JSON keys:
   "keyword": string — search terms only (the product name). Space-separated, concise. Do NOT include price or conditions here.
   "max_price": integer — the user's max budget in yen. Parse Japanese units: 万=10000, 千=1000 (e.g. "2万円"=20000, "1万5千"=15000). If unspecified, estimate a reasonable value for the item.
   "discount_threshold": integer — percent below market to count as a good deal. Default 0 if unspecified (0 = notify whenever price is under max_price).
-  "exclude_words": string[] — Japanese words to exclude. Add words like "ジャンク","部品取り","破損","レプリカ","コピー" as appropriate for the item type.
+  "exclude_words": string[] — Japanese (or romaji) words to exclude from item titles. Include BOTH types:
+    (1) Quality filters: "ジャンク","部品取り","破損","レプリカ","コピー" as appropriate.
+    (2) Accessory/peripheral filters: common items that appear in search results for this product but are NOT the product itself. Be aggressive. Examples:
+        - monitor/display → ["ケーブル","HDMI","DisplayPort","アーム","スタンド","クリーナー","保護フィルム","スピーカー"]
+        - gaming console → ["ソフト","コントローラー","ケース","充電器","カバー","ポーチ"]
+        - camera body → ["レンズ","ストラップ","バッグ","フィルター","三脚","充電器"]
+        - bicycle → ["ヘルメット","グローブ","ライト","空気入れ","チェーン","タイヤ"]
+        - smartphone → ["ケース","カバー","フィルム","充電器","ケーブル","イヤホン"]
   "require_words": string[] — Japanese words that MUST appear in the title. Empty array if none.
   "note": string — 1-2 sentences in JAPANESE summarizing the buyer's intent (use, desired condition, what to avoid). MUST be written in Japanese.
   "genre": string — product category to prevent cross-category noise. Choose ONE from: "" (general/unclear), "electronics" (家電・PC・スマホ・モニター), "fashion" (衣類・アパレル), "automotive" (自動車・バイク部品), "sports" (スポーツ・アウトドア), "games" (ゲーム・おもちゃ), "books" (本・音楽・映画), "interior" (インテリア・家具). Example: a monitor search → "electronics" prevents y2k fashion results.
@@ -23,13 +30,13 @@ JSON keys:
 
 Rules:
 - "keyword" must contain product name terms only, never the budget or adjectives like 安い.
-- Add common quality-filter exclude words even if not explicitly stated, when sensible for the item.
 - Always set "genre" to the most fitting category. Only use "" if truly ambiguous.
+- For "exclude_words", always add relevant accessory/peripheral words — this is the most important filter.
 - Output JSON only.
 
-Example input: "Nintendo Switch 有機ELを2万円以下で。ジャンクや本体なしは除いて、動作品だけ欲しい。"
+Example input: "2Kモニター 15000円以下"
 Example output:
-{"keyword":"Nintendo Switch 有機EL","max_price":20000,"discount_threshold":0,"exclude_words":["ジャンク","本体なし","部品取り","破損"],"require_words":[],"note":"動作確認済みの良品が欲しい。ジャンク品・本体なし・破損品は不要。","genre":"games"}`;
+{"keyword":"2K モニター","max_price":15000,"discount_threshold":0,"exclude_words":["ジャンク","破損","ケーブル","HDMI","DisplayPort","アーム","スタンド","クリーナー","保護フィルム"],"require_words":[],"note":"2K解像度のモニターが欲しい。ケーブルやスタンド等のアクセサリーは不要。","genre":"electronics"}`;
 
 function extractJson(text: string): Record<string, unknown> | null {
   // コードフェンスや前後テキストを除去してJSON部分を抜く

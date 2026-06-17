@@ -472,8 +472,14 @@ function KeywordCard({
         body: JSON.stringify({ text: kw.keyword }),
       });
       const data = await res.json();
-      if (res.ok && data.config?.genre) {
-        onChange({ ...kw, genre: data.config.genre });
+      if (res.ok && data.config) {
+        const aiExcludes: string[] = data.config.exclude_words ?? [];
+        const merged = Array.from(new Set([...kw.exclude_words, ...aiExcludes]));
+        onChange({
+          ...kw,
+          genre: data.config.genre ?? kw.genre,
+          exclude_words: merged,
+        });
       }
     } catch {
       // 失敗しても無視
@@ -690,11 +696,11 @@ function KeywordCard({
                 disabled={genreDetecting || !kw.keyword.trim()}
                 className="px-3 py-2 text-xs font-medium bg-purple-100 hover:bg-purple-200 disabled:bg-gray-100 text-purple-700 disabled:text-gray-400 rounded transition-colors whitespace-nowrap"
               >
-                {genreDetecting ? "判定中…" : "AI自動判定"}
+                {genreDetecting ? "判定中…" : "AIで自動設定"}
               </button>
             </div>
             <p className="text-xs text-gray-400 mt-0.5">
-              カテゴリ外の商品（例: 家電 → y2kファッション）を除外します。
+              「AIで自動設定」でジャンル＋除外ワード（アクセサリー等）を一括更新します。
             </p>
           </div>
 
