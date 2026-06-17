@@ -488,6 +488,17 @@ def send_discord_notification(item: dict, keyword_config: dict, ai_result: dict,
         print(f"  Discord通知エラー: {e}")
 
 
+# ==================== ジャンル別除外ワード ====================
+GENRE_EXCLUDE_WORDS: dict[str, list[str]] = {
+    "electronics": ["y2k", "ファッション", "服", "古着", "レディース", "メンズ", "コーデ", "アパレル", "ウェア", "シャツ", "パンツ"],
+    "fashion": ["家電", "スマホ", "パソコン", "モニター", "プリンター", "カメラ"],
+    "automotive": ["ミニカー", "プラモデル", "おもちゃ", "フィギュア", "模型", "ラジコン"],
+    "sports": ["フィギュア", "プラモデル", "おもちゃ"],
+    "games": ["工具", "部品", "素材"],
+    "books": ["工具", "部品"],
+    "interior": ["フィギュア", "プラモデル", "ミニチュア"],
+}
+
 # ==================== メイン処理 ====================
 def process_keyword(keyword_config: dict, seen_ids: dict) -> list[dict]:
     keyword = keyword_config["keyword"]
@@ -541,6 +552,9 @@ def process_keyword(keyword_config: dict, seen_ids: dict) -> list[dict]:
 
     # 除外ワード / 必須ワードフィルタ（AI判定の前に機械的に弾く＝API節約＆確実）
     exclude_words = [w.strip().lower() for w in keyword_config.get("exclude_words", []) if w.strip()]
+    genre = keyword_config.get("genre", "")
+    genre_excludes = [w.lower() for w in GENRE_EXCLUDE_WORDS.get(genre, [])]
+    exclude_words = list(set(exclude_words + genre_excludes))
     require_words = [w.strip().lower() for w in keyword_config.get("require_words", []) if w.strip()]
 
     def passes_word_filter(it: dict) -> bool:
