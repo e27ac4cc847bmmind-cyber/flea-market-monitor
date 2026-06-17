@@ -42,7 +42,8 @@
       ],
       "require_words": [],
       "note": "24インチ以上",
-      "enabled": true
+      "enabled": true,
+      "genre": "electronics"
     }
   ],
   "history": [
