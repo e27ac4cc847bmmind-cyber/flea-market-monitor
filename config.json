@@ -5,7 +5,7 @@
       "id": "1781615859758",
       "keyword": "F48 BMW X1 ラバー フロアマット",
       "max_price": 15000,
-      "discount_threshold": 20,
+      "discount_threshold": 0,
       "platforms": {
         "mercari": true,
         "rakuma": true,
@@ -21,7 +21,24 @@
         "コピー"
       ],
       "require_words": [],
-      "note": "F48 BMW X1用のラバー製フロアマットを探しています。中古でも構いませんが、汚れや破損がないものを希望します。ジャンク品やレプリカは避けてください。",
+      "note": "F48 BMW X1用のラバー製フロアマットを探しています。運転席、助手席、後部座席のセットです。中古でも構いませんが、汚れや破損がないものを希望します。ジャンク品やレプリカは避けてください。",
+      "enabled": true
+    },
+    {
+      "id": "1781659955596",
+      "keyword": "2K モニタ",
+      "max_price": 15000,
+      "discount_threshold": 0,
+      "platforms": {
+        "mercari": true,
+        "rakuma": true,
+        "paypay": true
+      },
+      "precious_metal_mode": false,
+      "metal_type": "silver",
+      "exclude_words": [],
+      "require_words": [],
+      "note": "",
       "enabled": true
     }
   ],
