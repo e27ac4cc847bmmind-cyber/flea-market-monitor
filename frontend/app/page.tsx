@@ -460,6 +460,27 @@ function KeywordCard({
   const [proposalLoading, setProposalLoading] = useState(false);
   const [proposal, setProposal] = useState<LearnProposal | null>(null);
   const [proposalError, setProposalError] = useState("");
+  const [genreDetecting, setGenreDetecting] = useState(false);
+
+  const detectGenre = async () => {
+    if (!kw.keyword.trim()) return;
+    setGenreDetecting(true);
+    try {
+      const res = await fetch("/api/parse-keyword", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ text: kw.keyword }),
+      });
+      const data = await res.json();
+      if (res.ok && data.config?.genre) {
+        onChange({ ...kw, genre: data.config.genre });
+      }
+    } catch {
+      // 失敗しても無視
+    } finally {
+      setGenreDetecting(false);
+    }
+  };
 
   const learnFromLikes = async () => {
     setProposalLoading(true);
@@ -652,19 +673,28 @@ function KeywordCard({
 
           <div>
             <label className="text-sm font-medium text-gray-700">ジャンル（カテゴリ絞り込み）</label>
-            <select
-              value={kw.genre ?? ""}
-              onChange={(e) => onChange({ ...kw, genre: e.target.value })}
-              className="mt-1 w-full border rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 bg-white"
-            >
-              {Object.entries(GENRE_LABELS).map(([value, label]) => (
-                <option key={value} value={value}>
-                  {label}
-                </option>
-              ))}
-            </select>
+            <div className="flex gap-2 mt-1">
+              <select
+                value={kw.genre ?? ""}
+                onChange={(e) => onChange({ ...kw, genre: e.target.value })}
+                className="flex-1 border rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 bg-white"
+              >
+                {Object.entries(GENRE_LABELS).map(([value, label]) => (
+                  <option key={value} value={value}>
+                    {label}
+                  </option>
+                ))}
+              </select>
+              <button
+                onClick={detectGenre}
+                disabled={genreDetecting || !kw.keyword.trim()}
+                className="px-3 py-2 text-xs font-medium bg-purple-100 hover:bg-purple-200 disabled:bg-gray-100 text-purple-700 disabled:text-gray-400 rounded transition-colors whitespace-nowrap"
+              >
+                {genreDetecting ? "判定中…" : "AI自動判定"}
+              </button>
+            </div>
             <p className="text-xs text-gray-400 mt-0.5">
-              AIが自動設定。カテゴリ外の商品（例: 家電 → y2kファッション）を除外します。
+              カテゴリ外の商品（例: 家電 → y2kファッション）を除外します。
             </p>
           </div>
 
