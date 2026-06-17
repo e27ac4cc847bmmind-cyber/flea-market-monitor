@@ -729,6 +729,7 @@ export default function Home() {
   const [githubConfigured, setGithubConfigured] = useState(false);
   const [activeTab, setActiveTab] = useState<"arrivals" | "settings">("arrivals");
   const [filter, setFilter] = useState<"all" | "ai_ok" | "recent">("all");
+  const [activeKeyword, setActiveKeyword] = useState<string | null>(null);
   const [nlText, setNlText] = useState("");
   const [nlLoading, setNlLoading] = useState(false);
 
@@ -1036,8 +1037,8 @@ export default function Home() {
             </div>
           )}
 
-          {/* フィルターバー */}
-          <div className="flex gap-2 mb-1">
+          {/* タイプフィルター */}
+          <div className="flex gap-2 mb-2">
             {(["all", "ai_ok", "recent"] as const).map((f) => {
               const labels = { all: "すべて", ai_ok: "✓ AI推薦", recent: "24時間以内" };
               return (
@@ -1055,6 +1056,37 @@ export default function Home() {
               );
             })}
           </div>
+
+          {/* キーワード絞り込みチップ */}
+          {groupedHistory.length >= 2 && (
+            <div className="flex flex-wrap gap-1.5 mb-3">
+              <button
+                onClick={() => setActiveKeyword(null)}
+                className={`px-3 py-1 rounded-full text-xs font-medium transition-colors ${
+                  activeKeyword === null
+                    ? "bg-gray-700 text-white"
+                    : "bg-gray-100 text-gray-500 hover:bg-gray-200"
+                }`}
+              >
+                全条件
+              </button>
+              {groupedHistory.map(([kw, items]) => (
+                <button
+                  key={kw}
+                  onClick={() => setActiveKeyword(activeKeyword === kw ? null : kw)}
+                  className={`px-3 py-1 rounded-full text-xs font-medium transition-colors ${
+                    activeKeyword === kw
+                      ? "bg-indigo-600 text-white"
+                      : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                  }`}
+                >
+                  #{kw}
+                  <span className="ml-1 opacity-70">{items.length}</span>
+                </button>
+              ))}
+            </div>
+          )}
+
           {groupedHistory.length > 0 && (
             <p className="text-xs text-gray-400 mb-3">
               各商品の ♡ を押すとお気に入り登録 → 3件以上で「検索設定」タブから好みを学習できます
@@ -1076,31 +1108,38 @@ export default function Home() {
                 {filter === "recent" && <p>直近24時間の新着はありません</p>}
               </div>
             ) : (
-              groupedHistory.map(([keyword, items]) => (
-                <div key={keyword}>
-                  <div className="flex items-center gap-2 mb-2 px-1">
-                    <span className="text-sm font-bold text-gray-800">#{keyword}</span>
-                    <span className="text-xs text-gray-400">{items.length}件</span>
-                    {items.some((i) => likedIds.has(i.id)) && (
-                      <span className="text-xs text-red-400 font-medium">
-                        ♥ {items.filter((i) => likedIds.has(i.id)).length}件お気に入り
-                      </span>
-                    )}
+              groupedHistory
+                .filter(([kw]) => activeKeyword === null || kw === activeKeyword)
+                .map(([keyword, items]) => (
+                  <div key={keyword}>
+                    <div className="flex items-center gap-2 mb-2 px-1">
+                      <button
+                        onClick={() => setActiveKeyword(activeKeyword === keyword ? null : keyword)}
+                        className="text-sm font-bold text-gray-800 hover:text-indigo-600 transition-colors"
+                      >
+                        #{keyword}
+                      </button>
+                      <span className="text-xs text-gray-400">{items.length}件</span>
+                      {items.some((i) => likedIds.has(i.id)) && (
+                        <span className="text-xs text-red-400 font-medium">
+                          ♥ {items.filter((i) => likedIds.has(i.id)).length}
+                        </span>
+                      )}
+                    </div>
+                    <div className="space-y-2">
+                      {items.map((item) => (
+                        <ArrivalCard
+                          key={item.id}
+                          item={item}
+                          isNew={item.detected_at > lastSeenAt}
+                          isLiked={likedIds.has(item.id)}
+                          onToggleLike={() => toggleLike(item.id)}
+                          onDislike={() => dislikeItem(item.id)}
+                        />
+                      ))}
+                    </div>
                   </div>
-                  <div className="space-y-2">
-                    {items.map((item) => (
-                      <ArrivalCard
-                        key={item.id}
-                        item={item}
-                        isNew={item.detected_at > lastSeenAt}
-                        isLiked={likedIds.has(item.id)}
-                        onToggleLike={() => toggleLike(item.id)}
-                        onDislike={() => dislikeItem(item.id)}
-                      />
-                    ))}
-                  </div>
-                </div>
-              ))
+                ))
             )}
           </div>
         </div>
