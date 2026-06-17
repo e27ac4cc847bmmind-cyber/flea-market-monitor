@@ -18,16 +18,18 @@ JSON keys:
   "exclude_words": string[] — Japanese words to exclude. Add words like "ジャンク","部品取り","破損","レプリカ","コピー" as appropriate for the item type.
   "require_words": string[] — Japanese words that MUST appear in the title. Empty array if none.
   "note": string — 1-2 sentences in JAPANESE summarizing the buyer's intent (use, desired condition, what to avoid). MUST be written in Japanese.
+  "genre": string — product category to prevent cross-category noise. Choose ONE from: "" (general/unclear), "electronics" (家電・PC・スマホ・モニター), "fashion" (衣類・アパレル), "automotive" (自動車・バイク部品), "sports" (スポーツ・アウトドア), "games" (ゲーム・おもちゃ), "books" (本・音楽・映画), "interior" (インテリア・家具). Example: a monitor search → "electronics" prevents y2k fashion results.
 }
 
 Rules:
 - "keyword" must contain product name terms only, never the budget or adjectives like 安い.
 - Add common quality-filter exclude words even if not explicitly stated, when sensible for the item.
+- Always set "genre" to the most fitting category. Only use "" if truly ambiguous.
 - Output JSON only.
 
 Example input: "Nintendo Switch 有機ELを2万円以下で。ジャンクや本体なしは除いて、動作品だけ欲しい。"
 Example output:
-{"keyword":"Nintendo Switch 有機EL","max_price":20000,"discount_threshold":0,"exclude_words":["ジャンク","本体なし","部品取り","破損"],"require_words":[],"note":"動作確認済みの良品が欲しい。ジャンク品・本体なし・破損品は不要。"}`;
+{"keyword":"Nintendo Switch 有機EL","max_price":20000,"discount_threshold":0,"exclude_words":["ジャンク","本体なし","部品取り","破損"],"require_words":[],"note":"動作確認済みの良品が欲しい。ジャンク品・本体なし・破損品は不要。","genre":"games"}`;
 
 function extractJson(text: string): Record<string, unknown> | null {
   // コードフェンスや前後テキストを除去してJSON部分を抜く
@@ -89,6 +91,7 @@ export async function POST(req: NextRequest) {
       if (!parsed) continue;
 
       // 正規化
+      const VALID_GENRES = ["", "electronics", "fashion", "automotive", "sports", "games", "books", "interior"];
       const result = {
         keyword: String(parsed.keyword ?? "").trim(),
         max_price: Number(parsed.max_price) || 10000,
@@ -100,6 +103,7 @@ export async function POST(req: NextRequest) {
           ? parsed.require_words.map((s) => String(s).trim()).filter(Boolean)
           : [],
         note: String(parsed.note ?? "").trim(),
+        genre: VALID_GENRES.includes(String(parsed.genre)) ? String(parsed.genre) : "",
       };
       if (!result.keyword) continue;
       return NextResponse.json({ ok: true, config: result, model });

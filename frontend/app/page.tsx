@@ -38,6 +38,7 @@ interface KeywordConfig {
   require_words: string[];
   note: string;
   enabled: boolean;
+  genre: string;
 }
 
 interface HistoryItem {
@@ -419,6 +420,18 @@ function GitHubSettingsCard({ onConfigured }: { onConfigured: () => void }) {
   );
 }
 
+// ==================== ジャンルラベル ====================
+const GENRE_LABELS: Record<string, string> = {
+  "": "指定なし",
+  electronics: "家電・PC・スマホ",
+  fashion: "ファッション・衣類",
+  automotive: "自動車・バイク部品",
+  sports: "スポーツ・アウトドア",
+  games: "ゲーム・おもちゃ",
+  books: "本・音楽・映画",
+  interior: "インテリア・家具",
+};
+
 // ==================== キーワードカード ====================
 function KeywordCard({
   kw,
@@ -625,6 +638,24 @@ function KeywordCard({
               placeholder="例: 動作確認済み, 美品"
               className="mt-1 w-full border rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
             />
+          </div>
+
+          <div>
+            <label className="text-sm font-medium text-gray-700">ジャンル（カテゴリ絞り込み）</label>
+            <select
+              value={kw.genre ?? ""}
+              onChange={(e) => onChange({ ...kw, genre: e.target.value })}
+              className="mt-1 w-full border rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 bg-white"
+            >
+              {Object.entries(GENRE_LABELS).map(([value, label]) => (
+                <option key={value} value={value}>
+                  {label}
+                </option>
+              ))}
+            </select>
+            <p className="text-xs text-gray-400 mt-0.5">
+              AIが自動設定。カテゴリ外の商品（例: 家電 → y2kファッション）を除外します。
+            </p>
           </div>
 
           <div>
@@ -880,6 +911,7 @@ export default function Home() {
       require_words: [],
       note: "",
       enabled: true,
+      genre: "",
     };
     setConfig({ ...config, keywords: [...config.keywords, newKw] });
   };
@@ -913,6 +945,7 @@ export default function Home() {
         require_words: c.require_words,
         note: c.note,
         enabled: true,
+        genre: c.genre ?? "",
       };
       setConfig({ ...config, keywords: [...config.keywords, newKw] });
       setNlText("");
