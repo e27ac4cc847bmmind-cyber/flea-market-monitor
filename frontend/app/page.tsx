@@ -747,12 +747,10 @@ export default function Home() {
   }, []);
 
   useEffect(() => {
-    setGithubConfigured(!!loadGitHubConfig());
+    const isConfigured = !!loadGitHubConfig();
+    setGithubConfigured(isConfigured);
+    if (!isConfigured) setActiveTab("settings");
   }, []);
-
-  useEffect(() => {
-    if (!githubConfigured) setActiveTab("settings");
-  }, [githubConfigured]);
 
   const load = useCallback(async () => {
     try {
