@@ -28,7 +28,7 @@
       "id": "1781659955596",
       "keyword": "2K モニタ",
       "max_price": 15000,
-      "discount_threshold": 0,
+      "discount_threshold": 67,
       "platforms": {
         "mercari": true,
         "rakuma": true,
@@ -41,7 +41,7 @@
         "モバイル"
       ],
       "require_words": [],
-      "note": "",
+      "note": "24インチ以上",
       "enabled": true
     }
   ],
