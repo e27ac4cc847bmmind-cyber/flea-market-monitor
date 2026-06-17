@@ -491,6 +491,7 @@ def send_discord_notification(item: dict, keyword_config: dict, ai_result: dict,
 # ==================== メイン処理 ====================
 def process_keyword(keyword_config: dict, seen_ids: dict) -> list[dict]:
     keyword = keyword_config["keyword"]
+    min_price = keyword_config.get("min_price", 0)
     max_price = keyword_config.get("max_price", 100000)
     platforms = keyword_config.get("platforms", {"mercari": True, "rakuma": True, "paypay": True})
     precious_metal_mode = keyword_config.get("precious_metal_mode", False)
@@ -554,6 +555,11 @@ def process_keyword(keyword_config: dict, seen_ids: dict) -> list[dict]:
         before = len(new_items)
         new_items = [it for it in new_items if passes_word_filter(it)]
         print(f"  ワードフィルタ通過: {len(new_items)}件 (除外 {before - len(new_items)}件)")
+
+    if min_price > 0:
+        before = len(new_items)
+        new_items = [it for it in new_items if it["price"] >= min_price]
+        print(f"  最低価格フィルタ(¥{min_price}以上): {len(new_items)}件 (除外 {before - len(new_items)}件)")
 
     # お得判定
     def is_good_deal(it: dict) -> bool:

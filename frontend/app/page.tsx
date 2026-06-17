@@ -28,6 +28,7 @@ interface Platform {
 interface KeywordConfig {
   id: string;
   keyword: string;
+  min_price: number;
   max_price: number;
   discount_threshold: number;
   platforms: Platform;
@@ -149,11 +150,13 @@ function ArrivalCard({
   isNew,
   isLiked,
   onToggleLike,
+  onDislike,
 }: {
   item: HistoryItem;
   isNew: boolean;
   isLiked: boolean;
   onToggleLike: () => void;
+  onDislike: () => void;
 }) {
   const [imgError, setImgError] = useState(false);
 
@@ -231,6 +234,13 @@ function ArrivalCard({
             ) : (
               <span className="text-gray-300 hover:text-red-300">♡</span>
             )}
+          </button>
+          <button
+            onClick={onDislike}
+            className="flex-shrink-0 px-1 text-base leading-none transition-transform hover:scale-125 active:scale-110 text-gray-300 hover:text-gray-500"
+            title="この商品を非表示にする"
+          >
+            ✕
           </button>
         </div>
 
@@ -508,6 +518,16 @@ function KeywordCard({
               />
             </div>
             <div>
+              <label className="text-sm font-medium text-gray-700">最低金額（円）</label>
+              <input
+                type="number"
+                value={kw.min_price ?? 0}
+                onChange={(e) => onChange({ ...kw, min_price: Number(e.target.value) })}
+                placeholder="0 = 制限なし"
+                className="mt-1 w-full border rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
+              />
+            </div>
+            <div>
               <label className="text-sm font-medium text-gray-700">上限金額（円）</label>
               <input
                 type="number"
@@ -746,6 +766,25 @@ export default function Home() {
     });
   }, []);
 
+  const [dislikedIds, setDislikedIds] = useState<Set<string>>(() => {
+    if (typeof window === "undefined") return new Set();
+    try {
+      const stored = localStorage.getItem("disliked_items");
+      return new Set(JSON.parse(stored ?? "[]") as string[]);
+    } catch {
+      return new Set();
+    }
+  });
+
+  const dislikeItem = useCallback((itemId: string) => {
+    setDislikedIds((prev) => {
+      const next = new Set(prev);
+      next.add(itemId);
+      localStorage.setItem("disliked_items", JSON.stringify(Array.from(next)));
+      return next;
+    });
+  }, []);
+
   useEffect(() => {
     const isConfigured = !!loadGitHubConfig();
     setGithubConfigured(isConfigured);
@@ -791,12 +830,13 @@ export default function Home() {
     const cutoff24h = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
     return config.history
       .filter((item) => {
+        if (dislikedIds.has(item.id)) return false;
         if (filter === "ai_ok") return item.ai_ok;
         if (filter === "recent") return item.detected_at >= cutoff24h;
         return true;
       })
       .sort((a, b) => b.detected_at.localeCompare(a.detected_at));
-  }, [config, filter]);
+  }, [config, filter, dislikedIds]);
 
   // キーワードごとにグループ化（filteredHistory は新着順ソート済みなので先頭が最新）
   const groupedHistory = useMemo(() => {
@@ -829,6 +869,7 @@ export default function Home() {
     const newKw: KeywordConfig = {
       id: Date.now().toString(),
       keyword: "",
+      min_price: 0,
       max_price: 10000,
       discount_threshold: 0,
       platforms: { mercari: true, rakuma: true, paypay: true },
@@ -861,6 +902,7 @@ export default function Home() {
       const newKw: KeywordConfig = {
         id: Date.now().toString(),
         keyword: c.keyword,
+        min_price: 0,
         max_price: c.max_price,
         discount_threshold: c.discount_threshold,
         platforms: { mercari: true, rakuma: true, paypay: true },
@@ -1053,6 +1095,7 @@ export default function Home() {
                         isNew={item.detected_at > lastSeenAt}
                         isLiked={likedIds.has(item.id)}
                         onToggleLike={() => toggleLike(item.id)}
+                        onDislike={() => dislikeItem(item.id)}
                       />
                     ))}
                   </div>
