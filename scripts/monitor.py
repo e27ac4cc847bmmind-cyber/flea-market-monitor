@@ -454,9 +454,9 @@ JUDGMENT: YES または NO
 REASON: 50文字以内の理由"""
 
     MODELS = [
-        "deepseek/deepseek-v4-flash:free",
+        "google/gemma-4-31b-it:free",
+        "google/gemma-3-27b-it",
         "deepseek/deepseek-v4-flash",
-        "meta-llama/llama-3.3-70b-instruct:free",
     ]
 
     for model in MODELS:
