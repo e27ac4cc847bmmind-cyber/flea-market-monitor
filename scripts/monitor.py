@@ -449,7 +449,7 @@ REASON: 50文字以内の理由"""
         except Exception as e:
             print(f"    AI({model}): 例外 {e}")
 
-    return {"ok": False, "reason": "AI判定失敗 — 通知スキップ"}
+    return {"ok": True, "reason": "AI判定失敗 — 価格条件のみで判断"}
 
 
 # ==================== Discord通知 ====================
