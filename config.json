@@ -20,21 +20,36 @@
         "レプリカ",
         "コピー",
         "非純正",
-        "汎用"
-      ],
-      "require_words": [
+        "汎用",
+        "純正",
+        "新品",
+        "未使用",
+        "カーペット",
+        "フロア",
+        "マット",
+        "ゴム",
+        "パーツ",
+        "セット",
+        "4枚",
         "F48",
         "X1",
-        "フロアマット"
+        "X3",
+        "X5",
+        "X6",
+        "BMW"
+      ],
+      "require_words": [
+        "bmw"
       ],
       "note": "F48 BMW X1用の純正または専用設計のラバー製フロアマット4枚セットを、中古でも汚れや破損がない状態で探しています。ジャンク品やレプリカは避け、純正品や専用品を優先します。",
-      "enabled": true
+      "enabled": true,
+      "genre": "automotive"
     },
     {
       "id": "1781659955596",
       "keyword": "2K モニタ",
       "max_price": 15000,
-      "discount_threshold": 80,
+      "discount_threshold": 0,
       "platforms": {
         "mercari": true,
         "rakuma": true,
