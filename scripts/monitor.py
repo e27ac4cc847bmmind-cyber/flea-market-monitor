@@ -454,9 +454,9 @@ JUDGMENT: YES または NO
 REASON: 50文字以内の理由"""
 
     MODELS = [
-        "qwen/qwen-2.5-72b-instruct:free",
+        "deepseek/deepseek-v4-flash:free",
+        "deepseek/deepseek-v4-flash",
         "meta-llama/llama-3.3-70b-instruct:free",
-        "deepseek/deepseek-r1:free",
     ]
 
     for model in MODELS:
@@ -663,9 +663,45 @@ def process_keyword(keyword_config: dict, seen_ids: dict) -> list[dict]:
             return p <= market_price * (1 - discount_threshold / 100)
         return p <= max_price
 
+    AI_CALL_LIMIT = 5  # 1run当たりAI呼び出し上限（API節約）
+    ai_calls = 0
     history_items = []
     for item in new_items:
+        # 価格条件を先にチェック → 合格したものだけAIを呼ぶ
+        if not is_good_deal(item):
+            history_items.append({
+                "id": item["id"],
+                "name": item["name"],
+                "price": item["price"],
+                "platform": item["platform"],
+                "url": item["url"],
+                "image_url": item.get("image_url", ""),
+                "keyword": keyword,
+                "ai_comment": "価格条件未達",
+                "ai_ok": False,
+                "market_info": market_info,
+                "detected_at": datetime.now().isoformat(),
+            })
+            continue
+
+        if ai_calls >= AI_CALL_LIMIT:
+            history_items.append({
+                "id": item["id"],
+                "name": item["name"],
+                "price": item["price"],
+                "platform": item["platform"],
+                "url": item["url"],
+                "image_url": item.get("image_url", ""),
+                "keyword": keyword,
+                "ai_comment": "AI上限到達（次回判定）",
+                "ai_ok": False,
+                "market_info": market_info,
+                "detected_at": datetime.now().isoformat(),
+            })
+            continue
+
         ai_result = ai_judge(item, keyword_config, market_price, spot_price)
+        ai_calls += 1
 
         history_items.append({
             "id": item["id"],
@@ -681,7 +717,7 @@ def process_keyword(keyword_config: dict, seen_ids: dict) -> list[dict]:
             "detected_at": datetime.now().isoformat(),
         })
 
-        if is_good_deal(item) and ai_result["ok"]:
+        if ai_result["ok"]:
             send_discord_notification(item, keyword_config, ai_result, market_info)
 
     # seen_ids 更新

@@ -2,7 +2,7 @@ name: フリマ監視
 
 on:
   schedule:
-    - cron: "* * * * *"  # 1分ごと
+    - cron: "*/5 * * * *"  # 5分ごと
   workflow_dispatch:      # 手動実行
 
 jobs:
