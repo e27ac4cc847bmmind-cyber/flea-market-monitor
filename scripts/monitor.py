@@ -619,11 +619,11 @@ def process_keyword(keyword_config: dict, seen_ids: dict) -> list[dict]:
     new_items = [it for it in all_items if it["id"] not in keyword_seen]
     print(f"  新着: {len(new_items)}件")
 
-    # キーワード整合チェック（スクレイパーが拾った無関係アイテムを除去）
+    # キーワード整合チェック（全ワードが含まれる場合のみ通過 — ANYだとカメラ等が「モニター搭載」で誤通過する）
     kw_words = [w.lower() for w in search_keyword.split() if len(w) >= 2]
     if kw_words:
         before = len(new_items)
-        new_items = [it for it in new_items if any(w in it["name"].lower() for w in kw_words)]
+        new_items = [it for it in new_items if all(w in it["name"].lower() for w in kw_words)]
         removed = before - len(new_items)
         if removed:
             print(f"  キーワード整合チェック: {removed}件除外")
