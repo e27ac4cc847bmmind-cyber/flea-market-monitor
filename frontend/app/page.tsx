@@ -39,6 +39,8 @@ interface KeywordConfig {
   note: string;
   enabled: boolean;
   genre: string;
+  exclude_junk: boolean;
+  model_number: string;
 }
 
 interface HistoryItem {
@@ -568,6 +570,16 @@ function KeywordCard({
               />
             </div>
             <div>
+              <label className="text-sm font-medium text-gray-700">型番・モデル名（任意）</label>
+              <input
+                type="text"
+                value={kw.model_number ?? ""}
+                onChange={(e) => onChange({ ...kw, model_number: e.target.value })}
+                placeholder="例: BenQ EW2880U, iPhone 14 Pro"
+                className="mt-1 w-full border rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
+              />
+            </div>
+            <div>
               <label className="text-sm font-medium text-gray-700">最低金額（円）</label>
               <input
                 type="number"
@@ -612,6 +624,17 @@ function KeywordCard({
               </p>
             </div>
           </div>
+
+          <label className="flex items-center gap-2 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={kw.exclude_junk ?? true}
+              onChange={(e) => onChange({ ...kw, exclude_junk: e.target.checked })}
+              className="w-4 h-4 rounded"
+            />
+            <span className="text-sm font-medium text-gray-700">ジャンク・不動品を自動除外</span>
+            <span className="text-xs text-gray-400">（ジャンク・不動・破損・訳あり等）</span>
+          </label>
 
           <div>
             <label className="text-sm font-medium text-gray-700">監視プラットフォーム</label>
@@ -971,6 +994,8 @@ export default function Home() {
       note: "",
       enabled: true,
       genre: "",
+      exclude_junk: true,
+      model_number: "",
     };
     setConfig({ ...config, keywords: [...config.keywords, newKw] });
   };
@@ -1005,6 +1030,8 @@ export default function Home() {
         note: c.note,
         enabled: true,
         genre: c.genre ?? "",
+        exclude_junk: true,
+        model_number: "",
       };
       setConfig({ ...config, keywords: [...config.keywords, newKw] });
       setNlText("");

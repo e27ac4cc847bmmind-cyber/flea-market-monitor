@@ -413,7 +413,7 @@ JUDGMENT: YES または NO
 REASON: 50文字以内の理由"""
 
     MODELS = [
-        "deepseek/deepseek-v4-flash",
+        "google/gemini-2.0-flash-exp:free",
         "meta-llama/llama-3.3-70b-instruct:free",
     ]
 
@@ -488,6 +488,9 @@ def send_discord_notification(item: dict, keyword_config: dict, ai_result: dict,
         print(f"  Discord通知エラー: {e}")
 
 
+# ==================== ジャンク除外ワード ====================
+JUNK_WORDS = ["ジャンク", "不動", "部品取り", "破損", "訳あり", "動作不良", "故障", "ジャンク品"]
+
 # ==================== ジャンル別除外ワード ====================
 GENRE_EXCLUDE_WORDS: dict[str, list[str]] = {
     "electronics": ["y2k", "ファッション", "服", "古着", "レディース", "メンズ", "コーデ", "アパレル", "ウェア", "シャツ", "パンツ"],
@@ -502,6 +505,8 @@ GENRE_EXCLUDE_WORDS: dict[str, list[str]] = {
 # ==================== メイン処理 ====================
 def process_keyword(keyword_config: dict, seen_ids: dict) -> list[dict]:
     keyword = keyword_config["keyword"]
+    model_number = keyword_config.get("model_number", "").strip()
+    search_keyword = keyword + (" " + model_number if model_number else "")
     min_price = keyword_config.get("min_price", 0)
     max_price = keyword_config.get("max_price", 100000)
     platforms = keyword_config.get("platforms", {"mercari": True, "rakuma": True, "paypay": True})
@@ -528,20 +533,22 @@ def process_keyword(keyword_config: dict, seen_ids: dict) -> list[dict]:
             market_info = f"メルカリ相場: ¥{market_price:.0f}（売れ済み平均）"
             print(f"  {market_info}")
 
+    print(f"  検索キーワード: {search_keyword}")
+
     # スクレイピング
     all_items: list[dict] = []
     if platforms.get("mercari"):
-        res = scrape_mercari(keyword, max_price)
+        res = scrape_mercari(search_keyword, max_price)
         all_items.extend(res)
         print(f"  メルカリ: {len(res)}件")
 
     if platforms.get("rakuma"):
-        res = scrape_rakuma(keyword, max_price)
+        res = scrape_rakuma(search_keyword, max_price)
         all_items.extend(res)
         print(f"  ラクマ: {len(res)}件")
 
     if platforms.get("paypay"):
-        res = scrape_paypay(keyword, max_price)
+        res = scrape_paypay(search_keyword, max_price)
         all_items.extend(res)
         print(f"  PayPay: {len(res)}件")
 
@@ -555,6 +562,8 @@ def process_keyword(keyword_config: dict, seen_ids: dict) -> list[dict]:
     genre = keyword_config.get("genre", "")
     genre_excludes = [w.lower() for w in GENRE_EXCLUDE_WORDS.get(genre, [])]
     exclude_words = list(set(exclude_words + genre_excludes))
+    if keyword_config.get("exclude_junk", True):
+        exclude_words = list(set(exclude_words + [w.lower() for w in JUNK_WORDS]))
     require_words = [w.strip().lower() for w in keyword_config.get("require_words", []) if w.strip()]
 
     def passes_word_filter(it: dict) -> bool:
