@@ -66,6 +66,45 @@
   ],
   "history": [
     {
+      "id": "mercari_m33483124025",
+      "name": "2018年製　View sonic VG2719-2K-7　27型ワイドモニター",
+      "price": 10000,
+      "platform": "メルカリ",
+      "url": "https://jp.mercari.com/item/m33483124025",
+      "image_url": "https://static.mercdn.net/thumb/item/webp/m33483124025_1.jpg?1781761228",
+      "keyword": "2K モニタ",
+      "ai_comment": "AI判定失敗 — 価格条件のみで判断",
+      "ai_ok": true,
+      "market_info": "メルカリ相場: ¥13194（売れ済み平均）",
+      "detected_at": "2026-06-18T07:18:48.864140"
+    },
+    {
+      "id": "rakuma_64be469eeff84f23eb0239c886fa6bb9",
+      "name": "Nuvel.Sports ブークレジャケット 赤 ジップアップ 毛混(その他)",
+      "price": 2499,
+      "platform": "ラクマ",
+      "url": "https://item.fril.jp/64be469eeff84f23eb0239c886fa6bb9",
+      "image_url": "https://img.fril.jp/img/837101173/m/2884819248.jpg?1781451046",
+      "keyword": "2K モニタ",
+      "ai_comment": "AI判定失敗 — 価格条件のみで判断",
+      "ai_ok": true,
+      "market_info": "メルカリ相場: ¥13194（売れ済み平均）",
+      "detected_at": "2026-06-18T07:18:57.352467"
+    },
+    {
+      "id": "rakuma_d08ca525cdf8ef8ef6b2c693f6939171",
+      "name": "ロイヤルパーティー(ROYAL PARTY)のロイヤルパーティー フリンジ 半袖トップス 38 白 スタッズ リボン Y(カットソー(半袖/袖なし))",
+      "price": 1499,
+      "platform": "ラクマ",
+      "url": "https://item.fril.jp/d08ca525cdf8ef8ef6b2c693f6939171",
+      "image_url": "https://img.fril.jp/img/836567420/m/2882788486.jpg?1781191601",
+      "keyword": "2K モニタ",
+      "ai_comment": "AI判定失敗 — 価格条件のみで判断",
+      "ai_ok": true,
+      "market_info": "メルカリ相場: ¥13194（売れ済み平均）",
+      "detected_at": "2026-06-18T07:19:05.900391"
+    },
+    {
       "id": "mercari_m64403184982",
       "name": "コーチ coach デニム レザー 長財布 ラウンドジップ ターンロック",
       "price": 9300,
