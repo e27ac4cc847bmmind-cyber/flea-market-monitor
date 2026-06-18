@@ -3,8 +3,9 @@ import { NextRequest, NextResponse } from "next/server";
 const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY;
 
 const MODELS = [
-  "google/gemini-2.0-flash-exp:free",
+  "qwen/qwen-2.5-72b-instruct:free",
   "meta-llama/llama-3.3-70b-instruct:free",
+  "deepseek/deepseek-r1:free",
 ];
 
 const SYSTEM_PROMPT = `You convert a Japanese flea-market shopping request into a JSON search config.

@@ -173,12 +173,47 @@ def get_mercari_market_price(keyword: str) -> Optional[float]:
     return None
 
 
+# ==================== カテゴリIDマッピング ====================
+# Mercari Japan カテゴリID（genre → category_id）
+MERCARI_CATEGORY_IDS: dict[str, str] = {
+    "electronics": "668",   # PC周辺機器（ディスプレイ・モニター含む）
+    "games":       "63",    # テレビゲーム
+    "books":       "72",    # 本・音楽・映画
+    "sports":      "76",    # スポーツ・レジャー
+    "automotive":  "80",    # 自動車・オートバイ
+    "interior":    "57",    # インテリア・住まい・小物
+    "fashion":     "",      # 広すぎて絞らない（レディース/メンズ等で別ID）
+}
+
+# Rakuma (fril.jp) カテゴリID（genre → category_id）
+RAKUMA_CATEGORY_IDS: dict[str, str] = {
+    "electronics": "307",   # スマホ・タブレット・パソコン
+    "games":       "278",   # テレビゲーム
+    "books":       "82",    # 本・雑誌
+    "sports":      "283",   # スポーツ・アウトドア
+    "automotive":  "",      # 対応カテゴリなし
+    "interior":    "91",    # インテリア・日用品・その他
+    "fashion":     "",      # 広すぎて絞らない
+}
+
+# PayPayフリマ カテゴリID（genre → category_id）
+PAYPAY_CATEGORY_IDS: dict[str, str] = {
+    "electronics": "3",     # スマホ・タブレット・パソコン
+    "games":       "1",     # ゲーム
+    "books":       "6",     # 本・雑誌・マンガ
+    "sports":      "8",     # スポーツ・レジャー
+    "automotive":  "13",    # 自動車・オートバイ
+    "interior":    "10",    # インテリア・住まい
+    "fashion":     "",      # 広すぎて絞らない
+}
+
 # ==================== スクレイピング ====================
-def scrape_mercari(keyword: str, max_price: int) -> list[dict]:
+def scrape_mercari(keyword: str, max_price: int, category_id: str = "") -> list[dict]:
     """メルカリから新着商品を取得（Googlebot UAでSSR描画を取得）"""
     items = []
     try:
-        url = f"https://jp.mercari.com/search?keyword={requests.utils.quote(keyword)}&status=on_sale&sort=created_time&order=desc"
+        cat_param = f"&category_id={category_id}" if category_id else ""
+        url = f"https://jp.mercari.com/search?keyword={requests.utils.quote(keyword)}&status=on_sale&sort=created_time&order=desc{cat_param}"
         r = requests.get(url, headers=get_headers(googlebot=True), timeout=15)
         random_sleep()
 
@@ -235,11 +270,12 @@ def scrape_mercari(keyword: str, max_price: int) -> list[dict]:
     return items
 
 
-def scrape_rakuma(keyword: str, max_price: int) -> list[dict]:
+def scrape_rakuma(keyword: str, max_price: int, category_id: str = "") -> list[dict]:
     """ラクマから新着商品を取得（item.fril.jp形式）"""
     items = []
     try:
-        url = f"https://fril.jp/s?query={requests.utils.quote(keyword)}&sort=created_at&order=desc"
+        cat_param = f"&category={category_id}" if category_id else ""
+        url = f"https://fril.jp/s?query={requests.utils.quote(keyword)}&sort=created_at&order=desc{cat_param}"
         r = requests.get(url, headers=get_headers(), timeout=15)
         random_sleep()
 
@@ -287,11 +323,12 @@ def scrape_rakuma(keyword: str, max_price: int) -> list[dict]:
     return items[:30]
 
 
-def scrape_paypay(keyword: str, max_price: int) -> list[dict]:
+def scrape_paypay(keyword: str, max_price: int, category_id: str = "") -> list[dict]:
     """PayPayフリマから新着商品を取得（__NEXT_DATA__パース）"""
     items = []
     try:
-        url = f"https://paypayfleamarket.yahoo.co.jp/search/{requests.utils.quote(keyword)}?sort=new"
+        cat_param = f"&category_id={category_id}" if category_id else ""
+        url = f"https://paypayfleamarket.yahoo.co.jp/search/{requests.utils.quote(keyword)}?sort=new{cat_param}"
         r = requests.get(url, headers=get_headers(), timeout=15)
         random_sleep()
 
@@ -417,8 +454,9 @@ JUDGMENT: YES または NO
 REASON: 50文字以内の理由"""
 
     MODELS = [
-        "google/gemini-2.0-flash-exp:free",
+        "qwen/qwen-2.5-72b-instruct:free",
         "meta-llama/llama-3.3-70b-instruct:free",
+        "deepseek/deepseek-r1:free",
     ]
 
     for model in MODELS:
@@ -537,24 +575,44 @@ def process_keyword(keyword_config: dict, seen_ids: dict) -> list[dict]:
             market_info = f"メルカリ相場: ¥{market_price:.0f}（売れ済み平均）"
             print(f"  {market_info}")
 
-    print(f"  検索キーワード: {search_keyword}")
+    genre = keyword_config.get("genre", "")
+    mercari_cat = MERCARI_CATEGORY_IDS.get(genre, "")
+    rakuma_cat = RAKUMA_CATEGORY_IDS.get(genre, "")
+    paypay_cat = PAYPAY_CATEGORY_IDS.get(genre, "")
 
-    # スクレイピング
+    print(f"  検索キーワード: {search_keyword} / ジャンル: {genre or '指定なし'}")
+
+    # スクレイピング（カテゴリ指定 → 結果少なければ全カテゴリで再試行）
     all_items: list[dict] = []
     if platforms.get("mercari"):
-        res = scrape_mercari(search_keyword, max_price)
+        res = scrape_mercari(search_keyword, max_price, mercari_cat)
+        if mercari_cat and len(res) < 3:
+            print(f"  メルカリ(cat={mercari_cat}): {len(res)}件 → 全カテゴリで再試行")
+            res = scrape_mercari(search_keyword, max_price)
+            print(f"  メルカリ(全): {len(res)}件")
+        else:
+            print(f"  メルカリ{f'(cat={mercari_cat})' if mercari_cat else ''}: {len(res)}件")
         all_items.extend(res)
-        print(f"  メルカリ: {len(res)}件")
 
     if platforms.get("rakuma"):
-        res = scrape_rakuma(search_keyword, max_price)
+        res = scrape_rakuma(search_keyword, max_price, rakuma_cat)
+        if rakuma_cat and len(res) < 3:
+            print(f"  ラクマ(cat={rakuma_cat}): {len(res)}件 → 全カテゴリで再試行")
+            res = scrape_rakuma(search_keyword, max_price)
+            print(f"  ラクマ(全): {len(res)}件")
+        else:
+            print(f"  ラクマ{f'(cat={rakuma_cat})' if rakuma_cat else ''}: {len(res)}件")
         all_items.extend(res)
-        print(f"  ラクマ: {len(res)}件")
 
     if platforms.get("paypay"):
-        res = scrape_paypay(search_keyword, max_price)
+        res = scrape_paypay(search_keyword, max_price, paypay_cat)
+        if paypay_cat and len(res) < 3:
+            print(f"  PayPay(cat={paypay_cat}): {len(res)}件 → 全カテゴリで再試行")
+            res = scrape_paypay(search_keyword, max_price)
+            print(f"  PayPay(全): {len(res)}件")
+        else:
+            print(f"  PayPay{f'(cat={paypay_cat})' if paypay_cat else ''}: {len(res)}件")
         all_items.extend(res)
-        print(f"  PayPay: {len(res)}件")
 
     # 新着フィルタ
     keyword_seen = set(seen_ids.get(keyword, []))
@@ -572,7 +630,6 @@ def process_keyword(keyword_config: dict, seen_ids: dict) -> list[dict]:
 
     # 除外ワード / 必須ワードフィルタ（AI判定の前に機械的に弾く＝API節約＆確実）
     exclude_words = [w.strip().lower() for w in keyword_config.get("exclude_words", []) if w.strip()]
-    genre = keyword_config.get("genre", "")
     genre_excludes = [w.lower() for w in GENRE_EXCLUDE_WORDS.get(genre, [])]
     exclude_words = list(set(exclude_words + genre_excludes))
     if keyword_config.get("exclude_junk", True):
