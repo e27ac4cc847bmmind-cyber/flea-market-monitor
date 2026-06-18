@@ -926,9 +926,9 @@ export default function Home() {
     return config.history.filter((item) => item.detected_at > lastSeenAt).length;
   }, [config, lastSeenAt]);
 
-  const keywordGenreMap = useMemo(() => {
-    const map: Record<string, string> = {};
-    config?.keywords.forEach((kw) => { map[kw.keyword] = kw.genre ?? ""; });
+  const keywordConfigMap = useMemo(() => {
+    const map: Record<string, KeywordConfig> = {};
+    config?.keywords.forEach((kw) => { map[kw.keyword] = kw; });
     return map;
   }, [config]);
 
@@ -943,14 +943,20 @@ export default function Home() {
         return true;
       })
       .filter((item) => {
-        const genre = keywordGenreMap[item.keyword] ?? "";
-        const excludes = GENRE_EXCLUDE_WORDS_FRONT[genre] ?? [];
-        if (excludes.length === 0) return true;
+        const kw = keywordConfigMap[item.keyword];
+        if (!kw) return true;
         const nameLower = item.name.toLowerCase();
-        return !excludes.some((w) => nameLower.includes(w.toLowerCase()));
+        // ジャンル除外
+        const genre = kw.genre ?? "";
+        const genreExcludes = GENRE_EXCLUDE_WORDS_FRONT[genre] ?? [];
+        if (genreExcludes.some((w) => nameLower.includes(w.toLowerCase()))) return false;
+        // キーワード設定の除外ワード
+        const kwExcludes = kw.exclude_words ?? [];
+        if (kwExcludes.some((w) => nameLower.includes(w.toLowerCase()))) return false;
+        return true;
       })
       .sort((a, b) => b.detected_at.localeCompare(a.detected_at));
-  }, [config, filter, dislikedIds, keywordGenreMap]);
+  }, [config, filter, dislikedIds, keywordConfigMap]);
 
   // キーワードごとにグループ化（filteredHistory は新着順ソート済みなので先頭が最新）
   const groupedHistory = useMemo(() => {

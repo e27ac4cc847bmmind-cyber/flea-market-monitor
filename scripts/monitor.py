@@ -399,14 +399,18 @@ def ai_judge(item: dict, keyword_config: dict, market_price: Optional[float], sp
 JUDGMENT: YES または NO
 REASON: 50文字以内の理由"""
     else:
-        note_basis = f"\n3. ユーザーの希望条件に合致するか: {note}" if note else ""
+        note_basis = f"\n4. ユーザーの希望条件に合致するか: {note}" if note else ""
+        target_keyword = keyword_config.get("keyword", "")
         prompt = f"""以下のフリマ出品商品を評価してください。
 
 {chr(10).join(lines)}
 
+検索キーワード: {target_keyword}
+
 判定基準（すべて満たす場合のみYES）：
-1. 正規品・本物で実用に足る状態か（偽物・詐欺的出品・パーツ取り・ジャンク・破損品ではないか）
-2. 相場より{discount_threshold}%以上お得か{note_basis}
+1. これは「{target_keyword}」そのもの（本体）か？アクセサリー・周辺機器・関連商品・別用途の商品ではないか（例: モニター検索でKVMスイッチ・ベビーモニター・ケーブルはNO）
+2. 正規品・本物で実用に足る状態か（偽物・詐欺的出品・パーツ取り・ジャンク・破損品ではないか）
+3. 相場より{discount_threshold}%以上お得か{note_basis}
 
 必ず以下の形式で回答：
 JUDGMENT: YES または NO
@@ -556,6 +560,15 @@ def process_keyword(keyword_config: dict, seen_ids: dict) -> list[dict]:
     keyword_seen = set(seen_ids.get(keyword, []))
     new_items = [it for it in all_items if it["id"] not in keyword_seen]
     print(f"  新着: {len(new_items)}件")
+
+    # キーワード整合チェック（スクレイパーが拾った無関係アイテムを除去）
+    kw_words = [w.lower() for w in search_keyword.split() if len(w) >= 2]
+    if kw_words:
+        before = len(new_items)
+        new_items = [it for it in new_items if any(w in it["name"].lower() for w in kw_words)]
+        removed = before - len(new_items)
+        if removed:
+            print(f"  キーワード整合チェック: {removed}件除外")
 
     # 除外ワード / 必須ワードフィルタ（AI判定の前に機械的に弾く＝API節約＆確実）
     exclude_words = [w.strip().lower() for w in keyword_config.get("exclude_words", []) if w.strip()]
