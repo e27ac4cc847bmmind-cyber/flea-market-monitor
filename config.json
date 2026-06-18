@@ -15,32 +15,39 @@
       "metal_type": "silver",
       "exclude_words": [
         "ジャンク",
-        "不動",
         "部品取り",
         "破損",
-        "訳あり",
-        "動作不良",
-        "故障",
         "レプリカ",
         "コピー",
         "非純正",
         "汎用",
+        "純正",
+        "新品",
+        "未使用",
         "カーペット",
-        "X2",
+        "フロア",
+        "マット",
+        "ゴム",
+        "パーツ",
+        "セット",
+        "4枚",
+        "F48",
+        "X1",
         "X3",
-        "X4",
         "X5",
         "X6",
-        "X7"
+        "BMW"
       ],
-      "require_words": [],
+      "require_words": [
+        "bmw"
+      ],
       "note": "F48 BMW X1用の純正または専用設計のラバー製フロアマット4枚セットを、中古でも汚れや破損がない状態で探しています。ジャンク品やレプリカは避け、純正品や専用品を優先します。",
       "enabled": true,
       "genre": "automotive"
     },
     {
       "id": "1781659955596",
-      "keyword": "2K モニタ",
+      "keyword": "2K モニター",
       "max_price": 15000,
       "discount_threshold": 0,
       "platforms": {
@@ -68,6 +75,27 @@
       "note": "24インチ以上",
       "enabled": true,
       "genre": "electronics"
+    },
+    {
+      "id": "1781784414865",
+      "keyword": "",
+      "min_price": 0,
+      "max_price": 10000,
+      "discount_threshold": 0,
+      "platforms": {
+        "mercari": true,
+        "rakuma": true,
+        "paypay": true
+      },
+      "precious_metal_mode": false,
+      "metal_type": "silver",
+      "exclude_words": [],
+      "require_words": [],
+      "note": "",
+      "enabled": true,
+      "genre": "",
+      "exclude_junk": true,
+      "model_number": ""
     }
   ],
   "history": [
