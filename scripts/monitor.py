@@ -481,7 +481,12 @@ REASON: 50文字以内の理由"""
                 time.sleep(5)
                 continue
             if r.status_code == 200:
-                content = r.json()["choices"][0]["message"]["content"]
+                j_body = r.json()
+                if "choices" not in j_body or not j_body["choices"]:
+                    err = j_body.get("error", {}).get("message", str(j_body)[:80])
+                    print(f"    AI({model}): choices なし → {err}")
+                    continue
+                content = j_body["choices"][0]["message"]["content"]
                 j = re.search(r"JUDGMENT:\s*(YES|NO)", content, re.IGNORECASE)
                 reason_m = re.search(r"REASON:\s*(.+)", content)
                 ok = j and j.group(1).upper() == "YES"

@@ -85,27 +85,6 @@
       "note": "24インチ以上",
       "enabled": true,
       "genre": "electronics"
-    },
-    {
-      "id": "1781784414865",
-      "keyword": "",
-      "min_price": 0,
-      "max_price": 10000,
-      "discount_threshold": 0,
-      "platforms": {
-        "mercari": true,
-        "rakuma": true,
-        "paypay": true
-      },
-      "precious_metal_mode": false,
-      "metal_type": "silver",
-      "exclude_words": [],
-      "require_words": [],
-      "note": "",
-      "enabled": true,
-      "genre": "",
-      "exclude_junk": true,
-      "model_number": ""
     }
   ],
   "history": [
