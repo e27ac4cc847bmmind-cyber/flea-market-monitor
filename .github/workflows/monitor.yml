@@ -43,9 +43,9 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git pull --rebase origin main
           git add seen_ids.json config.json
           git diff --staged --quiet || git commit -m "chore: 監視データ更新 $(date +'%Y-%m-%d %H:%M:%S')"
+          git pull --rebase origin main
           git push
 
       - name: 5分後に次回実行をトリガー（自己チェーン）
