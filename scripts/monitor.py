@@ -57,8 +57,11 @@ def random_sleep():
 
 def load_json(path: Path) -> dict:
     if path.exists():
-        with open(path, encoding="utf-8-sig") as f:
-            return json.load(f)
+        try:
+            with open(path, encoding="utf-8-sig") as f:
+                return json.load(f)
+        except (json.JSONDecodeError, UnicodeDecodeError) as e:
+            print(f"警告: {path.name} 読み込み失敗 ({e})")
     return {}
 
 
@@ -747,6 +750,9 @@ def main():
     print(f"=== フリマ監視開始 {datetime.now().strftime('%Y-%m-%d %H:%M:%S')} ===", flush=True)
 
     config = load_json(CONFIG_PATH)
+    if not config.get("keywords"):
+        print("config.json が空または読み込み失敗 — 監視をスキップ（config.json を上書きしません）")
+        sys.exit(1)
     seen_ids = load_seen_ids(SEEN_IDS_PATH)
 
     if not config.get("monitoring_enabled", True):
