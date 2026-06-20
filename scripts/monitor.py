@@ -11,7 +11,7 @@ import random
 import re
 import sys
 import time
-from datetime import datetime
+from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Optional
 
@@ -38,6 +38,8 @@ UA_LIST = [
 OPENROUTER_API_KEY = os.environ.get("OPENROUTER_API_KEY", "")
 DISCORD_WEBHOOK_URL = os.environ.get("DISCORD_WEBHOOK_URL", "")
 
+SEEN_IDS_TTL_DAYS = 14
+
 
 # ==================== ユーティリティ ====================
 def get_headers(googlebot=False):
@@ -55,14 +57,34 @@ def random_sleep():
 
 def load_json(path: Path) -> dict:
     if path.exists():
-        with open(path, encoding="utf-8-sig") as f:
-            return json.load(f)
+        try:
+            with open(path, encoding="utf-8-sig") as f:
+                return json.load(f)
+        except (json.JSONDecodeError, UnicodeDecodeError) as e:
+            print(f"警告: {path.name} 読み込み失敗 ({e})")
     return {}
 
 
 def save_json(path: Path, data: dict):
     with open(path, "w", encoding="utf-8") as f:
         json.dump(data, f, ensure_ascii=False, indent=2)
+
+
+def load_seen_ids(path: Path) -> dict:
+    """seen_ids を読み込み、旧リスト形式を TTL付き辞書形式に自動移行する"""
+    raw = load_json(path)
+    result = {}
+    for key, val in raw.items():
+        if not key:
+            continue  # 空キーを除去
+        if isinstance(val, list):
+            # 旧形式（リスト）→ 即座に期限切れ扱いで移行（全件を再評価させる）
+            result[key] = {item_id: "2000-01-01" for item_id in val}
+        elif isinstance(val, dict):
+            result[key] = val
+        else:
+            result[key] = {}
+    return result
 
 
 def parse_price(text: str) -> Optional[int]:
@@ -619,8 +641,12 @@ def process_keyword(keyword_config: dict, seen_ids: dict) -> list[dict]:
             print(f"  PayPay{f'(cat={paypay_cat})' if paypay_cat else ''}: {len(res)}件")
         all_items.extend(res)
 
-    # 新着フィルタ
-    keyword_seen = set(seen_ids.get(keyword, []))
+    # 新着フィルタ（TTL付き — TTL_DAYS以内に評価済みのIDのみ除外）
+    cutoff = (datetime.now() - timedelta(days=SEEN_IDS_TTL_DAYS)).date().isoformat()
+    keyword_seen_dict = seen_ids.get(keyword, {})
+    if isinstance(keyword_seen_dict, list):
+        keyword_seen_dict = {item_id: "2000-01-01" for item_id in keyword_seen_dict}
+    keyword_seen = {id for id, date in keyword_seen_dict.items() if date >= cutoff}
     new_items = [it for it in all_items if it["id"] not in keyword_seen]
     print(f"  新着: {len(new_items)}件")
 
@@ -709,9 +735,14 @@ def process_keyword(keyword_config: dict, seen_ids: dict) -> list[dict]:
         if ai_result["ok"]:
             send_discord_notification(item, keyword_config, ai_result, market_info)
 
-    # seen_ids 更新
-    # pending_ids（AI上限積み残し）はseen_idsに入れない → 次回ランで再判定される
-    seen_ids[keyword] = list(keyword_seen | ({it["id"] for it in all_items} - pending_ids))
+    # seen_ids 更新（TTL付き辞書形式）
+    # AI判定済みIDのみ追加する — キーワード不一致・ワードフィルタ落ち・価格未達はここに入れない
+    # → それらのアイテムは次回ランで自動的に再評価される（価格変動にも対応）
+    today = datetime.now().date().isoformat()
+    new_seen_dict = {id: date for id, date in keyword_seen_dict.items() if date >= cutoff}
+    for h in history_items:
+        new_seen_dict[h["id"]] = today
+    seen_ids[keyword] = new_seen_dict
     return history_items
 
 
@@ -719,7 +750,10 @@ def main():
     print(f"=== フリマ監視開始 {datetime.now().strftime('%Y-%m-%d %H:%M:%S')} ===", flush=True)
 
     config = load_json(CONFIG_PATH)
-    seen_ids = load_json(SEEN_IDS_PATH)
+    if not config.get("keywords"):
+        print("config.json が空または読み込み失敗 — 監視をスキップ（config.json を上書きしません）")
+        sys.exit(1)
+    seen_ids = load_seen_ids(SEEN_IDS_PATH)
 
     if not config.get("monitoring_enabled", True):
         print("監視はOFFです。終了します。")
