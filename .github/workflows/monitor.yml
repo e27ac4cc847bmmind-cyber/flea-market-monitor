@@ -51,7 +51,7 @@ jobs:
       - name: 5分後に次回実行をトリガー（自己チェーン）
         if: always()
         env:
-          GH_PAT: ${{ secrets.GH_PAT }}
+          GH_PAT: ${{ secrets.SHOPPING_SERCH }}
         run: |
           sleep 300
           if [ -z "$GH_PAT" ]; then
