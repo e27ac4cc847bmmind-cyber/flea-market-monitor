@@ -547,7 +547,9 @@ function KeywordCard({
         {likedItems.length > 0 && (
           <span className="text-xs text-red-400 font-medium">♥ {likedItems.length}</span>
         )}
-        <span className="text-sm text-gray-500">¥{kw.max_price.toLocaleString()}以下</span>
+        <span className="text-sm text-gray-500">
+          {(kw.min_price ?? 0) > 0 ? `¥${kw.min_price.toLocaleString()}〜` : ""}¥{kw.max_price.toLocaleString()}
+        </span>
 
         <button onClick={() => setExpanded(!expanded)} className="text-gray-400 hover:text-gray-600">
           {expanded ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
@@ -579,24 +581,52 @@ function KeywordCard({
                 className="mt-1 w-full border rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
               />
             </div>
-            <div>
-              <label className="text-sm font-medium text-gray-700">最低金額（円）</label>
-              <input
-                type="number"
-                value={kw.min_price ?? 0}
-                onChange={(e) => onChange({ ...kw, min_price: Number(e.target.value) })}
-                placeholder="0 = 制限なし"
-                className="mt-1 w-full border rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
-              />
-            </div>
-            <div>
-              <label className="text-sm font-medium text-gray-700">上限金額（円）</label>
-              <input
-                type="number"
-                value={kw.max_price}
-                onChange={(e) => onChange({ ...kw, max_price: Number(e.target.value) })}
-                className="mt-1 w-full border rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
-              />
+            <div className="sm:col-span-2">
+              <label className="text-sm font-medium text-gray-700">価格帯</label>
+              <div className="mt-2 space-y-3">
+                <div>
+                  <div className="flex justify-between text-xs mb-1">
+                    <span className="text-gray-500">最低価格</span>
+                    <span className="font-medium text-gray-700">
+                      {(kw.min_price ?? 0) === 0 ? "制限なし" : `¥${kw.min_price.toLocaleString()}`}
+                    </span>
+                  </div>
+                  <input
+                    type="range"
+                    min={0}
+                    max={300000}
+                    step={500}
+                    value={kw.min_price ?? 0}
+                    onChange={(e) => {
+                      const val = Number(e.target.value);
+                      onChange({ ...kw, min_price: val, max_price: Math.max(kw.max_price, val) });
+                    }}
+                    className="w-full accent-blue-500"
+                  />
+                </div>
+                <div>
+                  <div className="flex justify-between text-xs mb-1">
+                    <span className="text-gray-500">上限価格</span>
+                    <span className="font-medium text-gray-700">¥{kw.max_price.toLocaleString()}</span>
+                  </div>
+                  <input
+                    type="range"
+                    min={0}
+                    max={300000}
+                    step={500}
+                    value={kw.max_price}
+                    onChange={(e) => {
+                      const val = Number(e.target.value);
+                      onChange({ ...kw, max_price: val, min_price: Math.min(kw.min_price ?? 0, val) });
+                    }}
+                    className="w-full accent-blue-500"
+                  />
+                </div>
+              </div>
+              <div className="flex justify-between text-xs text-gray-300 mt-0.5">
+                <span>¥0</span>
+                <span>¥300,000</span>
+              </div>
             </div>
             <div className="sm:col-span-2">
               <label className="text-sm font-medium text-gray-700">
