@@ -81,5 +81,149 @@
       "exclude_junk": true
     }
   ],
-  "history": []
+  "history": [
+    {
+      "id": "mercari_m44760666575",
+      "name": "HP Z24n G2 ワイド 2K 液晶モニター 24インチ Type-C",
+      "price": 7300,
+      "platform": "メルカリ",
+      "url": "https://jp.mercari.com/item/m44760666575",
+      "image_url": "https://static.mercdn.net/thumb/item/webp/m44760666575_1.jpg?1780406245",
+      "keyword": "2K モニター",
+      "ai_comment": "[gemma-4-31b-it] 2Kモニター本体であり、相場より安く、24インチの条件も満たしているため。",
+      "ai_ok": true,
+      "market_info": "メルカリ相場: ¥8085（売れ済み平均）",
+      "detected_at": "2026-06-20T22:41:12.490579"
+    },
+    {
+      "id": "mercari_m40007889062",
+      "name": "M2 Macbook Air 13インチ スペースグレイ US配列",
+      "price": 75000,
+      "platform": "メルカリ",
+      "url": "https://jp.mercari.com/item/m40007889062",
+      "image_url": "https://static.mercdn.net/thumb/item/webp/m40007889062_1.jpg?1781970178",
+      "keyword": "MacBook Air M2",
+      "ai_comment": "[gemma-4-31b-it] 本体であり、相場より約21%安く、希望条件のM2モデルに合致するため。",
+      "ai_ok": true,
+      "market_info": "メルカリ相場: ¥95403（売れ済み平均）",
+      "detected_at": "2026-06-20T22:41:39.670167"
+    },
+    {
+      "id": "mercari_m99844420142",
+      "name": "MacBook Air (M2 / 2022 /13インチ/メモリ8GB）",
+      "price": 77000,
+      "platform": "メルカリ",
+      "url": "https://jp.mercari.com/item/m99844420142",
+      "image_url": "https://static.mercdn.net/thumb/item/webp/m99844420142_1.jpg?1781145891",
+      "keyword": "MacBook Air M2",
+      "ai_comment": "[gemma-4-31b-it] 本体であり、相場より約19%安く、希望条件のM2モデルに合致しているため。",
+      "ai_ok": true,
+      "market_info": "メルカリ相場: ¥95403（売れ済み平均）",
+      "detected_at": "2026-06-20T22:41:42.526932"
+    },
+    {
+      "id": "mercari_m59050395336",
+      "name": "MacBook Air M2 13.6インチ 8GB 256GB スペースグレイ",
+      "price": 79999,
+      "platform": "メルカリ",
+      "url": "https://jp.mercari.com/item/m59050395336",
+      "image_url": "https://static.mercdn.net/thumb/item/webp/m59050395336_1.jpg?1781419692",
+      "keyword": "MacBook Air M2",
+      "ai_comment": "[gemma-4-31b-it] 本体であり、相場より約16%安く、条件に合致しているため。",
+      "ai_ok": true,
+      "market_info": "メルカリ相場: ¥95403（売れ済み平均）",
+      "detected_at": "2026-06-20T22:41:45.327990"
+    },
+    {
+      "id": "mercari_m94301757881",
+      "name": "MacBook Air m2",
+      "price": 76000,
+      "platform": "メルカリ",
+      "url": "https://jp.mercari.com/item/m94301757881",
+      "image_url": "https://static.mercdn.net/thumb/item/webp/m94301757881_1.jpg?1781535958",
+      "keyword": "MacBook Air M2",
+      "ai_comment": "[gemma-4-31b-it] 本体であり、相場より20%以上安く、条件に合致しているため。",
+      "ai_ok": true,
+      "market_info": "メルカリ相場: ¥95403（売れ済み平均）",
+      "detected_at": "2026-06-20T22:41:49.088223"
+    },
+    {
+      "id": "mercari_m71026446104",
+      "name": "『極美品 』Macbook Air M2 (13.6インチ) 8GB/256GB",
+      "price": 80247,
+      "platform": "メルカリ",
+      "url": "https://jp.mercari.com/item/m71026446104",
+      "image_url": "https://static.mercdn.net/thumb/item/webp/m71026446104_1.jpg?1781652637",
+      "keyword": "MacBook Air M2",
+      "ai_comment": "[gemma-4-31b-it] 本物かつ極美品で、相場より約16%安く、希望条件をすべて満たしています。",
+      "ai_ok": true,
+      "market_info": "メルカリ相場: ¥95403（売れ済み平均）",
+      "detected_at": "2026-06-20T22:41:52.551666"
+    },
+    {
+      "id": "mercari_m86774379694",
+      "name": "MacBookAir M2 8GB 256GB JIS配列 最大バッテリー94%",
+      "price": 77000,
+      "platform": "メルカリ",
+      "url": "https://jp.mercari.com/item/m86774379694",
+      "image_url": "https://static.mercdn.net/thumb/item/webp/m86774379694_1.jpg?1780827684",
+      "keyword": "MacBook Air M2",
+      "ai_comment": "[gemma-4-31b-it] 本物かつ状態良好で、相場より約19%安く条件をすべて満たしています。",
+      "ai_ok": true,
+      "market_info": "メルカリ相場: ¥95403（売れ済み平均）",
+      "detected_at": "2026-06-20T22:41:55.071078"
+    },
+    {
+      "id": "mercari_m51994545454",
+      "name": "MacBook Air M2 256GB 97% AppleCare 2027",
+      "price": 78000,
+      "platform": "メルカリ",
+      "url": "https://jp.mercari.com/item/m51994545454",
+      "image_url": "https://static.mercdn.net/thumb/item/webp/m51994545454_1.jpg?1751460386",
+      "keyword": "MacBook Air M2",
+      "ai_comment": "[gemma-4-31b-it] 本物かつ状態良好。相場より約18%安く、希望条件をすべて満たしているため。",
+      "ai_ok": true,
+      "market_info": "メルカリ相場: ¥95403（売れ済み平均）",
+      "detected_at": "2026-06-20T22:41:57.764247"
+    },
+    {
+      "id": "paypay_z629733438",
+      "name": "MacBookAir M2 8GB",
+      "price": 70000,
+      "platform": "PayPayフリマ",
+      "url": "https://paypayfleamarket.yahoo.co.jp/item/z629733438",
+      "image_url": "https://auc-pctr.c.yimg.jp/i/auctions.c.yimg.jp/images.auctions.yahoo.co.jp/image/dr000/auc0206/users/bd2c11779c90953f2d0e3f374c1ac0e2c8f1ed9f/i-img1200x1200-1781872621079e33hy4.jpg?pri=s&w=298&h=298&ccw=298&cch=298&fill=1&fw=298&fh=298&up=0&nf_src=sy&nf_path=images/auc/pc/top/image/1.0.3/na_170x170.png&nf_st=200",
+      "keyword": "MacBook Air M2",
+      "ai_comment": "[gemma-4-31b-it] 本体であり、相場より約26%安く、条件に合致しているため。",
+      "ai_ok": true,
+      "market_info": "メルカリ相場: ¥95403（売れ済み平均）",
+      "detected_at": "2026-06-20T22:42:00.769933"
+    },
+    {
+      "id": "paypay_z629741892",
+      "name": "MacBook Air M2 8GB",
+      "price": 75000,
+      "platform": "PayPayフリマ",
+      "url": "https://paypayfleamarket.yahoo.co.jp/item/z629741892",
+      "image_url": "https://auc-pctr.c.yimg.jp/i/auctions.c.yimg.jp/images.auctions.yahoo.co.jp/image/dr000/auc0206/users/bd2c11779c90953f2d0e3f374c1ac0e2c8f1ed9f/i-img1200x1200-17818733200905yov0k.jpg?pri=s&w=298&h=298&ccw=298&cch=298&fill=1&fw=298&fh=298&up=0&nf_src=sy&nf_path=images/auc/pc/top/image/1.0.3/na_170x170.png&nf_st=200",
+      "keyword": "MacBook Air M2",
+      "ai_comment": "[gemma-4-31b-it] 本体であり、相場より約21%安く、希望条件を満たしているため。",
+      "ai_ok": true,
+      "market_info": "メルカリ相場: ¥95403（売れ済み平均）",
+      "detected_at": "2026-06-20T22:42:03.766923"
+    },
+    {
+      "id": "paypay_z629718650",
+      "name": "MacBookAir M2 8GB",
+      "price": 70000,
+      "platform": "PayPayフリマ",
+      "url": "https://paypayfleamarket.yahoo.co.jp/item/z629718650",
+      "image_url": "https://auc-pctr.c.yimg.jp/i/auctions.c.yimg.jp/images.auctions.yahoo.co.jp/image/dr000/auc0206/users/bd2c11779c90953f2d0e3f374c1ac0e2c8f1ed9f/i-img900x1200-1781871186450p21qgc.jpg?pri=s&w=298&h=298&ccw=298&cch=298&fill=1&fw=298&fh=298&up=0&nf_src=sy&nf_path=images/auc/pc/top/image/1.0.3/na_170x170.png&nf_st=200",
+      "keyword": "MacBook Air M2",
+      "ai_comment": "[gemma-4-31b-it] 本体であり、相場より約26%安く、希望条件（M2モデル）に合致しているため。",
+      "ai_ok": true,
+      "market_info": "メルカリ相場: ¥95403（売れ済み平均）",
+      "detected_at": "2026-06-20T22:42:06.571091"
+    }
+  ]
 }
