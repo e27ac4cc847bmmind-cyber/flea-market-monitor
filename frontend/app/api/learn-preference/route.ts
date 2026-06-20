@@ -4,8 +4,8 @@ const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY;
 
 const MODELS = [
   "google/gemma-4-31b-it:free",
-  "google/gemma-3-27b-it",
-  "deepseek/deepseek-v4-flash",
+  "qwen/qwen3-next-80b-a3b-instruct:free",
+  "meta-llama/llama-3.3-70b-instruct:free",
 ];
 
 function extractJson(text: string): Record<string, unknown> | null {
