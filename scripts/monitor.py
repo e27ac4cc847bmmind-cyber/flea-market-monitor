@@ -675,41 +675,18 @@ def process_keyword(keyword_config: dict, seen_ids: dict) -> list[dict]:
             return p <= market_price * (1 - discount_threshold / 100)
         return p <= max_price
 
-    AI_CALL_LIMIT = 5  # 1run当たりAI呼び出し上限（API節約）
+    AI_CALL_LIMIT = 10  # 1run当たりAI呼び出し上限
     ai_calls = 0
+    pending_ids: set[str] = set()  # AI上限で積み残した商品ID（次回再判定のためseen_idsに入れない）
     history_items = []
     for item in new_items:
-        # 価格条件を先にチェック → 合格したものだけAIを呼ぶ
+        # 価格条件を先にチェック → 合格したものだけAIを呼ぶ（不合格は履歴に残さない）
         if not is_good_deal(item):
-            history_items.append({
-                "id": item["id"],
-                "name": item["name"],
-                "price": item["price"],
-                "platform": item["platform"],
-                "url": item["url"],
-                "image_url": item.get("image_url", ""),
-                "keyword": keyword,
-                "ai_comment": "価格条件未達",
-                "ai_ok": False,
-                "market_info": market_info,
-                "detected_at": datetime.now().isoformat(),
-            })
             continue
 
         if ai_calls >= AI_CALL_LIMIT:
-            history_items.append({
-                "id": item["id"],
-                "name": item["name"],
-                "price": item["price"],
-                "platform": item["platform"],
-                "url": item["url"],
-                "image_url": item.get("image_url", ""),
-                "keyword": keyword,
-                "ai_comment": "AI上限到達（次回判定）",
-                "ai_ok": False,
-                "market_info": market_info,
-                "detected_at": datetime.now().isoformat(),
-            })
+            # AI上限に達したものはseen_idsに入れず、次回ランで再判定
+            pending_ids.add(item["id"])
             continue
 
         ai_result = ai_judge(item, keyword_config, market_price, spot_price)
@@ -733,7 +710,8 @@ def process_keyword(keyword_config: dict, seen_ids: dict) -> list[dict]:
             send_discord_notification(item, keyword_config, ai_result, market_info)
 
     # seen_ids 更新
-    seen_ids[keyword] = list(keyword_seen | {it["id"] for it in all_items})
+    # pending_ids（AI上限積み残し）はseen_idsに入れない → 次回ランで再判定される
+    seen_ids[keyword] = list(keyword_seen | ({it["id"] for it in all_items} - pending_ids))
     return history_items
 
 
