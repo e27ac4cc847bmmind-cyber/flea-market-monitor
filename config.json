@@ -68,6 +68,58 @@
   ],
   "history": [
     {
+      "id": "mercari_m24695872345",
+      "name": "cocopar 13.3型 2K モバイルモニター USB-C",
+      "price": 7980,
+      "platform": "メルカリ",
+      "url": "https://jp.mercari.com/item/m24695872345",
+      "image_url": "https://static.mercdn.net/thumb/item/webp/m24695872345_1.jpg?1781439615",
+      "keyword": "2K モニター",
+      "ai_comment": "[gemma-4-31b-it] 13.3型であり、希望条件の24インチ以上に満たないため。",
+      "ai_ok": false,
+      "market_info": "メルカリ相場: ¥8031（売れ済み平均）",
+      "detected_at": "2026-06-20T23:53:50.802755"
+    },
+    {
+      "id": "paypay_z630353976",
+      "name": "Acouto 2K モバイルモニター 11インチ XC11 Pro",
+      "price": 8000,
+      "platform": "PayPayフリマ",
+      "url": "https://paypayfleamarket.yahoo.co.jp/item/z630353976",
+      "image_url": "https://auc-pctr.c.yimg.jp/i/auctions.c.yimg.jp/images.auctions.yahoo.co.jp/image/dr000/auc0206/users/bae88b84e073045efef70d71939250373e585adc/i-img1200x900-1781959767279g23sfz.jpg?pri=s&w=298&h=298&ccw=298&cch=298&fill=1&fw=298&fh=298&up=0&nf_src=sy&nf_path=images/auc/pc/top/image/1.0.3/na_170x170.png&nf_st=200",
+      "keyword": "2K モニター",
+      "ai_comment": "[gemma-4-31b-it] 11インチであり、希望条件の「24インチ以上」を満たしていないため。",
+      "ai_ok": false,
+      "market_info": "メルカリ相場: ¥8031（売れ済み平均）",
+      "detected_at": "2026-06-20T23:53:56.600742"
+    },
+    {
+      "id": "paypay_z588198952",
+      "name": "NANOK モバイルモニター 11.6インチ IPS 2K",
+      "price": 7000,
+      "platform": "PayPayフリマ",
+      "url": "https://paypayfleamarket.yahoo.co.jp/item/z588198952",
+      "image_url": "https://auc-pctr.c.yimg.jp/i/auctions.c.yimg.jp/images.auctions.yahoo.co.jp/image/dr000/auc0204/users/d5e8f60ec637c0398ae1ecaae00e1740d6c65acd/i-img1200x1200-1775395166769k7n2it.jpg?pri=s&w=298&h=298&ccw=298&cch=298&fill=1&fw=298&fh=298&up=0&nf_src=sy&nf_path=images/auc/pc/top/image/1.0.3/na_170x170.png&nf_st=200",
+      "keyword": "2K モニター",
+      "ai_comment": "[gemma-4-31b-it] ユーザー希望条件の「24インチ以上」を満たしていないため（本商品は11.6インチ）。",
+      "ai_ok": false,
+      "market_info": "メルカリ相場: ¥8031（売れ済み平均）",
+      "detected_at": "2026-06-20T23:53:59.202398"
+    },
+    {
+      "id": "paypay_v1234070781",
+      "name": "Wansview Q5ネットワークカメラ 2K 300万画素 ベイビーモニター 2.4GHzWi-Fi接続 IPカメラ ワイヤレh",
+      "price": 5670,
+      "platform": "PayPayフリマ",
+      "url": "https://paypayfleamarket.yahoo.co.jp/item/v1234070781",
+      "image_url": "https://auc-pctr.c.yimg.jp/i/auctions.c.yimg.jp/images.auctions.yahoo.co.jp/image/dr000/auc0206/user/5df2e6c579101a8b889a8ed645578b83717790f69ce2931a6d2fc896c7a0238d/i-img1141x1200-178181403382000jxwqd4677.jpg?pri=s&w=298&h=298&ccw=298&cch=298&fill=1&fw=298&fh=298&up=0&nf_src=sy&nf_path=images/auc/pc/top/image/1.0.3/na_170x170.png&nf_st=200",
+      "keyword": "2K モニター",
+      "ai_comment": "[gemma-4-31b-it] PCモニターではなくネットワークカメラ（ベビーモニター）であるため。",
+      "ai_ok": false,
+      "market_info": "メルカリ相場: ¥8031（売れ済み平均）",
+      "detected_at": "2026-06-20T23:54:01.853409"
+    },
+    {
       "id": "mercari_m60554134293",
       "name": "【値下げ中】MacBook Air M2 8GB/256GB バッテリー96%",
       "price": 84900,
