@@ -54,7 +54,9 @@
         "KVM",
         "キャプチャ"
       ],
-      "require_words": [],
+      "require_words": [
+        "インチ"
+      ],
       "note": "24インチ以上",
       "enabled": true,
       "genre": "electronics",
@@ -556,7 +558,7 @@
       "price": 78600,
       "platform": "PayPayフリマ",
       "url": "https://paypayfleamarket.yahoo.co.jp/item/z606812404",
-      "image_url": "https://auc-pctr.c.yimg.jp/i/auctions.c.yimg.jp/images.auctions.yahoo.co.jp/image/dr000/auc0205/users/8e8203f6101310ce8ce465cbfd2e54b8707dcfc6/i-img900x1200-1778324009025nt092p.jpg?pri=s&w=298&h=298&ccw=298&cch=298&fill=1&fw=298&fh=298&up=0&nf_src=sy&nf_path=images/auc/pc/top/image/1.0.3/na_170x170.png&nf_st=200",
+      "image_url": "https://auc-pctr.c.yimg.jp/i/auctions.c.yimg.jp/images.auctions.yahoo.co.jp/image/dr000/auc0206/users/8e8203f6101310ce8ce465cbfd2e54b8707dcfc6/i-img900x1200-1778324009025nt092p.jpg?pri=s&w=298&h=298&ccw=298&cch=298&fill=1&fw=298&fh=298&up=0&nf_src=sy&nf_path=images/auc/pc/top/image/1.0.3/na_170x170.png&nf_st=200",
       "keyword": "MacBook Air M2",
       "ai_comment": "AI上限到達（次回判定）",
       "ai_ok": false,
@@ -569,7 +571,7 @@
       "price": 85000,
       "platform": "PayPayフリマ",
       "url": "https://paypayfleamarket.yahoo.co.jp/item/z609993008",
-      "image_url": "https://auc-pctr.c.yimg.jp/i/auctions.c.yimg.jp/images.auctions.yahoo.co.jp/image/dr000/auc0205/users/64d38e24b33456768169241ebc61fc9a73eca87e/i-img1200x757-177868430689677yy0l.jpg?pri=s&w=298&h=298&ccw=298&cch=298&fill=1&fw=298&fh=298&up=0&nf_src=sy&nf_path=images/auc/pc/top/image/1.0.3/na_170x170.png&nf_st=200",
+      "image_url": "https://auc-pctr.c.yimg.jp/i/auctions.c.yimg.jp/images.auctions.yahoo.co.jp/image/dr000/auc0206/users/64d38e24b33456768169241ebc61fc9a73eca87e/i-img1200x757-177868430689677yy0l.jpg?pri=s&w=298&h=298&ccw=298&cch=298&fill=1&fw=298&fh=298&up=0&nf_src=sy&nf_path=images/auc/pc/top/image/1.0.3/na_170x170.png&nf_st=200",
       "keyword": "MacBook Air M2",
       "ai_comment": "価格条件未達",
       "ai_ok": false,
@@ -582,7 +584,7 @@
       "price": 72000,
       "platform": "PayPayフリマ",
       "url": "https://paypayfleamarket.yahoo.co.jp/item/z564281272",
-      "image_url": "https://auc-pctr.c.yimg.jp/i/auctions.c.yimg.jp/images.auctions.yahoo.co.jp/image/dr000/auc0202/users/815cddec2ef427bf450501affad2f23658312dfe/i-img901x1200-1771850328785x04dqr.jpg?pri=s&w=298&h=298&ccw=298&cch=298&fill=1&fw=298&fh=298&up=0&nf_src=sy&nf_path=images/auc/pc/top/image/1.0.3/na_170x170.png&nf_st=200",
+      "image_url": "https://auc-pctr.c.yimg.jp/i/auctions.c.yimg.jp/images.auctions.yahoo.co.jp/image/dr000/auc0206/users/815cddec2ef427bf450501affad2f23658312dfe/i-img901x1200-1771850328785x04dqr.jpg?pri=s&w=298&h=298&ccw=298&cch=298&fill=1&fw=298&fh=298&up=0&nf_src=sy&nf_path=images/auc/pc/top/image/1.0.3/na_170x170.png&nf_st=200",
       "keyword": "MacBook Air M2",
       "ai_comment": "AI上限到達（次回判定）",
       "ai_ok": false,
@@ -630,7 +632,7 @@
     },
     {
       "id": "paypay_z621088344",
-      "name": "MacBook Air M2 15” 24GB/256GB US配列",
+      "name": "MacBook Air M2 15" 24GB/256GB US配列",
       "price": 116900,
       "platform": "PayPayフリマ",
       "url": "https://paypayfleamarket.yahoo.co.jp/item/z621088344",
