@@ -11,7 +11,7 @@ import random
 import re
 import sys
 import time
-from datetime import datetime
+from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Optional
 
@@ -38,6 +38,8 @@ UA_LIST = [
 OPENROUTER_API_KEY = os.environ.get("OPENROUTER_API_KEY", "")
 DISCORD_WEBHOOK_URL = os.environ.get("DISCORD_WEBHOOK_URL", "")
 
+SEEN_IDS_TTL_DAYS = 14
+
 
 # ==================== ユーティリティ ====================
 def get_headers(googlebot=False):
@@ -63,6 +65,23 @@ def load_json(path: Path) -> dict:
 def save_json(path: Path, data: dict):
     with open(path, "w", encoding="utf-8") as f:
         json.dump(data, f, ensure_ascii=False, indent=2)
+
+
+def load_seen_ids(path: Path) -> dict:
+    """seen_ids を読み込み、旧リスト形式を TTL付き辞書形式に自動移行する"""
+    raw = load_json(path)
+    result = {}
+    for key, val in raw.items():
+        if not key:
+            continue  # 空キーを除去
+        if isinstance(val, list):
+            # 旧形式（リスト）→ 即座に期限切れ扱いで移行（全件を再評価させる）
+            result[key] = {item_id: "2000-01-01" for item_id in val}
+        elif isinstance(val, dict):
+            result[key] = val
+        else:
+            result[key] = {}
+    return result
 
 
 def parse_price(text: str) -> Optional[int]:
@@ -619,16 +638,27 @@ def process_keyword(keyword_config: dict, seen_ids: dict) -> list[dict]:
             print(f"  PayPay{f'(cat={paypay_cat})' if paypay_cat else ''}: {len(res)}件")
         all_items.extend(res)
 
-    # 新着フィルタ
-    keyword_seen = set(seen_ids.get(keyword, []))
+    # 新着フィルタ（TTL付き — TTL_DAYS以内に評価済みのIDのみ除外）
+    cutoff = (datetime.now() - timedelta(days=SEEN_IDS_TTL_DAYS)).date().isoformat()
+    keyword_seen_dict = seen_ids.get(keyword, {})
+    if isinstance(keyword_seen_dict, list):
+        keyword_seen_dict = {item_id: "2000-01-01" for item_id in keyword_seen_dict}
+    keyword_seen = {id for id, date in keyword_seen_dict.items() if date >= cutoff}
     new_items = [it for it in all_items if it["id"] not in keyword_seen]
     print(f"  新着: {len(new_items)}件")
 
     # キーワード整合チェック（全ワードが含まれる場合のみ通過 — ANYだとカメラ等が「モニター搭載」で誤通過する）
+    # 長音符(ー)を除いて比較 — 「モニター」と「モニタ」を同一視する
+    def _strip_chouon(s: str) -> str:
+        return s.replace("ー", "")
+
     kw_words = [w.lower() for w in search_keyword.split() if len(w) >= 2]
     if kw_words:
         before = len(new_items)
-        new_items = [it for it in new_items if all(w in it["name"].lower() for w in kw_words)]
+        new_items = [
+            it for it in new_items
+            if all(_strip_chouon(w) in _strip_chouon(it["name"].lower()) for w in kw_words)
+        ]
         removed = before - len(new_items)
         if removed:
             print(f"  キーワード整合チェック: {removed}件除外")
@@ -668,41 +698,18 @@ def process_keyword(keyword_config: dict, seen_ids: dict) -> list[dict]:
             return p <= market_price * (1 - discount_threshold / 100)
         return p <= max_price
 
-    AI_CALL_LIMIT = 5  # 1run当たりAI呼び出し上限（API節約）
+    AI_CALL_LIMIT = 10  # 1run当たりAI呼び出し上限
     ai_calls = 0
+    pending_ids: set[str] = set()  # AI上限で積み残した商品ID（次回再判定のためseen_idsに入れない）
     history_items = []
     for item in new_items:
-        # 価格条件を先にチェック → 合格したものだけAIを呼ぶ
+        # 価格条件を先にチェック → 合格したものだけAIを呼ぶ（不合格は履歴に残さない）
         if not is_good_deal(item):
-            history_items.append({
-                "id": item["id"],
-                "name": item["name"],
-                "price": item["price"],
-                "platform": item["platform"],
-                "url": item["url"],
-                "image_url": item.get("image_url", ""),
-                "keyword": keyword,
-                "ai_comment": "価格条件未達",
-                "ai_ok": False,
-                "market_info": market_info,
-                "detected_at": datetime.now().isoformat(),
-            })
             continue
 
         if ai_calls >= AI_CALL_LIMIT:
-            history_items.append({
-                "id": item["id"],
-                "name": item["name"],
-                "price": item["price"],
-                "platform": item["platform"],
-                "url": item["url"],
-                "image_url": item.get("image_url", ""),
-                "keyword": keyword,
-                "ai_comment": "AI上限到達（次回判定）",
-                "ai_ok": False,
-                "market_info": market_info,
-                "detected_at": datetime.now().isoformat(),
-            })
+            # AI上限に達したものはseen_idsに入れず、次回ランで再判定
+            pending_ids.add(item["id"])
             continue
 
         ai_result = ai_judge(item, keyword_config, market_price, spot_price)
@@ -725,8 +732,14 @@ def process_keyword(keyword_config: dict, seen_ids: dict) -> list[dict]:
         if ai_result["ok"]:
             send_discord_notification(item, keyword_config, ai_result, market_info)
 
-    # seen_ids 更新
-    seen_ids[keyword] = list(keyword_seen | {it["id"] for it in all_items})
+    # seen_ids 更新（TTL付き辞書形式）
+    # AI判定済みIDのみ追加する — キーワード不一致・ワードフィルタ落ち・価格未達はここに入れない
+    # → それらのアイテムは次回ランで自動的に再評価される（価格変動にも対応）
+    today = datetime.now().date().isoformat()
+    new_seen_dict = {id: date for id, date in keyword_seen_dict.items() if date >= cutoff}
+    for h in history_items:
+        new_seen_dict[h["id"]] = today
+    seen_ids[keyword] = new_seen_dict
     return history_items
 
 
@@ -734,7 +747,7 @@ def main():
     print(f"=== フリマ監視開始 {datetime.now().strftime('%Y-%m-%d %H:%M:%S')} ===", flush=True)
 
     config = load_json(CONFIG_PATH)
-    seen_ids = load_json(SEEN_IDS_PATH)
+    seen_ids = load_seen_ids(SEEN_IDS_PATH)
 
     if not config.get("monitoring_enabled", True):
         print("監視はOFFです。終了します。")
