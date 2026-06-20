@@ -23,7 +23,7 @@
     {
       "id": "1781659955596",
       "keyword": "2K モニター",
-      "max_price": 15000,
+      "max_price": 14500,
       "discount_threshold": 0,
       "platforms": {
         "mercari": true,
@@ -59,7 +59,8 @@
       "require_words": [],
       "note": "24インチ以上",
       "enabled": true,
-      "genre": "electronics"
+      "genre": "electronics",
+      "min_price": 4000
     }
   ],
   "history": [
