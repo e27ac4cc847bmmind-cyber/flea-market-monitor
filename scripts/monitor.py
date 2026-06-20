@@ -625,10 +625,17 @@ def process_keyword(keyword_config: dict, seen_ids: dict) -> list[dict]:
     print(f"  新着: {len(new_items)}件")
 
     # キーワード整合チェック（全ワードが含まれる場合のみ通過 — ANYだとカメラ等が「モニター搭載」で誤通過する）
+    # 長音符(ー)を除いて比較 — 「モニター」と「モニタ」を同一視する
+    def _strip_chouon(s: str) -> str:
+        return s.replace("ー", "")
+
     kw_words = [w.lower() for w in search_keyword.split() if len(w) >= 2]
     if kw_words:
         before = len(new_items)
-        new_items = [it for it in new_items if all(w in it["name"].lower() for w in kw_words)]
+        new_items = [
+            it for it in new_items
+            if all(_strip_chouon(w) in _strip_chouon(it["name"].lower()) for w in kw_words)
+        ]
         removed = before - len(new_items)
         if removed:
             print(f"  キーワード整合チェック: {removed}件除外")
