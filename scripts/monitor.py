@@ -78,8 +78,9 @@ def load_seen_ids(path: Path) -> dict:
         if not key:
             continue  # 空キーを除去
         if isinstance(val, list):
-            # 旧形式（リスト）→ 即座に期限切れ扱いで移行（全件を再評価させる）
-            result[key] = {item_id: "2000-01-01" for item_id in val}
+            # 旧形式（リスト）→ 今日の日付で移行（既存の通知を防ぎ再評価しない）
+            today = datetime.now().date().isoformat()
+            result[key] = {item_id: today for item_id in val}
         elif isinstance(val, dict):
             result[key] = val
         else:
