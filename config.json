@@ -23,7 +23,7 @@
     {
       "id": "1781659955596",
       "keyword": "2K モニター",
-      "max_price": 31500,
+      "max_price": 19000,
       "discount_threshold": 0,
       "platforms": {
         "mercari": true,
@@ -32,18 +32,12 @@
       },
       "precious_metal_mode": false,
       "metal_type": "silver",
-      "exclude_words": [
-        "ジャンク",
-        "不動",
-        "部品取り",
-        "訳あり",
-        "動作不良"
-      ],
+      "exclude_words": [],
       "require_words": [],
-      "note": "24インチ以上、usb type cで接続給電可能",
+      "note": "24インチ以上、usb type cで接続給電可能\nNGワード: ジャンク, 不動, 部品取り, 訳あり, 動作不良",
       "enabled": true,
       "genre": "electronics",
-      "min_price": 4500
+      "min_price": 6500
     }
   ],
   "history": [
