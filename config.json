@@ -48,6 +48,19 @@
   ],
   "history": [
     {
+      "id": "paypay_j1233914632",
+      "name": "TP-Link Tapo ペットカメラ 300万画素 ベビーモニター ネットワークWi-Fiカメラ 屋内カメラ 2K 動作 r.h",
+      "price": 7990,
+      "platform": "PayPayフリマ",
+      "url": "https://paypayfleamarket.yahoo.co.jp/item/j1233914632",
+      "image_url": "https://auc-pctr.c.yimg.jp/i/auctions.c.yimg.jp/images.auctions.yahoo.co.jp/image/dr000/auc0206/user/efbb35a5d2e3981a1d094091865ed4853d2784ebb7f6c95050be83eb6505ae35/i-img500x500-17817020059004feif2i2317.jpg?pri=s&w=298&h=298&ccw=298&cch=298&fill=1&fw=298&fh=298&up=0&nf_src=sy&nf_path=images/auc/pc/top/image/1.0.3/na_170x170.png&nf_st=200",
+      "keyword": "2K モニター",
+      "ai_comment": "AI判定失敗（全モデル応答なし）— 通知スキップ",
+      "ai_ok": false,
+      "market_info": "メルカリ相場: ¥8394（売れ済み平均）",
+      "detected_at": "2026-06-21T22:09:21.216355"
+    },
+    {
       "id": "paypay_v1233579269",
       "name": "【2026進化第3版見守りカメラ・泣き声/体動/温湿度センサー】 BOIFUN ベビーモニター 2K 暗視 ベビーカメラ 見守mt",
       "price": 11220,
@@ -647,7 +660,7 @@
     }
   ],
   "last_run": {
-    "started_at": "2026-06-21T22:06:23.740174",
+    "started_at": "2026-06-21T22:08:32.466742",
     "keywords": [
       {
         "keyword": "F48 BMW X1 フロアマット",
@@ -655,15 +668,15 @@
         "new": 0,
         "ai_judged": 0,
         "ai_ok": 0,
-        "market_info": "メルカリ相場: ¥22549（売れ済み平均）"
+        "market_info": "メルカリ相場: ¥21903（売れ済み平均）"
       },
       {
         "keyword": "2K モニター",
         "scraped": 90,
-        "new": 0,
-        "ai_judged": 0,
+        "new": 1,
+        "ai_judged": 1,
         "ai_ok": 0,
-        "market_info": "メルカリ相場: ¥8218（売れ済み平均）"
+        "market_info": "メルカリ相場: ¥8394（売れ済み平均）"
       }
     ]
   }
