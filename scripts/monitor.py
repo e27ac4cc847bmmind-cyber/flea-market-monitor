@@ -199,6 +199,7 @@ def get_mercari_market_price(keyword: str) -> Optional[float]:
 # Mercari Japan カテゴリID（genre → category_id）
 MERCARI_CATEGORY_IDS: dict[str, str] = {
     "electronics": "668",   # PC周辺機器（ディスプレイ・モニター含む）
+    "display":     "3869",  # ディスプレイ・モニター本体
     "games":       "63",    # テレビゲーム
     "books":       "72",    # 本・音楽・映画
     "sports":      "76",    # スポーツ・レジャー
@@ -210,6 +211,7 @@ MERCARI_CATEGORY_IDS: dict[str, str] = {
 # Rakuma (fril.jp) カテゴリID（genre → category_id）
 RAKUMA_CATEGORY_IDS: dict[str, str] = {
     "electronics": "307",   # スマホ・タブレット・パソコン
+    "display":     "1349",  # ディスプレイ
     "games":       "278",   # テレビゲーム
     "books":       "82",    # 本・雑誌
     "sports":      "283",   # スポーツ・アウトドア
@@ -221,6 +223,7 @@ RAKUMA_CATEGORY_IDS: dict[str, str] = {
 # PayPayフリマ カテゴリID（genre → category_id）
 PAYPAY_CATEGORY_IDS: dict[str, str] = {
     "electronics": "3",     # スマホ・タブレット・パソコン
+    "display":     "",      # サブカテゴリID不明のためキーワード検索のみ
     "games":       "1",     # ゲーム
     "books":       "6",     # 本・雑誌・マンガ
     "sports":      "8",     # スポーツ・レジャー
@@ -570,6 +573,7 @@ JUNK_WORDS = ["ジャンク", "不動", "部品取り", "破損", "訳あり", "
 # ==================== ジャンル別除外ワード ====================
 GENRE_EXCLUDE_WORDS: dict[str, list[str]] = {
     "electronics": ["y2k", "ファッション", "服", "古着", "レディース", "メンズ", "コーデ", "アパレル", "ウェア", "シャツ", "パンツ"],
+    "display":     ["ケーブル", "スタンド", "アーム", "保護フィルム", "ベゼル", "ブラケット", "マウント", "ベビー", "ペット", "カメラ"],
     "fashion": ["家電", "スマホ", "パソコン", "モニター", "プリンター", "カメラ"],
     "automotive": ["ミニカー", "プラモデル", "おもちゃ", "フィギュア", "模型", "ラジコン"],
     "sports": ["フィギュア", "プラモデル", "おもちゃ"],

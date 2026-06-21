@@ -512,6 +512,7 @@ function GitHubSettingsCard({ onConfigured }: { onConfigured: () => void }) {
 const GENRE_LABELS: Record<string, string> = {
   "": "指定なし",
   electronics: "家電・PC・スマホ",
+  display: "ディスプレイ・モニター本体",
   fashion: "ファッション・衣類",
   automotive: "自動車・バイク部品",
   sports: "スポーツ・アウトドア",
@@ -522,6 +523,7 @@ const GENRE_LABELS: Record<string, string> = {
 
 const GENRE_EXCLUDE_WORDS_FRONT: Record<string, string[]> = {
   electronics: ["y2k", "ファッション", "服", "古着", "レディース", "メンズ", "コーデ", "アパレル", "ウェア", "シャツ", "パンツ"],
+  display: ["ケーブル", "スタンド", "アーム", "保護フィルム", "ベゼル", "ブラケット", "ベビー", "ペット", "カメラ"],
   fashion: ["家電", "スマホ", "パソコン", "モニター", "プリンター", "カメラ"],
   automotive: ["ミニカー", "プラモデル", "おもちゃ", "フィギュア", "模型", "ラジコン"],
   sports: ["フィギュア", "プラモデル", "おもちゃ"],
