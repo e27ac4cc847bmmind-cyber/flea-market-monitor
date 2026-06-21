@@ -32,7 +32,13 @@
       },
       "precious_metal_mode": false,
       "metal_type": "silver",
-      "exclude_words": ["ジャンク", "不動", "部品取り", "訳あり", "動作不良"],
+      "exclude_words": [
+        "ジャンク",
+        "不動",
+        "部品取り",
+        "訳あり",
+        "動作不良"
+      ],
       "require_words": [],
       "note": "24インチ以上、usb type cで接続給電可能\nNGワード: ジャンク, 不動, 部品取り, 訳あり, 動作不良",
       "enabled": true,
@@ -524,7 +530,7 @@
     }
   ],
   "last_run": {
-    "started_at": "2026-06-21T14:03:39.755320",
+    "started_at": "2026-06-21T14:09:45.833401",
     "keywords": [
       {
         "keyword": "F48 BMW X1 フロアマット",
@@ -532,7 +538,7 @@
         "new": 0,
         "ai_judged": 0,
         "ai_ok": 0,
-        "market_info": "メルカリ相場: ¥21242（売れ済み平均）"
+        "market_info": "メルカリ相場: ¥8021（売れ済み平均）"
       },
       {
         "keyword": "2K モニター",
@@ -540,7 +546,7 @@
         "new": 0,
         "ai_judged": 0,
         "ai_ok": 0,
-        "market_info": "メルカリ相場: ¥8060（売れ済み平均）"
+        "market_info": "メルカリ相場: ¥8082（売れ済み平均）"
       }
     ]
   }
