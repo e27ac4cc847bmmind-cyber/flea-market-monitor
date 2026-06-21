@@ -477,7 +477,7 @@ JUDGMENT: YES または NO
 REASON: 50文字以内の理由"""
 
     MODELS = [
-        "deepseek/deepseek-v4-flash",
+        "google/gemini-2.0-flash-exp:free",
         "meta-llama/llama-3.3-70b-instruct:free",
     ]
 
@@ -719,6 +719,8 @@ def process_keyword(keyword_config: dict, seen_ids: dict) -> list[dict]:
             send_discord_notification(item, keyword_config, ai_result, market_info)
 
     # seen_ids 更新（TTL付き辞書形式）
+    # AI判定済みIDのみ追加する — キーワード不一致・ワードフィルタ落ち・価格未達はここに入れない
+    # → それらのアイテムは次回ランで自動的に再評価される（価格変動にも対応）
     today = datetime.now().date().isoformat()
     new_seen_dict = {id: date for id, date in keyword_seen_dict.items() if date >= cutoff}
     for h in history_items:
