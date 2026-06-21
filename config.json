@@ -48,6 +48,19 @@
   ],
   "history": [
     {
+      "id": "mercari_m20986458998",
+      "name": "BMW X1 F48 フロアマット 2枚セット（助手席・左後席）",
+      "price": 5500,
+      "platform": "メルカリ",
+      "url": "https://jp.mercari.com/item/m20986458998",
+      "image_url": "https://static.mercdn.net/thumb/item/webp/m20986458998_1.jpg?1774333291",
+      "keyword": "F48 BMW X1 フロアマット",
+      "ai_comment": "[gemma-4-31b-it] 4枚セットを希望しているが、本商品は2枚セットのため条件を満たさない。",
+      "ai_ok": false,
+      "market_info": "メルカリ相場: ¥21838（売れ済み平均）",
+      "detected_at": "2026-06-21T00:54:05.070305"
+    },
+    {
       "id": "mercari_m42038309880",
       "name": "「あき様専用」 BMW X1 F48 フロアマット 4枚セット",
       "price": 4500,
