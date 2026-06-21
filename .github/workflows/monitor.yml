@@ -42,15 +42,9 @@ jobs:
 
       - name: seen_ids.json と config.json をコミット
         run: |
-          echo "=== config.json の last_run.started_at ==="
-          python3 -c "import json; c=json.load(open('config.json')); print(c.get('last_run',{}).get('started_at','NONE'))"
-          echo "=== git status ==="
-          git status --short
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add seen_ids.json config.json
-          echo "=== git diff --staged --stat ==="
-          git diff --staged --stat
           git diff --staged --quiet || git commit -m "chore: 監視データ更新 $(date +'%Y-%m-%d %H:%M:%S')"
           git pull --rebase origin main
           git push
