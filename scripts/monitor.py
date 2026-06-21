@@ -427,7 +427,6 @@ def ai_judge(item: dict, keyword_config: dict, market_price: Optional[float], sp
 
     precious_metal_mode = keyword_config.get("precious_metal_mode", False)
     metal_type = keyword_config.get("metal_type", "silver")
-    discount_threshold = keyword_config.get("discount_threshold", 20)
 
     # ユーザー指示を1つのテキストに統合（note + 旧exclude_words/require_wordsも含める）
     note = keyword_config.get("note", "").strip()
@@ -463,7 +462,7 @@ def ai_judge(item: dict, keyword_config: dict, market_price: Optional[float], sp
 判定基準（すべて満たす場合のみYES）：
 1. 本物の{metal_name}製品か（偽物・メッキ品・レプリカ・複製ではないか）
 2. 1オンス（31.1g）以上の純{metal_name}か
-3. スポット価格比{discount_threshold}%以上お得か{extra}
+3. 上限価格以下でお得か{extra}
 
 必ず以下の形式で回答：
 JUDGMENT: YES または NO
@@ -480,7 +479,7 @@ REASON: 50文字以内の理由"""
 判定基準（すべて満たす場合のみYES）：
 1. これは「{target_keyword}」そのもの（本体）か？アクセサリー・周辺機器・関連商品・別用途の商品ではないか（例: モニター検索でKVMスイッチ・ベビーモニター・ケーブルはNO）
 2. 正規品・本物で実用に足る状態か（偽物・詐欺的出品・パーツ取り・ジャンク・破損品ではないか）
-3. 相場より{discount_threshold}%以上お得か{extra}
+3. 相場と比べて適正か（価格情報が提供されている場合）{extra}
 
 必ず以下の形式で回答：
 JUDGMENT: YES または NO
@@ -598,7 +597,6 @@ def process_keyword(keyword_config: dict, seen_ids: dict) -> list[dict]:
     platforms = keyword_config.get("platforms", {"mercari": True, "rakuma": True, "paypay": True})
     precious_metal_mode = keyword_config.get("precious_metal_mode", False)
     metal_type = keyword_config.get("metal_type", "silver")
-    discount_threshold = keyword_config.get("discount_threshold", 20)
 
     print(f"\n--- キーワード: {keyword} ---")
 
@@ -688,13 +686,11 @@ def process_keyword(keyword_config: dict, seen_ids: dict) -> list[dict]:
         new_items = [it for it in new_items if it["price"] >= min_price]
         print(f"  最低価格フィルタ(¥{min_price}以上): {len(new_items)}件 (除外 {before - len(new_items)}件)")
 
-    # お得判定
+    # お得判定（上限価格以下かどうかのみチェック — 相場比較はAIに任せる）
     def is_good_deal(it: dict) -> bool:
         p = it["price"]
         if precious_metal_mode and spot_price:
-            return p <= spot_price * 31.1035 * (1 - discount_threshold / 100)
-        if market_price:
-            return p <= market_price * (1 - discount_threshold / 100)
+            return p <= spot_price * 31.1035  # スポット価格以下
         return p <= max_price
 
     AI_CALL_LIMIT = 10  # 1run当たりAI呼び出し上限

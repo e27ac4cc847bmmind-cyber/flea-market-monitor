@@ -30,7 +30,6 @@ interface KeywordConfig {
   keyword: string;
   min_price: number;
   max_price: number;
-  discount_threshold: number;
   platforms: Platform;
   precious_metal_mode: boolean;
   metal_type: "silver" | "gold";
@@ -463,6 +462,8 @@ function KeywordCard({
   const [proposal, setProposal] = useState<LearnProposal | null>(null);
   const [proposalError, setProposalError] = useState("");
   const [genreDetecting, setGenreDetecting] = useState(false);
+  const [marketPriceLoading, setMarketPriceLoading] = useState(false);
+  const [marketPriceMsg, setMarketPriceMsg] = useState("");
 
   const detectGenre = async () => {
     if (!kw.keyword.trim()) return;
@@ -487,6 +488,30 @@ function KeywordCard({
       // 失敗しても無視
     } finally {
       setGenreDetecting(false);
+    }
+  };
+
+  const fetchMarketPrice = async () => {
+    if (!kw.keyword.trim()) return;
+    setMarketPriceLoading(true);
+    setMarketPriceMsg("");
+    try {
+      const res = await fetch("/api/market-price", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ keyword: kw.keyword, model_number: kw.model_number ?? "" }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.price) {
+        setMarketPriceMsg(data.error ?? "取得失敗");
+      } else {
+        onChange({ ...kw, max_price: data.price });
+        setMarketPriceMsg(`相場 ¥${data.price.toLocaleString()}（${data.samples}件）→ 上限価格に設定`);
+      }
+    } catch {
+      setMarketPriceMsg("取得失敗");
+    } finally {
+      setMarketPriceLoading(false);
     }
   };
 
@@ -599,21 +624,36 @@ function KeywordCard({
                   <input
                     type="range"
                     min={0}
-                    max={300000}
+                    max={kw.max_price}
                     step={500}
                     value={kw.min_price ?? 0}
                     onChange={(e) => {
                       const val = Number(e.target.value);
-                      onChange({ ...kw, min_price: val, max_price: Math.max(kw.max_price, val) });
+                      onChange({ ...kw, min_price: val });
                     }}
+                    style={{ touchAction: "pan-y" }}
                     className="w-full accent-blue-500"
                   />
                 </div>
                 <div>
-                  <div className="flex justify-between text-xs mb-1">
-                    <span className="text-gray-500">上限価格</span>
+                  <div className="flex items-center justify-between text-xs mb-1">
+                    <div className="flex items-center gap-2">
+                      <span className="text-gray-500">上限価格</span>
+                      <button
+                        onClick={fetchMarketPrice}
+                        disabled={marketPriceLoading || !kw.keyword.trim()}
+                        className="px-2 py-0.5 text-xs rounded bg-blue-50 text-blue-600 border border-blue-200 hover:bg-blue-100 disabled:opacity-40 disabled:cursor-not-allowed"
+                      >
+                        {marketPriceLoading ? "取得中…" : "相場取得"}
+                      </button>
+                    </div>
                     <span className="font-medium text-gray-700">¥{kw.max_price.toLocaleString()}</span>
                   </div>
+                  {marketPriceMsg && (
+                    <p className={`text-xs mb-1 ${marketPriceMsg.includes("失敗") || marketPriceMsg.includes("エラー") || marketPriceMsg.includes("不足") ? "text-red-500" : "text-green-600"}`}>
+                      {marketPriceMsg}
+                    </p>
+                  )}
                   <input
                     type="range"
                     min={0}
@@ -624,6 +664,7 @@ function KeywordCard({
                       const val = Number(e.target.value);
                       onChange({ ...kw, max_price: val, min_price: Math.min(kw.min_price ?? 0, val) });
                     }}
+                    style={{ touchAction: "pan-y" }}
                     className="w-full accent-blue-500"
                   />
                 </div>
@@ -632,31 +673,6 @@ function KeywordCard({
                 <span>¥0</span>
                 <span>¥300,000</span>
               </div>
-            </div>
-            <div className="sm:col-span-2">
-              <label className="text-sm font-medium text-gray-700">
-                お得判定閾値（相場より何%以下で通知）
-              </label>
-              <div className="flex items-center gap-2 mt-1">
-                <input
-                  type="range"
-                  min={0}
-                  max={80}
-                  value={kw.discount_threshold}
-                  onChange={(e) =>
-                    onChange({ ...kw, discount_threshold: Number(e.target.value) })
-                  }
-                  className="flex-1"
-                />
-                <span className="text-sm font-bold w-12 text-right">
-                  {kw.discount_threshold}%
-                </span>
-              </div>
-              <p className="text-xs text-gray-400 mt-0.5">
-                {kw.discount_threshold === 0
-                  ? "0% = 上限価格以下なら全て通知"
-                  : `相場より${kw.discount_threshold}%以上安い場合のみ通知`}
-              </p>
             </div>
           </div>
 
@@ -966,7 +982,6 @@ export default function Home() {
       keyword: "",
       min_price: 0,
       max_price: 10000,
-      discount_threshold: 0,
       platforms: { mercari: true, rakuma: true, paypay: true },
       precious_metal_mode: false,
       metal_type: "silver",
@@ -1002,7 +1017,6 @@ export default function Home() {
         keyword: c.keyword,
         min_price: 0,
         max_price: c.max_price,
-        discount_threshold: c.discount_threshold,
         platforms: { mercari: true, rakuma: true, paypay: true },
         precious_metal_mode: false,
         metal_type: "silver",
