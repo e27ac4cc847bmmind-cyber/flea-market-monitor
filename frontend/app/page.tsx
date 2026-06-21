@@ -56,10 +56,26 @@ interface HistoryItem {
   detected_at: string;
 }
 
+interface RunKeywordStats {
+  keyword: string;
+  scraped?: number;
+  new?: number;
+  ai_judged?: number;
+  ai_ok?: number;
+  market_info?: string;
+  error?: string;
+}
+
+interface LastRun {
+  started_at: string;
+  keywords: RunKeywordStats[];
+}
+
 interface Config {
   monitoring_enabled: boolean;
   keywords: KeywordConfig[];
   history: HistoryItem[];
+  last_run?: LastRun;
 }
 
 interface GitHubConfig {
@@ -248,6 +264,78 @@ function ArrivalCard({
 
         <p className="text-xs text-gray-400 mt-0.5">{relativeTime()}</p>
       </div>
+    </div>
+  );
+}
+
+// ==================== 実行ログパネル ====================
+function LastRunPanel({ lastRun }: { lastRun: LastRun }) {
+  const [expanded, setExpanded] = useState(false);
+
+  const relativeTime = () => {
+    const diff = Date.now() - new Date(lastRun.started_at).getTime();
+    const mins = Math.floor(diff / 60000);
+    if (mins < 1) return "たった今";
+    if (mins < 60) return `${mins}分前`;
+    const hours = Math.floor(diff / 3600000);
+    if (hours < 24) return `${hours}時間前`;
+    return `${Math.floor(hours / 24)}日前`;
+  };
+
+  const totalNew = lastRun.keywords.reduce((s, k) => s + (k.new ?? 0), 0);
+  const totalAiOk = lastRun.keywords.reduce((s, k) => s + (k.ai_ok ?? 0), 0);
+
+  return (
+    <div className="border rounded-lg bg-white shadow-sm text-sm">
+      <button
+        onClick={() => setExpanded(!expanded)}
+        className="w-full flex items-center justify-between px-4 py-3 text-left"
+      >
+        <div className="flex items-center gap-3">
+          <span className="text-gray-400 text-xs">📋</span>
+          <div>
+            <span className="font-medium text-gray-700">最終実行: {relativeTime()}</span>
+            <span className="ml-3 text-xs text-gray-400">
+              新着{totalNew}件 / 通知{totalAiOk}件
+            </span>
+          </div>
+        </div>
+        {expanded ? <ChevronUp size={16} className="text-gray-400" /> : <ChevronDown size={16} className="text-gray-400" />}
+      </button>
+
+      {expanded && (
+        <div className="border-t px-4 pb-3 pt-2 space-y-1.5">
+          {lastRun.keywords.map((k, i) => (
+            <div key={i} className="text-xs">
+              {k.error ? (
+                <div className="flex items-center gap-2">
+                  <span className="font-medium text-gray-700 w-28 truncate">{k.keyword}</span>
+                  <span className="text-red-500">エラー: {k.error}</span>
+                </div>
+              ) : (
+                <div className="flex items-center gap-1 flex-wrap">
+                  <span className="font-medium text-gray-700 w-28 truncate shrink-0">{k.keyword}</span>
+                  <span className="text-gray-400">取得{k.scraped ?? 0}</span>
+                  <span className="text-gray-300">→</span>
+                  <span className={k.new ? "text-blue-600 font-medium" : "text-gray-400"}>新着{k.new ?? 0}</span>
+                  <span className="text-gray-300">→</span>
+                  <span className="text-gray-400">AI{k.ai_judged ?? 0}</span>
+                  <span className="text-gray-300">→</span>
+                  <span className={k.ai_ok ? "text-green-600 font-bold" : "text-gray-400"}>
+                    通知{k.ai_ok ?? 0}{k.ai_ok ? " ✓" : ""}
+                  </span>
+                  {k.market_info && k.market_info !== "相場情報なし" && (
+                    <span className="text-gray-300 ml-1 hidden sm:inline">({k.market_info})</span>
+                  )}
+                </div>
+              )}
+            </div>
+          ))}
+          <p className="text-xs text-gray-300 pt-1">
+            {new Date(lastRun.started_at).toLocaleString("ja-JP")}
+          </p>
+        </div>
+      )}
     </div>
   );
 }
@@ -894,9 +982,17 @@ export default function Home() {
       const data = await fetchConfig();
       data.keywords = (data.keywords ?? []).map((k) => ({
         ...k,
-        exclude_words: k.exclude_words ?? [],
-        require_words: k.require_words ?? [],
-        note: k.note ?? "",
+        // 旧フィルター項目をnoteに統合してクリア（UI非表示フィールドの残留対策）
+        note: (() => {
+          const parts: string[] = [k.note ?? ""];
+          const ex = (k.exclude_words ?? []).filter(Boolean);
+          const req = (k.require_words ?? []).filter(Boolean);
+          if (ex.length > 0) parts.push(`NGワード: ${ex.join(", ")}`);
+          if (req.length > 0) parts.push(`必須: ${req.join(", ")}`);
+          return parts.filter(Boolean).join("\n");
+        })(),
+        exclude_words: [],
+        require_words: [],
       }));
       setConfig(data);
     } catch {
@@ -1310,6 +1406,11 @@ export default function Home() {
               />
             </button>
           </div>
+
+          {/* 実行ログ */}
+          {config.last_run && (
+            <LastRunPanel lastRun={config.last_run} />
+          )}
 
           {/* 言葉で追加 */}
           <div className="bg-gradient-to-br from-purple-50 to-blue-50 border border-purple-200 rounded-xl p-4">
