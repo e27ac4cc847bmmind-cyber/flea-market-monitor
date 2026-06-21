@@ -68,6 +68,19 @@
   ],
   "history": [
     {
+      "id": "mercari_m23992312092",
+      "name": "【ジャンク品】Macbook Air M2 スターライト マックブック 2022",
+      "price": 62800,
+      "platform": "メルカリ",
+      "url": "https://jp.mercari.com/item/m23992312092",
+      "image_url": "https://static.mercdn.net/thumb/item/webp/m23992312092_1.jpg?1776612136",
+      "keyword": "MacBook Air M2",
+      "ai_comment": "AI判定失敗（全モデル応答なし）— 通知スキップ",
+      "ai_ok": false,
+      "market_info": "メルカリ相場: ¥95448（売れ済み平均）",
+      "detected_at": "2026-06-21T00:28:33.283074"
+    },
+    {
       "id": "mercari_m60554134293",
       "name": "【値下げ中】MacBook Air M2 8GB/256GB バッテリー96%",
       "price": 84900,
