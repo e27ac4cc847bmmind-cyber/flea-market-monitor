@@ -428,7 +428,19 @@ def ai_judge(item: dict, keyword_config: dict, market_price: Optional[float], sp
     precious_metal_mode = keyword_config.get("precious_metal_mode", False)
     metal_type = keyword_config.get("metal_type", "silver")
     discount_threshold = keyword_config.get("discount_threshold", 20)
+
+    # ユーザー指示を1つのテキストに統合（note + 旧exclude_words/require_wordsも含める）
     note = keyword_config.get("note", "").strip()
+    exclude_words = [w.strip() for w in keyword_config.get("exclude_words", []) if w.strip()]
+    require_words = [w.strip() for w in keyword_config.get("require_words", []) if w.strip()]
+    instructions_parts = []
+    if note:
+        instructions_parts.append(note)
+    if exclude_words:
+        instructions_parts.append(f"NGワード（商品の問題として言及されていたらNO）: {', '.join(exclude_words)}")
+    if require_words:
+        instructions_parts.append(f"必須条件（満たされていなければNO）: {', '.join(require_words)}")
+    user_instructions = "\n".join(instructions_parts)
 
     lines = [
         f"商品名: {item['name']}",
@@ -441,10 +453,9 @@ def ai_judge(item: dict, keyword_config: dict, market_price: Optional[float], sp
     elif market_price:
         lines.append(f"メルカリ相場: {market_price:.0f}円")
 
-    note_line = f"\n4. ユーザーの希望条件に合致するか: {note}" if note else ""
-
     if precious_metal_mode:
         metal_name = "銀" if metal_type == "silver" else "金"
+        extra = f"\n4. ユーザーの追加指示:\n{user_instructions}" if user_instructions else ""
         prompt = f"""以下のフリマ出品商品を評価してください。
 
 {chr(10).join(lines)}
@@ -452,14 +463,14 @@ def ai_judge(item: dict, keyword_config: dict, market_price: Optional[float], sp
 判定基準（すべて満たす場合のみYES）：
 1. 本物の{metal_name}製品か（偽物・メッキ品・レプリカ・複製ではないか）
 2. 1オンス（31.1g）以上の純{metal_name}か
-3. スポット価格比{discount_threshold}%以上お得か{note_line}
+3. スポット価格比{discount_threshold}%以上お得か{extra}
 
 必ず以下の形式で回答：
 JUDGMENT: YES または NO
 REASON: 50文字以内の理由"""
     else:
-        note_basis = f"\n4. ユーザーの希望条件に合致するか: {note}" if note else ""
         target_keyword = keyword_config.get("keyword", "")
+        extra = f"\n4. ユーザーの追加指示:\n{user_instructions}" if user_instructions else ""
         prompt = f"""以下のフリマ出品商品を評価してください。
 
 {chr(10).join(lines)}
@@ -469,7 +480,7 @@ REASON: 50文字以内の理由"""
 判定基準（すべて満たす場合のみYES）：
 1. これは「{target_keyword}」そのもの（本体）か？アクセサリー・周辺機器・関連商品・別用途の商品ではないか（例: モニター検索でKVMスイッチ・ベビーモニター・ケーブルはNO）
 2. 正規品・本物で実用に足る状態か（偽物・詐欺的出品・パーツ取り・ジャンク・破損品ではないか）
-3. 相場より{discount_threshold}%以上お得か{note_basis}
+3. 相場より{discount_threshold}%以上お得か{extra}
 
 必ず以下の形式で回答：
 JUDGMENT: YES または NO
@@ -505,7 +516,7 @@ REASON: 50文字以内の理由"""
             if r.status_code == 200:
                 j_body = r.json()
                 if "choices" not in j_body or not j_body["choices"]:
-                    err = j_body.get("error", {}).get("message", str(j_body)[:80])
+                    err = j_body.get("error", {}).get("message", str(j_body)[:200])
                     print(f"    AI({model}): choices なし → {err}")
                     continue
                 content = j_body["choices"][0]["message"]["content"]
@@ -514,11 +525,18 @@ REASON: 50文字以内の理由"""
                 ok = j and j.group(1).upper() == "YES"
                 reason = reason_m.group(1).strip() if reason_m else content[:100]
                 return {"ok": bool(ok), "reason": f"[{model.split('/')[1].split(':')[0]}] {reason}"}
-            print(f"    AI({model}): エラー {r.status_code}")
+            # 非200レスポンス：レスポンスボディをログに記録
+            try:
+                err_body = r.json()
+                err_msg = err_body.get("error", {}).get("message", str(err_body)[:300])
+            except Exception:
+                err_msg = r.text[:300]
+            print(f"    AI({model}): HTTP {r.status_code} → {err_msg}")
         except Exception as e:
-            print(f"    AI({model}): 例外 {e}")
+            print(f"    AI({model}): 例外 {type(e).__name__}: {e}")
 
-    return {"ok": True, "reason": "AI判定失敗 — 価格条件のみで判断"}
+    print(f"  ⚠ AI全モデル失敗 — 通知をスキップします")
+    return {"ok": False, "reason": "AI判定失敗（全モデル応答なし）— 通知スキップ"}
 
 
 # ==================== Discord通知 ====================
@@ -665,27 +683,6 @@ def process_keyword(keyword_config: dict, seen_ids: dict) -> list[dict]:
         removed = before - len(new_items)
         if removed:
             print(f"  キーワード整合チェック: {removed}件除外")
-
-    # 除外ワード / 必須ワードフィルタ（AI判定の前に機械的に弾く＝API節約＆確実）
-    exclude_words = [w.strip().lower() for w in keyword_config.get("exclude_words", []) if w.strip()]
-    genre_excludes = [w.lower() for w in GENRE_EXCLUDE_WORDS.get(genre, [])]
-    exclude_words = list(set(exclude_words + genre_excludes))
-    if keyword_config.get("exclude_junk", True):
-        exclude_words = list(set(exclude_words + [w.lower() for w in JUNK_WORDS]))
-    require_words = [w.strip().lower() for w in keyword_config.get("require_words", []) if w.strip()]
-
-    def passes_word_filter(it: dict) -> bool:
-        name = it["name"].lower()
-        if exclude_words and any(w in name for w in exclude_words):
-            return False
-        if require_words and not all(w in name for w in require_words):
-            return False
-        return True
-
-    if exclude_words or require_words:
-        before = len(new_items)
-        new_items = [it for it in new_items if passes_word_filter(it)]
-        print(f"  ワードフィルタ通過: {len(new_items)}件 (除外 {before - len(new_items)}件)")
 
     if min_price > 0:
         before = len(new_items)
