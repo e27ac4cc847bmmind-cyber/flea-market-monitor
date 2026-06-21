@@ -615,25 +615,26 @@ function KeywordCard({
               <label className="text-sm font-medium text-gray-700">価格帯</label>
               <div className="mt-2 space-y-3">
                 <div>
-                  <div className="flex justify-between text-xs mb-1">
+                  <div className="flex items-center justify-between text-xs mb-1">
                     <span className="text-gray-500">最低価格</span>
-                    <span className="font-medium text-gray-700">
-                      {(kw.min_price ?? 0) === 0 ? "制限なし" : `¥${kw.min_price.toLocaleString()}`}
-                    </span>
+                    <div className="flex items-center gap-1">
+                      <span className="text-gray-400">¥</span>
+                      <input
+                        type="number"
+                        min={0}
+                        max={kw.max_price}
+                        step={500}
+                        value={kw.min_price ?? 0}
+                        onChange={(e) => {
+                          const val = Math.min(Number(e.target.value), kw.max_price);
+                          onChange({ ...kw, min_price: Math.max(0, val) });
+                        }}
+                        className="w-24 border rounded px-2 py-0.5 text-xs text-right font-medium text-gray-700 focus:outline-none focus:ring-1 focus:ring-blue-400"
+                      />
+                      <span className="text-gray-400 text-xs">円〜</span>
+                    </div>
                   </div>
-                  <input
-                    type="range"
-                    min={0}
-                    max={kw.max_price}
-                    step={500}
-                    value={kw.min_price ?? 0}
-                    onChange={(e) => {
-                      const val = Number(e.target.value);
-                      onChange({ ...kw, min_price: val });
-                    }}
-                    style={{ touchAction: "pan-y" }}
-                    className="w-full accent-blue-500"
-                  />
+                  <p className="text-xs text-gray-300">{(kw.min_price ?? 0) === 0 ? "0円 = 制限なし" : ""}</p>
                 </div>
                 <div>
                   <div className="flex items-center justify-between text-xs mb-1">
