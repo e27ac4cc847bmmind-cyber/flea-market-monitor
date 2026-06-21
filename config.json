@@ -48,6 +48,19 @@
   ],
   "history": [
     {
+      "id": "paypay_o1233576616",
+      "name": "【2026進化第3版見守りカメラ・泣き声/体動/温湿度センサー】 BOIFUN ベビーモニター 2K 暗視 ベビーカメラ 見守★m",
+      "price": 11630,
+      "platform": "PayPayフリマ",
+      "url": "https://paypayfleamarket.yahoo.co.jp/item/o1233576616",
+      "image_url": "https://auc-pctr.c.yimg.jp/i/auctions.c.yimg.jp/images.auctions.yahoo.co.jp/image/dr000/auc0206/user/566e016930ec71be3823f3d7e6bce73ea76085c7821ab42834df1e3c4dcdf328/i-img1200x1200-17814717098255wkjdeh221.jpg?pri=s&w=298&h=298&ccw=298&cch=298&fill=1&fw=298&fh=298&up=0&nf_src=sy&nf_path=images/auc/pc/top/image/1.0.3/na_170x170.png&nf_st=200",
+      "keyword": "2K モニター",
+      "ai_comment": "AI判定失敗（全モデル応答なし）— 通知スキップ",
+      "ai_ok": false,
+      "market_info": "メルカリ相場: ¥8060（売れ済み平均）",
+      "detected_at": "2026-06-21T14:25:12.610352"
+    },
+    {
       "id": "mercari_m72244271995",
       "name": "BMW X1 F48 黒無地 フロアマット カーマット 日本産 新品 輸入車",
       "price": 9980,
@@ -582,21 +595,21 @@
     }
   ],
   "last_run": {
-    "started_at": "2026-06-21T14:21:45.179568",
+    "started_at": "2026-06-21T14:24:16.994222",
     "keywords": [
       {
         "keyword": "F48 BMW X1 フロアマット",
-        "scraped": 68,
-        "new": 4,
-        "ai_judged": 4,
+        "scraped": 59,
+        "new": 0,
+        "ai_judged": 0,
         "ai_ok": 0,
-        "market_info": "メルカリ相場: ¥22549（売れ済み平均）"
+        "market_info": "メルカリ相場: ¥21560（売れ済み平均）"
       },
       {
         "keyword": "2K モニター",
         "scraped": 90,
-        "new": 0,
-        "ai_judged": 0,
+        "new": 1,
+        "ai_judged": 1,
         "ai_ok": 0,
         "market_info": "メルカリ相場: ¥8060（売れ済み平均）"
       }
