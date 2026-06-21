@@ -477,7 +477,7 @@ JUDGMENT: YES または NO
 REASON: 50文字以内の理由"""
 
     MODELS = [
-        "deepseek/deepseek-v4-flash",
+        "google/gemini-2.0-flash-exp:free",
         "meta-llama/llama-3.3-70b-instruct:free",
     ]
 

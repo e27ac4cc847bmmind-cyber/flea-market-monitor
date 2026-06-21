@@ -11,7 +11,6 @@ import {
   ChevronDown,
   ChevronUp,
   CheckCircle,
-  Sparkles,
   ShoppingBag,
   Bot,
   Link,
@@ -736,32 +735,29 @@ function KeywordCard({
                         {marketPriceLoading ? "取得中…" : "相場取得"}
                       </button>
                     </div>
-                    <span className="font-medium text-gray-700">¥{kw.max_price.toLocaleString()}</span>
+                    <div className="flex items-center gap-1">
+                      <span className="text-gray-400">¥</span>
+                      <input
+                        type="number"
+                        min={kw.min_price ?? 0}
+                        max={300000}
+                        step={500}
+                        value={kw.max_price}
+                        onChange={(e) => {
+                          const val = Math.max(kw.min_price ?? 0, Math.min(300000, Number(e.target.value)));
+                          onChange({ ...kw, max_price: val });
+                        }}
+                        className="w-28 border rounded px-2 py-0.5 text-xs text-right font-medium text-gray-700 focus:outline-none focus:ring-1 focus:ring-blue-400"
+                      />
+                      <span className="text-gray-400 text-xs">円以下</span>
+                    </div>
                   </div>
                   {marketPriceMsg && (
                     <p className={`text-xs mb-1 ${marketPriceMsg.includes("失敗") || marketPriceMsg.includes("エラー") || marketPriceMsg.includes("不足") ? "text-red-500" : "text-green-600"}`}>
                       {marketPriceMsg}
                     </p>
                   )}
-                  <input
-                    type="range"
-                    min={0}
-                    max={300000}
-                    step={500}
-                    value={kw.max_price}
-                    onChange={(e) => {
-                      const val = Number(e.target.value);
-                      onChange({ ...kw, max_price: val, min_price: Math.min(kw.min_price ?? 0, val) });
-                    }}
-                    style={{ touchAction: "pan-y" }}
-                    className="w-full accent-blue-500"
-                  />
                 </div>
-              </div>
-              <div className="flex justify-between text-xs text-gray-300 mt-0.5">
-                <span>¥0</span>
-                <span>¥300,000</span>
-              </div>
             </div>
           </div>
 
@@ -913,8 +909,6 @@ export default function Home() {
   const [activeTab, setActiveTab] = useState<"arrivals" | "settings">("arrivals");
   const [filter, setFilter] = useState<"all" | "ai_ok" | "recent">("all");
   const [activeKeyword, setActiveKeyword] = useState<string | null>(null);
-  const [nlText, setNlText] = useState("");
-  const [nlLoading, setNlLoading] = useState(false);
 
   const [lastSeenAt] = useState<string>(() => {
     if (typeof window === "undefined") return new Date(0).toISOString();
@@ -1091,49 +1085,6 @@ export default function Home() {
       model_number: "",
     };
     setConfig({ ...config, keywords: [...config.keywords, newKw] });
-  };
-
-  const addKeywordFromText = async () => {
-    if (!config || !nlText.trim()) return;
-    setNlLoading(true);
-    setError("");
-    setSuccess("");
-    try {
-      const res = await fetch("/api/parse-keyword", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ text: nlText }),
-      });
-      const data = await res.json();
-      if (!res.ok || !data.config) {
-        throw new Error(data.error || "変換に失敗しました");
-      }
-      const c = data.config;
-      const newKw: KeywordConfig = {
-        id: Date.now().toString(),
-        keyword: c.keyword,
-        min_price: 0,
-        max_price: c.max_price,
-        platforms: { mercari: true, rakuma: true, paypay: true },
-        precious_metal_mode: false,
-        metal_type: "silver",
-        exclude_words: c.exclude_words,
-        require_words: c.require_words,
-        note: c.note,
-        enabled: true,
-        genre: c.genre ?? "",
-        exclude_junk: true,
-        model_number: "",
-      };
-      setConfig({ ...config, keywords: [...config.keywords, newKw] });
-      setNlText("");
-      setSuccess(`「${c.keyword}」を追加しました。内容を確認して保存してください。`);
-      setTimeout(() => setSuccess(""), 5000);
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "変換に失敗しました");
-    } finally {
-      setNlLoading(false);
-    }
   };
 
   const updateKeyword = (id: string, updated: KeywordConfig) => {
@@ -1412,45 +1363,10 @@ export default function Home() {
             <LastRunPanel lastRun={config.last_run} />
           )}
 
-          {/* 言葉で追加 */}
-          <div className="bg-gradient-to-br from-purple-50 to-blue-50 border border-purple-200 rounded-xl p-4">
-            <div className="flex items-center gap-2 mb-2">
-              <Sparkles size={18} className="text-purple-500" />
-              <span className="font-semibold text-gray-800 text-sm">言葉で検索を追加</span>
-            </div>
-            <p className="text-xs text-gray-500 mb-2">
-              探したいものを文章で書くと、AIがキーワード・除外条件・上限価格を自動設定します。
-            </p>
-            <textarea
-              value={nlText}
-              onChange={(e) => setNlText(e.target.value)}
-              placeholder="例: Nintendo Switch 有機ELを2万円以下で。ジャンクや本体なしは除いて、動作品だけ欲しい。"
-              rows={2}
-              className="w-full border rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-400 resize-y"
-            />
-            <button
-              onClick={addKeywordFromText}
-              disabled={nlLoading || !nlText.trim()}
-              className="mt-2 w-full bg-purple-600 hover:bg-purple-700 disabled:bg-purple-300 text-white font-medium py-2 rounded-lg flex items-center justify-center gap-2 transition-colors text-sm"
-            >
-              {nlLoading ? (
-                <>
-                  <RefreshCw size={16} className="animate-spin" />
-                  AIが設定を作成中...
-                </>
-              ) : (
-                <>
-                  <Sparkles size={16} />
-                  この内容で追加
-                </>
-              )}
-            </button>
-          </div>
-
           {config.keywords.length === 0 && (
             <div className="text-center py-8 text-gray-400">
               <p>検索キーワードが登録されていません</p>
-              <p className="text-sm mt-1">上の入力か、下のボタンから追加してください</p>
+              <p className="text-sm mt-1">下のボタンからキーワードを追加してください</p>
             </div>
           )}
           {config.keywords.map((kw) => {
