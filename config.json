@@ -24,7 +24,7 @@
       "id": "1781659955596",
       "keyword": "2K モニター",
       "max_price": 14500,
-      "discount_threshold": 75,
+      "discount_threshold": 4,
       "platforms": {
         "mercari": true,
         "rakuma": true,
