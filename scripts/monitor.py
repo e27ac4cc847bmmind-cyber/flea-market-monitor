@@ -429,7 +429,7 @@ def ai_judge(item: dict, keyword_config: dict, market_price: Optional[float], sp
     metal_type = keyword_config.get("metal_type", "silver")
     discount_threshold = keyword_config.get("discount_threshold", 20)
 
-    # ユーザー指示を１つのテキストに統合（note + 旧exclude_words/require_wordsも含める）
+    # ユーザー指示を1つのテキストに統合（note + 旧exclude_words/require_wordsも含める）
     note = keyword_config.get("note", "").strip()
     exclude_words = [w.strip() for w in keyword_config.get("exclude_words", []) if w.strip()]
     require_words = [w.strip() for w in keyword_config.get("require_words", []) if w.strip()]
@@ -487,8 +487,7 @@ JUDGMENT: YES または NO
 REASON: 50文字以内の理由"""
 
     MODELS = [
-        "google/gemma-4-31b-it:free",
-        "qwen/qwen3-next-80b-a3b-instruct:free",
+        "deepseek/deepseek-v4-flash",
         "meta-llama/llama-3.3-70b-instruct:free",
     ]
 
@@ -576,7 +575,7 @@ def send_discord_notification(item: dict, keyword_config: dict, ai_result: dict,
 
 
 # ==================== ジャンク除外ワード ====================
-JUNK_WORDS = ["ジャンク", "不動", "部品取り", "破損", "詳あり", "動作不良", "故障", "ジャンク品"]
+JUNK_WORDS = ["ジャンク", "不動", "部品取り", "破損", "訳あり", "動作不良", "故障", "ジャンク品"]
 
 # ==================== ジャンル別除外ワード ====================
 GENRE_EXCLUDE_WORDS: dict[str, list[str]] = {
