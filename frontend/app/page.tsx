@@ -517,11 +517,16 @@ function KeywordCard({
 
   const applyProposal = () => {
     if (!proposal) return;
+    const parts = [proposal.note];
+    if (proposal.exclude_words.length > 0)
+      parts.push(`NGワード: ${proposal.exclude_words.join(", ")}`);
+    if (proposal.require_words.length > 0)
+      parts.push(`必須: ${proposal.require_words.join(", ")}`);
     onChange({
       ...kw,
-      note: proposal.note,
-      exclude_words: proposal.exclude_words,
-      require_words: proposal.require_words,
+      note: parts.filter(Boolean).join("\n"),
+      exclude_words: [],
+      require_words: [],
     });
     onClearLiked(likedItems.map((i) => i.id));
     setProposal(null);
@@ -655,16 +660,6 @@ function KeywordCard({
             </div>
           </div>
 
-          <label className="flex items-center gap-2 cursor-pointer">
-            <input
-              type="checkbox"
-              checked={kw.exclude_junk ?? true}
-              onChange={(e) => onChange({ ...kw, exclude_junk: e.target.checked })}
-              className="w-4 h-4 rounded"
-            />
-            <span className="text-sm font-medium text-gray-700">ジャンク・不動品を自動除外</span>
-            <span className="text-xs text-gray-400">（ジャンク・不動・破損・訳あり等）</span>
-          </label>
 
           <div>
             <label className="text-sm font-medium text-gray-700">監視プラットフォーム</label>
@@ -688,47 +683,6 @@ function KeywordCard({
             </div>
           </div>
 
-          <div>
-            <label className="text-sm font-medium text-gray-700">
-              除外ワード（カンマ区切り）
-            </label>
-            <input
-              type="text"
-              value={kw.exclude_words.join(", ")}
-              onChange={(e) =>
-                onChange({
-                  ...kw,
-                  exclude_words: e.target.value
-                    .split(",")
-                    .map((s) => s.trim())
-                    .filter(Boolean),
-                })
-              }
-              placeholder="例: ジャンク, 部品取り, 破損"
-              className="mt-1 w-full border rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
-            />
-          </div>
-
-          <div>
-            <label className="text-sm font-medium text-gray-700">
-              必須ワード（カンマ区切り）
-            </label>
-            <input
-              type="text"
-              value={kw.require_words.join(", ")}
-              onChange={(e) =>
-                onChange({
-                  ...kw,
-                  require_words: e.target.value
-                    .split(",")
-                    .map((s) => s.trim())
-                    .filter(Boolean),
-                })
-              }
-              placeholder="例: 動作確認済み, 美品"
-              className="mt-1 w-full border rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
-            />
-          </div>
 
           <div>
             <label className="text-sm font-medium text-gray-700">ジャンル（カテゴリ絞り込み）</label>
@@ -753,21 +707,24 @@ function KeywordCard({
               </button>
             </div>
             <p className="text-xs text-gray-400 mt-0.5">
-              「AIで自動設定」でジャンル＋除外ワード（アクセサリー等）を一括更新します。
+              ジャンルを設定するとカテゴリを絞り込んで検索します。「AIで自動設定」で自動判別します。
             </p>
           </div>
 
           <div>
             <label className="text-sm font-medium text-gray-700">
-              希望条件メモ（AIの判定基準）
+              AIへの指示
             </label>
             <textarea
               value={kw.note}
               onChange={(e) => onChange({ ...kw, note: e.target.value })}
-              placeholder="例: 動作確認済みの良品が欲しい。外観の傷は少しくらい許容。"
-              rows={2}
+              placeholder={"例: 24インチ以上のもの。ジャンク品・訳あり品は除外。白または黒のみ。動作確認済みの良品が欲しい。"}
+              rows={3}
               className="mt-1 w-full border rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 resize-y"
             />
+            <p className="text-xs text-gray-400 mt-0.5">
+              自然文で条件を書いてください。AIが文脈を理解して判定します。
+            </p>
           </div>
 
           {/* ❤️ 学習ボタン */}
@@ -804,23 +761,14 @@ function KeywordCard({
               {proposal && (
                 <div className="space-y-2">
                   <div className="text-xs bg-white border border-pink-200 rounded p-2 space-y-1.5">
-                    <p className="font-medium text-gray-700">AIの提案:</p>
-                    <p>
-                      <span className="text-gray-400">note: </span>
-                      <span className="text-gray-700">{proposal.note}</span>
+                    <p className="font-medium text-gray-700">AIの提案（「AIへの指示」に反映されます）:</p>
+                    <p className="text-gray-700 whitespace-pre-wrap">
+                      {[
+                        proposal.note,
+                        proposal.exclude_words.length > 0 ? `NGワード: ${proposal.exclude_words.join(", ")}` : "",
+                        proposal.require_words.length > 0 ? `必須: ${proposal.require_words.join(", ")}` : "",
+                      ].filter(Boolean).join("\n")}
                     </p>
-                    {proposal.exclude_words.length > 0 && (
-                      <p>
-                        <span className="text-gray-400">除外ワード: </span>
-                        <span className="text-gray-700">{proposal.exclude_words.join(", ")}</span>
-                      </p>
-                    )}
-                    {proposal.require_words.length > 0 && (
-                      <p>
-                        <span className="text-gray-400">必須ワード: </span>
-                        <span className="text-gray-700">{proposal.require_words.join(", ")}</span>
-                      </p>
-                    )}
                     <p className="text-gray-400 italic border-t border-pink-100 pt-1">
                       {proposal.explanation}
                     </p>
