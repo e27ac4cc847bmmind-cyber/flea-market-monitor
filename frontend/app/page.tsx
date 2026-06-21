@@ -928,9 +928,6 @@ export default function Home() {
         const genre = kw.genre ?? "";
         const genreExcludes = GENRE_EXCLUDE_WORDS_FRONT[genre] ?? [];
         if (genreExcludes.some((w) => nameLower.includes(w.toLowerCase()))) return false;
-        // キーワード設定の除外ワード
-        const kwExcludes = kw.exclude_words ?? [];
-        if (kwExcludes.some((w) => nameLower.includes(w.toLowerCase()))) return false;
         return true;
       })
       .sort((a, b) => b.detected_at.localeCompare(a.detected_at));
@@ -1279,7 +1276,7 @@ export default function Home() {
                     config.monitoring_enabled ? "text-green-600" : "text-gray-400"
                   }`}
                 >
-                  {config.monitoring_enabled ? "稼働中 — 1分ごとに実行" : "停止中"}
+                  {config.monitoring_enabled ? "稼働中 — 約5〜10分ごとに実行" : "停止中"}
                 </p>
               </div>
             </div>

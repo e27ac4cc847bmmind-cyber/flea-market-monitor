@@ -487,9 +487,9 @@ JUDGMENT: YES または NO
 REASON: 50文字以内の理由"""
 
     MODELS = [
-        "google/gemma-4-31b-it:free",
-        "qwen/qwen3-next-80b-a3b-instruct:free",
+        "google/gemini-2.0-flash-exp:free",
         "meta-llama/llama-3.3-70b-instruct:free",
+        "qwen/qwq-32b:free",
     ]
 
     for model in MODELS:
