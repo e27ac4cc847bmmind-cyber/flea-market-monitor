@@ -2,8 +2,8 @@ name: フリマ監視
 
 on:
   schedule:
-    - cron: "0 */6 * * *"  # 6時間ごとのフォールバック（チェーン切れ対策）
-  workflow_dispatch:        # 手動実行 or 自己トリガー
+    - cron: "0 * * * *"  # 毎時実行（1ジョブ約2-3分 × 24回 × 30日 ≈ 1,800分/月）
+  workflow_dispatch:      # 手動実行
 
 # 同時実行を防ぐ（最新のrunのみ実行、古いrunはキャンセル）
 concurrency:
@@ -47,26 +47,3 @@ jobs:
           git diff --staged --quiet || git commit -m "chore: 監視データ更新 $(date +'%Y-%m-%d %H:%M:%S')"
           git pull --rebase origin main
           git push
-
-      - name: 5分後に次回実行をトリガー（自己チェーン）
-        if: always()
-        env:
-          GH_PAT: ${{ secrets.SHOPPING_SERCH }}
-        run: |
-          sleep 300
-          if [ -z "$GH_PAT" ]; then
-            echo "⚠️  GH_PAT 未設定 — 自動トリガーをスキップ（6時間後のcronで再開）"
-            exit 0
-          fi
-          HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" \
-            --max-time 30 \
-            -X POST \
-            -H "Authorization: Bearer $GH_PAT" \
-            -H "Accept: application/vnd.github+json" \
-            "https://api.github.com/repos/${{ github.repository }}/actions/workflows/monitor.yml/dispatches" \
-            -d '{"ref":"main"}')
-          if [ "$HTTP_STATUS" = "204" ]; then
-            echo "✅ 次回実行をトリガーしました（5分後）"
-          else
-            echo "❌ トリガー失敗 HTTP $HTTP_STATUS（6時間後のcronで再開）"
-          fi
