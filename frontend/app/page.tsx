@@ -721,6 +721,19 @@ function KeywordCard({
                       <span className="text-gray-400 text-xs">円〜</span>
                     </div>
                   </div>
+                  <input
+                    type="range"
+                    min={0}
+                    max={kw.max_price}
+                    step={500}
+                    value={kw.min_price ?? 0}
+                    onChange={(e) => {
+                      const val = Math.min(Number(e.target.value), kw.max_price);
+                      onChange({ ...kw, min_price: Math.max(0, val) });
+                    }}
+                    style={{ touchAction: "none" }}
+                    className="w-full accent-blue-500"
+                  />
                   <p className="text-xs text-gray-300">{(kw.min_price ?? 0) === 0 ? "0円 = 制限なし" : ""}</p>
                 </div>
                 <div>
@@ -752,8 +765,21 @@ function KeywordCard({
                       <span className="text-gray-400 text-xs">円以下</span>
                     </div>
                   </div>
+                  <input
+                    type="range"
+                    min={kw.min_price ?? 0}
+                    max={300000}
+                    step={500}
+                    value={kw.max_price}
+                    onChange={(e) => {
+                      const val = Math.max(kw.min_price ?? 0, Math.min(300000, Number(e.target.value)));
+                      onChange({ ...kw, max_price: val });
+                    }}
+                    style={{ touchAction: "none" }}
+                    className="w-full accent-blue-500"
+                  />
                   {marketPriceMsg && (
-                    <p className={`text-xs mb-1 ${marketPriceMsg.includes("失敗") || marketPriceMsg.includes("エラー") || marketPriceMsg.includes("不足") ? "text-red-500" : "text-green-600"}`}>
+                    <p className={`text-xs mt-1 ${marketPriceMsg.includes("失敗") || marketPriceMsg.includes("エラー") || marketPriceMsg.includes("不足") ? "text-red-500" : "text-green-600"}`}>
                       {marketPriceMsg}
                     </p>
                   )}
