@@ -30,7 +30,6 @@ interface KeywordConfig {
   keyword: string;
   min_price: number;
   max_price: number;
-  discount_threshold: number;
   platforms: Platform;
   precious_metal_mode: boolean;
   metal_type: "silver" | "gold";
@@ -57,10 +56,26 @@ interface HistoryItem {
   detected_at: string;
 }
 
+interface RunKeywordStats {
+  keyword: string;
+  scraped?: number;
+  new?: number;
+  ai_judged?: number;
+  ai_ok?: number;
+  market_info?: string;
+  error?: string;
+}
+
+interface LastRun {
+  started_at: string;
+  keywords: RunKeywordStats[];
+}
+
 interface Config {
   monitoring_enabled: boolean;
   keywords: KeywordConfig[];
   history: HistoryItem[];
+  last_run?: LastRun;
 }
 
 interface GitHubConfig {
@@ -249,6 +264,78 @@ function ArrivalCard({
 
         <p className="text-xs text-gray-400 mt-0.5">{relativeTime()}</p>
       </div>
+    </div>
+  );
+}
+
+// ==================== 実行ログパネル ====================
+function LastRunPanel({ lastRun }: { lastRun: LastRun }) {
+  const [expanded, setExpanded] = useState(false);
+
+  const relativeTime = () => {
+    const diff = Date.now() - new Date(lastRun.started_at).getTime();
+    const mins = Math.floor(diff / 60000);
+    if (mins < 1) return "たった今";
+    if (mins < 60) return `${mins}分前`;
+    const hours = Math.floor(diff / 3600000);
+    if (hours < 24) return `${hours}時間前`;
+    return `${Math.floor(hours / 24)}日前`;
+  };
+
+  const totalNew = lastRun.keywords.reduce((s, k) => s + (k.new ?? 0), 0);
+  const totalAiOk = lastRun.keywords.reduce((s, k) => s + (k.ai_ok ?? 0), 0);
+
+  return (
+    <div className="border rounded-lg bg-white shadow-sm text-sm">
+      <button
+        onClick={() => setExpanded(!expanded)}
+        className="w-full flex items-center justify-between px-4 py-3 text-left"
+      >
+        <div className="flex items-center gap-3">
+          <span className="text-gray-400 text-xs">📋</span>
+          <div>
+            <span className="font-medium text-gray-700">最終実行: {relativeTime()}</span>
+            <span className="ml-3 text-xs text-gray-400">
+              新着{totalNew}件 / 通知{totalAiOk}件
+            </span>
+          </div>
+        </div>
+        {expanded ? <ChevronUp size={16} className="text-gray-400" /> : <ChevronDown size={16} className="text-gray-400" />}
+      </button>
+
+      {expanded && (
+        <div className="border-t px-4 pb-3 pt-2 space-y-1.5">
+          {lastRun.keywords.map((k, i) => (
+            <div key={i} className="text-xs">
+              {k.error ? (
+                <div className="flex items-center gap-2">
+                  <span className="font-medium text-gray-700 w-28 truncate">{k.keyword}</span>
+                  <span className="text-red-500">エラー: {k.error}</span>
+                </div>
+              ) : (
+                <div className="flex items-center gap-1 flex-wrap">
+                  <span className="font-medium text-gray-700 w-28 truncate shrink-0">{k.keyword}</span>
+                  <span className="text-gray-400">取得{k.scraped ?? 0}</span>
+                  <span className="text-gray-300">→</span>
+                  <span className={k.new ? "text-blue-600 font-medium" : "text-gray-400"}>新着{k.new ?? 0}</span>
+                  <span className="text-gray-300">→</span>
+                  <span className="text-gray-400">AI{k.ai_judged ?? 0}</span>
+                  <span className="text-gray-300">→</span>
+                  <span className={k.ai_ok ? "text-green-600 font-bold" : "text-gray-400"}>
+                    通知{k.ai_ok ?? 0}{k.ai_ok ? " ✓" : ""}
+                  </span>
+                  {k.market_info && k.market_info !== "相場情報なし" && (
+                    <span className="text-gray-300 ml-1 hidden sm:inline">({k.market_info})</span>
+                  )}
+                </div>
+              )}
+            </div>
+          ))}
+          <p className="text-xs text-gray-300 pt-1">
+            {new Date(lastRun.started_at).toLocaleString("ja-JP")}
+          </p>
+        </div>
+      )}
     </div>
   );
 }
@@ -463,6 +550,8 @@ function KeywordCard({
   const [proposal, setProposal] = useState<LearnProposal | null>(null);
   const [proposalError, setProposalError] = useState("");
   const [genreDetecting, setGenreDetecting] = useState(false);
+  const [marketPriceLoading, setMarketPriceLoading] = useState(false);
+  const [marketPriceMsg, setMarketPriceMsg] = useState("");
 
   const detectGenre = async () => {
     if (!kw.keyword.trim()) return;
@@ -487,6 +576,30 @@ function KeywordCard({
       // 失敗しても無視
     } finally {
       setGenreDetecting(false);
+    }
+  };
+
+  const fetchMarketPrice = async () => {
+    if (!kw.keyword.trim()) return;
+    setMarketPriceLoading(true);
+    setMarketPriceMsg("");
+    try {
+      const res = await fetch("/api/market-price", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ keyword: kw.keyword, model_number: kw.model_number ?? "" }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.price) {
+        setMarketPriceMsg(data.error ?? "取得失敗");
+      } else {
+        onChange({ ...kw, max_price: data.price });
+        setMarketPriceMsg(`相場 ¥${data.price.toLocaleString()}（${data.samples}件）→ 上限価格に設定`);
+      }
+    } catch {
+      setMarketPriceMsg("取得失敗");
+    } finally {
+      setMarketPriceLoading(false);
     }
   };
 
@@ -590,30 +703,46 @@ function KeywordCard({
               <label className="text-sm font-medium text-gray-700">価格帯</label>
               <div className="mt-2 space-y-3">
                 <div>
-                  <div className="flex justify-between text-xs mb-1">
+                  <div className="flex items-center justify-between text-xs mb-1">
                     <span className="text-gray-500">最低価格</span>
-                    <span className="font-medium text-gray-700">
-                      {(kw.min_price ?? 0) === 0 ? "制限なし" : `¥${kw.min_price.toLocaleString()}`}
-                    </span>
+                    <div className="flex items-center gap-1">
+                      <span className="text-gray-400">¥</span>
+                      <input
+                        type="number"
+                        min={0}
+                        max={kw.max_price}
+                        step={500}
+                        value={kw.min_price ?? 0}
+                        onChange={(e) => {
+                          const val = Math.min(Number(e.target.value), kw.max_price);
+                          onChange({ ...kw, min_price: Math.max(0, val) });
+                        }}
+                        className="w-24 border rounded px-2 py-0.5 text-xs text-right font-medium text-gray-700 focus:outline-none focus:ring-1 focus:ring-blue-400"
+                      />
+                      <span className="text-gray-400 text-xs">円〜</span>
+                    </div>
                   </div>
-                  <input
-                    type="range"
-                    min={0}
-                    max={300000}
-                    step={500}
-                    value={kw.min_price ?? 0}
-                    onChange={(e) => {
-                      const val = Number(e.target.value);
-                      onChange({ ...kw, min_price: val, max_price: Math.max(kw.max_price, val) });
-                    }}
-                    className="w-full accent-blue-500"
-                  />
+                  <p className="text-xs text-gray-300">{(kw.min_price ?? 0) === 0 ? "0円 = 制限なし" : ""}</p>
                 </div>
                 <div>
-                  <div className="flex justify-between text-xs mb-1">
-                    <span className="text-gray-500">上限価格</span>
+                  <div className="flex items-center justify-between text-xs mb-1">
+                    <div className="flex items-center gap-2">
+                      <span className="text-gray-500">上限価格</span>
+                      <button
+                        onClick={fetchMarketPrice}
+                        disabled={marketPriceLoading || !kw.keyword.trim()}
+                        className="px-2 py-0.5 text-xs rounded bg-blue-50 text-blue-600 border border-blue-200 hover:bg-blue-100 disabled:opacity-40 disabled:cursor-not-allowed"
+                      >
+                        {marketPriceLoading ? "取得中…" : "相場取得"}
+                      </button>
+                    </div>
                     <span className="font-medium text-gray-700">¥{kw.max_price.toLocaleString()}</span>
                   </div>
+                  {marketPriceMsg && (
+                    <p className={`text-xs mb-1 ${marketPriceMsg.includes("失敗") || marketPriceMsg.includes("エラー") || marketPriceMsg.includes("不足") ? "text-red-500" : "text-green-600"}`}>
+                      {marketPriceMsg}
+                    </p>
+                  )}
                   <input
                     type="range"
                     min={0}
@@ -624,6 +753,7 @@ function KeywordCard({
                       const val = Number(e.target.value);
                       onChange({ ...kw, max_price: val, min_price: Math.min(kw.min_price ?? 0, val) });
                     }}
+                    style={{ touchAction: "pan-y" }}
                     className="w-full accent-blue-500"
                   />
                 </div>
@@ -632,31 +762,6 @@ function KeywordCard({
                 <span>¥0</span>
                 <span>¥300,000</span>
               </div>
-            </div>
-            <div className="sm:col-span-2">
-              <label className="text-sm font-medium text-gray-700">
-                お得判定閾値（相場より何%以下で通知）
-              </label>
-              <div className="flex items-center gap-2 mt-1">
-                <input
-                  type="range"
-                  min={0}
-                  max={80}
-                  value={kw.discount_threshold}
-                  onChange={(e) =>
-                    onChange({ ...kw, discount_threshold: Number(e.target.value) })
-                  }
-                  className="flex-1"
-                />
-                <span className="text-sm font-bold w-12 text-right">
-                  {kw.discount_threshold}%
-                </span>
-              </div>
-              <p className="text-xs text-gray-400 mt-0.5">
-                {kw.discount_threshold === 0
-                  ? "0% = 上限価格以下なら全て通知"
-                  : `相場より${kw.discount_threshold}%以上安い場合のみ通知`}
-              </p>
             </div>
           </div>
 
@@ -877,9 +982,17 @@ export default function Home() {
       const data = await fetchConfig();
       data.keywords = (data.keywords ?? []).map((k) => ({
         ...k,
-        exclude_words: k.exclude_words ?? [],
-        require_words: k.require_words ?? [],
-        note: k.note ?? "",
+        // 旧フィルター項目をnoteに統合してクリア（UI非表示フィールドの残留対策）
+        note: (() => {
+          const parts: string[] = [k.note ?? ""];
+          const ex = (k.exclude_words ?? []).filter(Boolean);
+          const req = (k.require_words ?? []).filter(Boolean);
+          if (ex.length > 0) parts.push(`NGワード: ${ex.join(", ")}`);
+          if (req.length > 0) parts.push(`必須: ${req.join(", ")}`);
+          return parts.filter(Boolean).join("\n");
+        })(),
+        exclude_words: [],
+        require_words: [],
       }));
       setConfig(data);
     } catch {
@@ -966,7 +1079,6 @@ export default function Home() {
       keyword: "",
       min_price: 0,
       max_price: 10000,
-      discount_threshold: 0,
       platforms: { mercari: true, rakuma: true, paypay: true },
       precious_metal_mode: false,
       metal_type: "silver",
@@ -1002,7 +1114,6 @@ export default function Home() {
         keyword: c.keyword,
         min_price: 0,
         max_price: c.max_price,
-        discount_threshold: c.discount_threshold,
         platforms: { mercari: true, rakuma: true, paypay: true },
         precious_metal_mode: false,
         metal_type: "silver",
@@ -1295,6 +1406,11 @@ export default function Home() {
               />
             </button>
           </div>
+
+          {/* 実行ログ */}
+          {config.last_run && (
+            <LastRunPanel lastRun={config.last_run} />
+          )}
 
           {/* 言葉で追加 */}
           <div className="bg-gradient-to-br from-purple-50 to-blue-50 border border-purple-200 rounded-xl p-4">

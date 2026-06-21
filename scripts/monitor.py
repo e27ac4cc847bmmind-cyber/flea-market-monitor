@@ -427,20 +427,10 @@ def ai_judge(item: dict, keyword_config: dict, market_price: Optional[float], sp
 
     precious_metal_mode = keyword_config.get("precious_metal_mode", False)
     metal_type = keyword_config.get("metal_type", "silver")
-    discount_threshold = keyword_config.get("discount_threshold", 20)
 
-    # ユーザー指示を1つのテキストに統合（note + 旧exclude_words/require_wordsも含める）
+    # ユーザー指示を1つのテキストに統合（noteのみ — exclude_words/require_wordsは無視）
     note = keyword_config.get("note", "").strip()
-    exclude_words = [w.strip() for w in keyword_config.get("exclude_words", []) if w.strip()]
-    require_words = [w.strip() for w in keyword_config.get("require_words", []) if w.strip()]
-    instructions_parts = []
-    if note:
-        instructions_parts.append(note)
-    if exclude_words:
-        instructions_parts.append(f"NGワード（商品の問題として言及されていたらNO）: {', '.join(exclude_words)}")
-    if require_words:
-        instructions_parts.append(f"必須条件（満たされていなければNO）: {', '.join(require_words)}")
-    user_instructions = "\n".join(instructions_parts)
+    user_instructions = note
 
     lines = [
         f"商品名: {item['name']}",
@@ -463,7 +453,7 @@ def ai_judge(item: dict, keyword_config: dict, market_price: Optional[float], sp
 判定基準（すべて満たす場合のみYES）：
 1. 本物の{metal_name}製品か（偽物・メッキ品・レプリカ・複製ではないか）
 2. 1オンス（31.1g）以上の純{metal_name}か
-3. スポット価格比{discount_threshold}%以上お得か{extra}
+3. 上限価格以下でお得か{extra}
 
 必ず以下の形式で回答：
 JUDGMENT: YES または NO
@@ -480,7 +470,7 @@ REASON: 50文字以内の理由"""
 判定基準（すべて満たす場合のみYES）：
 1. これは「{target_keyword}」そのもの（本体）か？アクセサリー・周辺機器・関連商品・別用途の商品ではないか（例: モニター検索でKVMスイッチ・ベビーモニター・ケーブルはNO）
 2. 正規品・本物で実用に足る状態か（偽物・詐欺的出品・パーツ取り・ジャンク・破損品ではないか）
-3. 相場より{discount_threshold}%以上お得か{extra}
+3. 相場と比べて適正か（価格情報が提供されている場合）{extra}
 
 必ず以下の形式で回答：
 JUDGMENT: YES または NO
@@ -598,7 +588,6 @@ def process_keyword(keyword_config: dict, seen_ids: dict) -> list[dict]:
     platforms = keyword_config.get("platforms", {"mercari": True, "rakuma": True, "paypay": True})
     precious_metal_mode = keyword_config.get("precious_metal_mode", False)
     metal_type = keyword_config.get("metal_type", "silver")
-    discount_threshold = keyword_config.get("discount_threshold", 20)
 
     print(f"\n--- キーワード: {keyword} ---")
 
@@ -688,13 +677,11 @@ def process_keyword(keyword_config: dict, seen_ids: dict) -> list[dict]:
         new_items = [it for it in new_items if it["price"] >= min_price]
         print(f"  最低価格フィルタ(¥{min_price}以上): {len(new_items)}件 (除外 {before - len(new_items)}件)")
 
-    # お得判定
+    # お得判定（上限価格以下かどうかのみチェック — 相場比較はAIに任せる）
     def is_good_deal(it: dict) -> bool:
         p = it["price"]
         if precious_metal_mode and spot_price:
-            return p <= spot_price * 31.1035 * (1 - discount_threshold / 100)
-        if market_price:
-            return p <= market_price * (1 - discount_threshold / 100)
+            return p <= spot_price * 31.1035  # スポット価格以下
         return p <= max_price
 
     AI_CALL_LIMIT = 10  # 1run当たりAI呼び出し上限
@@ -732,18 +719,26 @@ def process_keyword(keyword_config: dict, seen_ids: dict) -> list[dict]:
             send_discord_notification(item, keyword_config, ai_result, market_info)
 
     # seen_ids 更新（TTL付き辞書形式）
-    # AI判定済みIDのみ追加する — キーワード不一致・ワードフィルタ落ち・価格未達はここに入れない
-    # → それらのアイテムは次回ランで自動的に再評価される（価格変動にも対応）
     today = datetime.now().date().isoformat()
     new_seen_dict = {id: date for id, date in keyword_seen_dict.items() if date >= cutoff}
     for h in history_items:
         new_seen_dict[h["id"]] = today
     seen_ids[keyword] = new_seen_dict
-    return history_items
+
+    stats = {
+        "keyword": keyword,
+        "scraped": len(all_items),
+        "new": len(new_items),
+        "ai_judged": ai_calls,
+        "ai_ok": sum(1 for h in history_items if h["ai_ok"]),
+        "market_info": market_info,
+    }
+    return history_items, stats
 
 
 def main():
-    print(f"=== フリマ監視開始 {datetime.now().strftime('%Y-%m-%d %H:%M:%S')} ===", flush=True)
+    started_at = datetime.now()
+    print(f"=== フリマ監視開始 {started_at.strftime('%Y-%m-%d %H:%M:%S')} ===", flush=True)
 
     config = load_json(CONFIG_PATH)
     if not config.get("keywords"):
@@ -756,14 +751,18 @@ def main():
         return
 
     all_history = []
+    run_keyword_stats = []
     for kw_cfg in config.get("keywords", []):
         if not kw_cfg.get("enabled", True):
             continue
         try:
-            history = process_keyword(kw_cfg, seen_ids)
+            history, stats = process_keyword(kw_cfg, seen_ids)
             all_history.extend(history)
+            run_keyword_stats.append(stats)
+            print(f"  [{stats['keyword']}] 取得{stats['scraped']} 新着{stats['new']} AI{stats['ai_judged']} 通知{stats['ai_ok']}")
         except Exception as e:
             print(f"処理エラー ({kw_cfg.get('keyword')}): {e}")
+            run_keyword_stats.append({"keyword": kw_cfg.get("keyword", "?"), "error": str(e)})
         random_sleep()
 
     save_json(SEEN_IDS_PATH, seen_ids)
@@ -772,6 +771,12 @@ def main():
     existing_ids = {h["id"] for h in existing}
     config["history"] = [h for h in all_history if h["id"] not in existing_ids] + existing
     config["history"] = config["history"][:500]
+
+    config["last_run"] = {
+        "started_at": started_at.isoformat(),
+        "keywords": run_keyword_stats,
+    }
+
     save_json(CONFIG_PATH, config)
 
     print(f"\n=== 完了 新規{len(all_history)}件処理 ===")
