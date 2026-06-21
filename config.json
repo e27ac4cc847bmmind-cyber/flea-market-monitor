@@ -3,9 +3,9 @@
   "keywords": [
     {
       "id": "1781615859758",
-      "keyword": "F48 BMW X1 ラバー フロアマット",
+      "keyword": "F48 BMW X1 フロアマット",
       "max_price": 38000,
-      "discount_threshold": 0,
+      "discount_threshold": 74,
       "platforms": {
         "mercari": true,
         "rakuma": true,
@@ -44,26 +44,6 @@
       "enabled": true,
       "genre": "electronics",
       "min_price": 4000
-    },
-    {
-      "id": "1781962800000",
-      "keyword": "MacBook Air M2",
-      "max_price": 200000,
-      "min_price": 50000,
-      "discount_threshold": 15,
-      "platforms": {
-        "mercari": true,
-        "rakuma": true,
-        "paypay": true
-      },
-      "precious_metal_mode": false,
-      "metal_type": "silver",
-      "exclude_words": [],
-      "require_words": [],
-      "note": "MacBook Air M2（2022年以降）を探しています。状態良好品を優先。",
-      "enabled": true,
-      "genre": "electronics",
-      "exclude_junk": true
     }
   ],
   "history": [
