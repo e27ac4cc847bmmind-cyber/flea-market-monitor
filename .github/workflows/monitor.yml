@@ -2,8 +2,8 @@ name: フリマ監視
 
 on:
   schedule:
-    - cron: "0 */6 * * *"  # 6時間ごとのフォールバック（チェーン切れ対策）
-  workflow_dispatch:        # 手動実行 or 自己トリガー
+    - cron: "*/10 * * * *"  # 10分ごとのフォールバック（チェーン切れ対策）
+  workflow_dispatch:         # 手動実行 or 自己トリガー
 
 # 同時実行を防ぐ（最新のrunのみ実行、古いrunはキャンセル）
 concurrency:
@@ -13,6 +13,7 @@ concurrency:
 jobs:
   monitor:
     runs-on: ubuntu-latest
+    timeout-minutes: 15      # ゾンビ防止：15分で強制キャンセル
     permissions:
       contents: write
 
@@ -33,11 +34,11 @@ jobs:
         run: pip install -r scripts/requirements.txt
 
       - name: 監視スクリプト実行
+        run: python scripts/monitor.py
         env:
           OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
           DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
           PYTHONUTF8: "1"
-        run: python scripts/monitor.py
 
       - name: seen_ids.json と config.json をコミット
         run: |
@@ -48,14 +49,14 @@ jobs:
           git pull --rebase origin main
           git push
 
-      - name: 5分後に次回実行をトリガー（自己チェーン）
+      - name: 1分後に次回実行をトリガー（自己チェーン）
         if: always()
         env:
           GH_PAT: ${{ secrets.SHOPPING_SERCH }}
         run: |
-          sleep 300
+          sleep 60
           if [ -z "$GH_PAT" ]; then
-            echo "⚠️  GH_PAT 未設定 — 自動トリガーをスキップ（6時間後のcronで再開）"
+            echo "⚠️  GH_PAT 未設定 — 自動トリガーをスキップ（10分後のcronで再開）"
             exit 0
           fi
           HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" \
@@ -66,7 +67,7 @@ jobs:
             "https://api.github.com/repos/${{ github.repository }}/actions/workflows/monitor.yml/dispatches" \
             -d '{"ref":"main"}')
           if [ "$HTTP_STATUS" = "204" ]; then
-            echo "✅ 次回実行をトリガーしました（5分後）"
+            echo "✅ 次回実行をトリガーしました（1分後）"
           else
-            echo "❌ トリガー失敗 HTTP $HTTP_STATUS（6時間後のcronで再開）"
+            echo "❌ トリガー失敗 HTTP $HTTP_STATUS（10分後のcronで再開）"
           fi
