@@ -48,6 +48,58 @@
   ],
   "history": [
     {
+      "id": "mercari_m72244271995",
+      "name": "BMW X1 F48 黒無地 フロアマット カーマット 日本産 新品 輸入車",
+      "price": 9980,
+      "platform": "メルカリ",
+      "url": "https://jp.mercari.com/item/m72244271995",
+      "image_url": "https://static.mercdn.net/thumb/item/webp/m72244271995_1.jpg?1764391030",
+      "keyword": "F48 BMW X1 フロアマット",
+      "ai_comment": "AI判定失敗（全モデル応答なし）— 通知スキップ",
+      "ai_ok": false,
+      "market_info": "メルカリ相場: ¥22549（売れ済み平均）",
+      "detected_at": "2026-06-21T14:22:11.790241"
+    },
+    {
+      "id": "mercari_m68632180018",
+      "name": "BMW X1シリーズ F48【フロアマット】右ハンドル用 DX黒",
+      "price": 9900,
+      "platform": "メルカリ",
+      "url": "https://jp.mercari.com/item/m68632180018",
+      "image_url": "https://static.mercdn.net/thumb/item/webp/m68632180018_1.jpg?1742793899",
+      "keyword": "F48 BMW X1 フロアマット",
+      "ai_comment": "AI判定失敗（全モデル応答なし）— 通知スキップ",
+      "ai_ok": false,
+      "market_info": "メルカリ相場: ¥22549（売れ済み平均）",
+      "detected_at": "2026-06-21T14:22:19.999243"
+    },
+    {
+      "id": "mercari_m92903703463",
+      "name": "BMW X1 F48 Mスポーツフロアマット",
+      "price": 14000,
+      "platform": "メルカリ",
+      "url": "https://jp.mercari.com/item/m92903703463",
+      "image_url": "https://static.mercdn.net/thumb/item/webp/m92903703463_1.jpg?1746850559",
+      "keyword": "F48 BMW X1 フロアマット",
+      "ai_comment": "AI判定失敗（全モデル応答なし）— 通知スキップ",
+      "ai_ok": false,
+      "market_info": "メルカリ相場: ¥22549（売れ済み平均）",
+      "detected_at": "2026-06-21T14:22:28.224873"
+    },
+    {
+      "id": "mercari_m54149411884",
+      "name": "BMW X1シリーズ F48 フロアマット 右ハンドル用 織柄黒",
+      "price": 11500,
+      "platform": "メルカリ",
+      "url": "https://jp.mercari.com/item/m54149411884",
+      "image_url": "https://static.mercdn.net/thumb/item/webp/m54149411884_1.jpg?1662788968",
+      "keyword": "F48 BMW X1 フロアマット",
+      "ai_comment": "AI判定失敗（全モデル応答なし）— 通知スキップ",
+      "ai_ok": false,
+      "market_info": "メルカリ相場: ¥22549（売れ済み平均）",
+      "detected_at": "2026-06-21T14:22:36.449153"
+    },
+    {
       "id": "paypay_v1234029363",
       "name": "TP-Link Tapo ペットカメラ 300万画素 ベビーモニター ネットワークWi-Fiカメラ 2K 動作検知mc",
       "price": 7430,
@@ -530,15 +582,15 @@
     }
   ],
   "last_run": {
-    "started_at": "2026-06-21T14:19:46.452899",
+    "started_at": "2026-06-21T14:21:45.179568",
     "keywords": [
       {
         "keyword": "F48 BMW X1 フロアマット",
-        "scraped": 61,
-        "new": 0,
-        "ai_judged": 0,
+        "scraped": 68,
+        "new": 4,
+        "ai_judged": 4,
         "ai_ok": 0,
-        "market_info": "メルカリ相場: ¥8021（売れ済み平均）"
+        "market_info": "メルカリ相場: ¥22549（売れ済み平均）"
       },
       {
         "keyword": "2K モニター",
