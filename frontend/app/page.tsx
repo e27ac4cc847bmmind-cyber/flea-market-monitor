@@ -758,6 +758,7 @@ function KeywordCard({
                     </p>
                   )}
                 </div>
+              </div>
             </div>
           </div>
 
