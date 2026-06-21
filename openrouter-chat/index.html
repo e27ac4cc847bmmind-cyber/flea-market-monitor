@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="ja">
+<html lang="ja" class="dark">
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
@@ -7,476 +7,407 @@
 <script src="https://cdn.tailwindcss.com"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;450;500;600;700&display=swap" rel="stylesheet" />
 <style>
   :root {
-    --bg: #f7f7f8;
-    --surface: #ffffff;
-    --border: #ececef;
-    --border-strong: #e0e0e4;
-    --text: #18181b;
-    --muted: #8a8a93;
-    --accent: #4f46e5;
-    --accent-2: #7c3aed;
+    --bg: #0b0b0d;
+    --surface: #161619;       /* ユーザーバブル等 */
+    --surface-2: #1a1a1e;     /* 入力・カード */
+    --surface-3: #202024;     /* ホバー */
+    --border: #262629;
+    --border-2: #313135;
+    --text: #ececee;
+    --text-dim: #b6b6bd;
+    --muted: #7d7d86;
+    --focus: rgba(255,255,255,.14);
   }
   * { font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Hiragino Sans", "Noto Sans JP", sans-serif; }
   html, body { height: 100%; }
-  body {
-    color: var(--text);
-    background:
-      radial-gradient(900px 500px at 100% -5%, #eef0ff 0%, transparent 55%),
-      radial-gradient(700px 500px at -10% 110%, #f3ecff 0%, transparent 50%),
-      var(--bg);
-    letter-spacing: -0.01em;
-  }
-  .brand-gradient { background: linear-gradient(135deg, var(--accent) 0%, var(--accent-2) 100%); }
-  .text-gradient {
-    background: linear-gradient(135deg, var(--accent) 0%, var(--accent-2) 100%);
-    -webkit-background-clip: text; background-clip: text; color: transparent;
-  }
-  .glass { background: rgba(255,255,255,0.72); backdrop-filter: saturate(180%) blur(16px); -webkit-backdrop-filter: saturate(180%) blur(16px); }
+  body { background: var(--bg); color: var(--text); letter-spacing: -0.011em; -webkit-font-smoothing: antialiased; }
+
+  .surface { background: var(--surface); }
+  .border-c { border-color: var(--border); }
 
   /* スクロールバー */
-  .scroll-thin::-webkit-scrollbar { width: 8px; height: 8px; }
-  .scroll-thin::-webkit-scrollbar-thumb { background: #d8d8de; border-radius: 8px; }
-  .scroll-thin::-webkit-scrollbar-thumb:hover { background: #c4c4cc; }
+  .scroll-thin::-webkit-scrollbar { width: 9px; }
+  .scroll-thin::-webkit-scrollbar-thumb { background: #2c2c30; border-radius: 9px; border: 2px solid var(--bg); }
+  .scroll-thin::-webkit-scrollbar-thumb:hover { background: #3a3a40; }
   .scroll-thin::-webkit-scrollbar-track { background: transparent; }
 
-  /* フィールド共通 */
+  /* 入力フィールド共通 */
   .field {
-    width: 100%; background: #fff; border: 1px solid var(--border-strong);
-    border-radius: 12px; padding: 10px 12px; font-size: 13px; color: var(--text);
+    width: 100%; background: var(--surface-2); border: 1px solid var(--border-2);
+    border-radius: 11px; padding: 9px 12px; font-size: 13.5px; color: var(--text);
     transition: border-color .15s, box-shadow .15s; outline: none;
   }
-  .field::placeholder { color: #b3b3ba; }
-  .field:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(79,70,229,.12); }
+  .field::placeholder { color: #6a6a72; }
+  .field:focus { border-color: #4a4a52; box-shadow: 0 0 0 3px var(--focus); }
 
-  /* セクション見出し */
-  .eyebrow { font-size: 11px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+  .eyebrow { font-size: 11px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+
+  /* アイコンボタン */
+  .icon-btn {
+    color: var(--muted); border-radius: 10px; padding: 8px; transition: background .15s, color .15s;
+    display: inline-flex; align-items: center; justify-content: center;
+  }
+  .icon-btn:hover { background: var(--surface-3); color: var(--text); }
 
   /* トグルスイッチ */
-  .switch { display:inline-block; width: 36px; height: 21px; border-radius: 999px; background: #e2e2e8; position: relative; transition: background .2s; flex: 0 0 auto; }
-  .switch::after { content:""; position:absolute; top:2px; left:2px; width:17px; height:17px; border-radius:50%; background:#fff; box-shadow:0 1px 3px rgba(0,0,0,.18); transition: transform .2s; }
-  input:checked + .switch { background: var(--accent); }
+  .switch { display:inline-block; width: 36px; height: 21px; border-radius: 999px; background: #313137; position: relative; transition: background .2s; flex: 0 0 auto; }
+  .switch::after { content:""; position:absolute; top:2px; left:2px; width:17px; height:17px; border-radius:50%; background:#e9e9ee; transition: transform .2s; }
+  input:checked + .switch { background: #5b5bd6; }
   input:checked + .switch::after { transform: translateX(15px); }
 
-  /* select のカスタム矢印 */
-  .select-wrap { position: relative; }
-  .select-wrap select { appearance: none; -webkit-appearance: none; padding-right: 34px; }
-  .select-wrap .chev { position:absolute; right:12px; top:50%; transform:translateY(-50%); pointer-events:none; color:#9a9aa3; }
+  /* select カスタム矢印 */
+  .select-wrap { position: relative; display: inline-flex; }
+  .select-wrap select { appearance: none; -webkit-appearance: none; }
+  .select-wrap .chev { position:absolute; right:11px; top:50%; transform:translateY(-50%); pointer-events:none; color: var(--muted); }
 
   /* メッセージ本文 */
-  .msg-body { white-space: pre-wrap; word-break: break-word; line-height: 1.65; font-size: 14.5px; }
-  .msg-body pre { white-space: pre; overflow-x:auto; background:#0e1117; color:#e6edf3; padding:.85rem 1rem; border-radius:12px; margin:.6rem 0; font-size:12.5px; line-height:1.55; }
+  .msg-body { white-space: pre-wrap; word-break: break-word; line-height: 1.72; font-size: 15px; color: var(--text); }
+  .msg-body pre { white-space: pre; overflow-x:auto; background:#0e0e11; border:1px solid var(--border); color:#e6e6ea; padding:.85rem 1rem; border-radius:12px; margin:.65rem 0; font-size:12.5px; line-height:1.6; }
   .msg-body pre code { font-family: ui-monospace, "SF Mono", SFMono-Regular, Menlo, monospace; }
-  .typing::after { content:"▋"; margin-left:1px; animation: blink 1.1s steps(1) infinite; color: var(--accent); }
+  .typing::after { content:"▋"; margin-left:1px; animation: blink 1.1s steps(1) infinite; color: var(--text-dim); }
   @keyframes blink { 50% { opacity:0; } }
 
-  .fade-in { animation: fadeIn .28s cubic-bezier(.2,.7,.3,1); }
-  @keyframes fadeIn { from { opacity:0; transform: translateY(8px); } to { opacity:1; transform:none; } }
-  .pop { animation: pop .2s ease; }
-  @keyframes pop { from { transform: scale(.96); opacity:.6 } to { transform: scale(1); opacity:1 } }
+  .fade-in { animation: fadeIn .3s cubic-bezier(.2,.7,.3,1); }
+  @keyframes fadeIn { from { opacity:0; transform: translateY(7px); } to { opacity:1; transform:none; } }
 
-  .btn-press { transition: transform .08s ease, box-shadow .15s, filter .15s; }
-  .btn-press:active { transform: scale(.97); }
+  .btn-press { transition: transform .08s ease, background .15s, filter .15s, opacity .15s; }
+  .btn-press:active { transform: scale(.96); }
 
-  /* サジェストチップ */
+  /* サジェスト */
   .chip {
-    border: 1px solid var(--border-strong); background:#fff; border-radius: 14px;
-    padding: 12px 14px; text-align:left; font-size: 13px; color: #52525b;
-    transition: border-color .15s, transform .12s, box-shadow .15s; cursor: pointer;
+    border: 1px solid var(--border); background: var(--surface);
+    border-radius: 13px; padding: 11px 14px; text-align: left; font-size: 13.5px; color: var(--text-dim);
+    transition: border-color .15s, background .15s, color .15s; cursor: pointer;
   }
-  .chip:hover { border-color: var(--accent); color: var(--text); box-shadow: 0 6px 20px -8px rgba(79,70,229,.35); transform: translateY(-1px); }
+  .chip:hover { border-color: var(--border-2); background: var(--surface-3); color: var(--text); }
+
+  /* 設定パネル スライドイン */
+  #settings-panel { transform: translateX(100%); transition: transform .28s cubic-bezier(.2,.7,.3,1); }
+  #settings-panel.open { transform: translateX(0); }
+  #settings-backdrop { transition: opacity .25s; }
 </style>
 </head>
 <body class="overflow-hidden">
 
-<!-- ===================== ロック / セットアップ オーバーレイ ===================== -->
-<div id="gate" class="fixed inset-0 z-50 bg-zinc-900/40 backdrop-blur-md flex items-center justify-center p-4">
-  <div class="bg-white w-full max-w-md rounded-3xl shadow-2xl shadow-indigo-900/10 ring-1 ring-black/5 p-7 fade-in">
-    <div class="flex items-center gap-3 mb-5">
-      <div class="brand-gradient w-10 h-10 rounded-2xl flex items-center justify-center text-white shadow-lg shadow-indigo-500/30">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l1.9 5.8L20 10l-5.1 1.2L12 17l-1.9-5.8L4 10l6.1-1.2z"/></svg>
+<!-- ===================== ロック / セットアップ ===================== -->
+<div id="gate" class="fixed inset-0 z-50 bg-black/70 backdrop-blur-md flex items-center justify-center p-4">
+  <div class="w-full max-w-sm rounded-2xl p-7 fade-in" style="background:var(--surface-2);border:1px solid var(--border)">
+    <div class="flex items-center gap-3 mb-6">
+      <div class="w-9 h-9 rounded-xl flex items-center justify-center" style="background:var(--surface-3);border:1px solid var(--border-2)">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:var(--text)"><path d="M12 3l1.9 5.8L20 10l-5.1 1.2L12 17l-1.9-5.8L4 10l6.1-1.2z"/></svg>
       </div>
       <div>
-        <h1 class="text-base font-bold leading-tight">OpenRouter Chat</h1>
-        <p class="text-xs text-zinc-400 leading-tight">あらゆるAIモデルを、ひとつの画面で</p>
+        <h1 class="text-[15px] font-semibold leading-tight">OpenRouter Chat</h1>
+        <p class="text-xs leading-tight mt-0.5" style="color:var(--muted)">様々なAIモデルを、ひとつの画面で</p>
       </div>
     </div>
 
-    <!-- 初回セットアップ -->
     <div id="gate-setup" class="hidden">
-      <p class="text-[13px] text-zinc-500 mb-5 leading-relaxed">OpenRouter の APIキーを入力し、暗号化用のパスワードを設定してください。キーは<strong class="text-zinc-700">この端末内で暗号化</strong>され、外部には送信されません。</p>
+      <p class="text-[13px] mb-5 leading-relaxed" style="color:var(--text-dim)">OpenRouter の APIキーと、暗号化用のパスワードを設定してください。キーは<span style="color:var(--text)">この端末内で暗号化</span>され外部に送信されません。</p>
       <label class="eyebrow block mb-1.5">OpenRouter API キー</label>
       <input id="setup-key" type="password" placeholder="sk-or-..." autocomplete="off" class="field mb-3.5" />
       <label class="eyebrow block mb-1.5">暗号化パスワード</label>
       <input id="setup-pass" type="password" placeholder="このキーを保護するパスワード" autocomplete="new-password" class="field mb-2" />
-      <input id="setup-pass2" type="password" placeholder="パスワード（確認）" autocomplete="new-password" class="field mb-2" />
-      <p id="setup-msg" class="text-xs text-rose-500 mb-2 h-4"></p>
-      <button id="setup-btn" class="btn-press brand-gradient w-full text-white text-sm font-semibold py-3 rounded-xl shadow-lg shadow-indigo-500/25 hover:brightness-105">暗号化して保存して開始</button>
+      <input id="setup-pass2" type="password" placeholder="パスワード（確認）" autocomplete="new-password" class="field mb-1.5" />
+      <p id="setup-msg" class="text-xs text-rose-400 mb-2 h-4"></p>
+      <button id="setup-btn" class="btn-press w-full bg-white text-zinc-900 text-sm font-semibold py-3 rounded-xl hover:bg-zinc-200">暗号化して保存・開始</button>
     </div>
 
-    <!-- 再訪時アンロック -->
     <div id="gate-unlock" class="hidden">
-      <p class="text-[13px] text-zinc-500 mb-5 leading-relaxed">保存済みのAPIキーを復号します。設定したパスワードを入力してください。</p>
+      <p class="text-[13px] mb-5 leading-relaxed" style="color:var(--text-dim)">保存済みのAPIキーを復号します。パスワードを入力してください。</p>
       <label class="eyebrow block mb-1.5">パスワード</label>
-      <input id="unlock-pass" type="password" placeholder="••••••••" autocomplete="current-password" class="field mb-2" />
-      <p id="unlock-msg" class="text-xs text-rose-500 mb-2 h-4"></p>
+      <input id="unlock-pass" type="password" placeholder="••••••••" autocomplete="current-password" class="field mb-1.5" />
+      <p id="unlock-msg" class="text-xs text-rose-400 mb-2 h-4"></p>
       <div class="flex items-center gap-2">
-        <button id="unlock-btn" class="btn-press brand-gradient flex-1 text-white text-sm font-semibold py-3 rounded-xl shadow-lg shadow-indigo-500/25 hover:brightness-105">アンロック</button>
-        <button id="forget-btn" class="px-3 py-3 text-xs text-zinc-400 hover:text-rose-500 transition-colors">キーを削除</button>
+        <button id="unlock-btn" class="btn-press flex-1 bg-white text-zinc-900 text-sm font-semibold py-3 rounded-xl hover:bg-zinc-200">アンロック</button>
+        <button id="forget-btn" class="px-3 py-3 text-xs hover:text-rose-400 transition-colors" style="color:var(--muted)">削除</button>
       </div>
     </div>
   </div>
 </div>
 
-<!-- ===================== メインレイアウト ===================== -->
-<div class="flex h-screen">
+<!-- ===================== アプリ本体 ===================== -->
+<div id="drop-zone" class="relative flex flex-col h-screen">
 
-  <!-- サイドバー（設定） -->
-  <aside id="sidebar" class="w-[300px] shrink-0 bg-white/70 glass border-r border-zinc-200/70 flex flex-col h-full">
-    <div class="px-5 h-16 flex items-center gap-2.5 border-b border-zinc-200/70 shrink-0">
-      <div class="brand-gradient w-8 h-8 rounded-xl flex items-center justify-center text-white shadow-md shadow-indigo-500/25">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l1.9 5.8L20 10l-5.1 1.2L12 17l-1.9-5.8L4 10l6.1-1.2z"/></svg>
+  <!-- 上部バー -->
+  <header class="shrink-0 h-14 px-3 sm:px-4 flex items-center justify-between border-b border-c">
+    <button id="new-chat" class="icon-btn" title="会話をクリア" aria-label="会話をクリア">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>
+    </button>
+
+    <!-- モデル選択ピル（最頻操作・常設） -->
+    <div class="select-wrap">
+      <select id="model-select" title="モデルを選択"
+        class="btn-press text-[13.5px] font-medium rounded-full pl-4 pr-9 py-2 max-w-[62vw] sm:max-w-md truncate cursor-pointer"
+        style="background:var(--surface-2);border:1px solid var(--border-2);color:var(--text)"></select>
+      <span class="chev"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg></span>
+    </div>
+
+    <button id="settings-btn" class="icon-btn" title="設定" aria-label="設定">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9c.2.61.74 1.05 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+    </button>
+  </header>
+
+  <!-- メッセージスレッド -->
+  <div id="thread" class="flex-1 overflow-y-auto scroll-thin flex flex-col px-4 sm:px-6 py-6">
+    <div id="empty-state" class="m-auto max-w-lg w-full text-center px-2">
+      <div class="w-12 h-12 rounded-2xl mx-auto flex items-center justify-center mb-5" style="background:var(--surface-2);border:1px solid var(--border-2)">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" style="color:var(--text)"><path d="M12 3l1.9 5.8L20 10l-5.1 1.2L12 17l-1.9-5.8L4 10l6.1-1.2z"/></svg>
       </div>
-      <span class="font-bold text-[15px] tracking-tight">OpenRouter Chat</span>
+      <h2 class="text-lg font-semibold tracking-tight mb-1.5">何でも聞いてください</h2>
+      <p class="text-[13px] mb-7" style="color:var(--muted)">メッセージを入力して送信。画像も添付できます。</p>
+      <div class="grid sm:grid-cols-2 gap-2.5 text-left">
+        <button class="suggest chip" data-text="量子コンピューターの仕組みを、中学生にもわかるように説明して。">むずかしい概念を、やさしく解説</button>
+        <button class="suggest chip" data-text="次のコードをレビューして、改善点を教えて：\n\n">コードをレビューしてもらう</button>
+        <button class="suggest chip" data-text="週末に行ける、東京近郊の日帰り旅行プランを3つ提案して。">アイデアを出してもらう</button>
+        <button class="suggest chip" data-text="この画像に写っているものを説明して。">画像について質問する</button>
+      </div>
     </div>
+  </div>
 
-    <div class="flex-1 overflow-y-auto scroll-thin px-5 py-5 space-y-6">
-      <!-- モデル -->
-      <section class="space-y-2.5">
-        <h2 class="eyebrow">モデル <span id="model-count" class="text-zinc-300 font-semibold ml-0.5"></span></h2>
-        <div class="select-wrap">
-          <select id="model-select" class="field"></select>
-          <span class="chev"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg></span>
-        </div>
-        <p id="model-info" class="text-[11px] text-zinc-400 leading-snug min-h-[14px]"></p>
-
-        <input id="model-search" type="text" placeholder="モデルを検索…" class="field !py-2 !text-[13px]" />
-        <div class="space-y-1.5 pt-0.5">
-          <label class="flex items-center justify-between cursor-pointer select-none">
-            <span class="text-[13px] text-zinc-600 flex items-center gap-1.5">🆓 無料モデルのみ</span>
-            <input id="filter-free" type="checkbox" class="sr-only peer"><span class="switch"></span>
+  <!-- 入力エリア -->
+  <div class="shrink-0 px-4 sm:px-6 pb-4 pt-1">
+    <div class="max-w-3xl mx-auto">
+      <div id="attachments" class="flex flex-wrap gap-2 mb-2 empty:hidden"></div>
+      <div id="composer" class="rounded-3xl p-2 pl-3 transition-colors" style="background:var(--surface-2);border:1px solid var(--border-2)">
+        <textarea id="input" rows="1" placeholder="メッセージを入力…" class="w-full bg-transparent text-[15px] leading-relaxed resize-none max-h-44 outline-none px-1 pt-2" style="color:var(--text)"></textarea>
+        <div class="flex items-center justify-between pt-1">
+          <label class="btn-press icon-btn cursor-pointer" title="画像を添付">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21.44 11.05l-9.19 9.19a5 5 0 0 1-7.07-7.07l9.19-9.19a3.5 3.5 0 0 1 4.95 4.95l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>
+            <input id="file-input" type="file" accept="image/*" multiple class="hidden" />
           </label>
-          <label class="flex items-center justify-between cursor-pointer select-none">
-            <span class="text-[13px] text-zinc-600 flex items-center gap-1.5">🖼️ 画像対応のみ</span>
-            <input id="filter-vision" type="checkbox" class="sr-only peer"><span class="switch"></span>
-          </label>
-        </div>
-        <button id="refresh-models" class="text-[11px] text-indigo-500 hover:text-indigo-600 font-medium inline-flex items-center gap-1">
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-2.6-6.4M21 3v6h-6"/></svg>
-          一覧を再取得
-        </button>
-      </section>
-
-      <div class="border-t border-zinc-200/70"></div>
-
-      <!-- システムプロンプト -->
-      <section class="space-y-2.5">
-        <h2 class="eyebrow">システムプロンプト</h2>
-        <textarea id="system-prompt" rows="4" placeholder="例: あなたは親切で簡潔な日本語アシスタントです。" class="field resize-y leading-relaxed"></textarea>
-      </section>
-
-      <div class="border-t border-zinc-200/70"></div>
-
-      <!-- コスト -->
-      <section class="space-y-2.5">
-        <div class="flex items-center justify-between">
-          <h2 class="eyebrow">累計コスト</h2>
-          <button id="reset-cost" class="text-[11px] text-zinc-400 hover:text-rose-500 font-medium">リセット</button>
-        </div>
-        <div class="rounded-2xl border border-zinc-200/80 bg-gradient-to-br from-white to-zinc-50 p-4">
-          <div class="flex items-end justify-between">
-            <span class="text-[11px] text-zinc-400 font-medium uppercase tracking-wide">Total</span>
-            <span id="cost-total" class="text-2xl font-extrabold tracking-tight text-gradient">$0.000000</span>
+          <div class="flex items-center gap-2">
+            <button id="stop-btn" class="hidden btn-press text-[13px] font-medium rounded-full pl-3 pr-3.5 h-9 inline-flex items-center gap-1.5" style="background:var(--surface-3);border:1px solid var(--border-2);color:var(--text)">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="6" width="12" height="12" rx="2.5"/></svg>停止
+            </button>
+            <button id="send-btn" class="btn-press bg-white text-zinc-900 disabled:opacity-25 rounded-full w-9 h-9 flex items-center justify-center hover:bg-zinc-200" title="送信">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5M5 12l7-7 7 7"/></svg>
+            </button>
           </div>
-          <div id="cost-by-model" class="mt-3 space-y-1.5 text-[11px] text-zinc-500"></div>
         </div>
-      </section>
+      </div>
+      <p class="text-center text-[10.5px] mt-2" style="color:var(--muted)">Enterで送信・Shift+Enterで改行 / キーは暗号化保存</p>
     </div>
+  </div>
 
-    <div class="px-5 py-4 border-t border-zinc-200/70 shrink-0 flex items-center gap-2">
-      <button id="clear-chat" class="btn-press flex-1 text-[12px] text-zinc-500 hover:text-rose-500 hover:border-rose-200 border border-zinc-200 rounded-xl py-2.5 font-medium transition-colors inline-flex items-center justify-center gap-1.5">
-        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6"/></svg>
+  <!-- ドロップオーバーレイ -->
+  <div id="drop-overlay" class="hidden absolute inset-0 z-20 flex items-center justify-center pointer-events-none p-6" style="background:rgba(11,11,13,.6);backdrop-filter:blur(2px)">
+    <div class="border-2 border-dashed rounded-3xl w-full h-full flex flex-col items-center justify-center gap-2" style="border-color:var(--border-2);color:var(--text-dim)">
+      <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v13"/></svg>
+      <span class="font-medium text-sm">画像をここにドロップ</span>
+    </div>
+  </div>
+</div>
+
+<!-- ===================== 設定パネル ===================== -->
+<div id="settings-backdrop" class="hidden fixed inset-0 bg-black/50 z-40 opacity-0"></div>
+<aside id="settings-panel" class="fixed top-0 right-0 bottom-0 z-50 w-[360px] max-w-[88vw] flex flex-col" style="background:var(--surface-2);border-left:1px solid var(--border)">
+  <div class="h-14 shrink-0 px-5 flex items-center justify-between border-b border-c">
+    <h2 class="font-semibold text-[15px]">設定</h2>
+    <button id="settings-close" class="icon-btn" aria-label="閉じる">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg>
+    </button>
+  </div>
+
+  <div class="flex-1 overflow-y-auto scroll-thin px-5 py-5 space-y-7">
+    <!-- モデル -->
+    <section class="space-y-2.5">
+      <h3 class="eyebrow">モデル <span id="model-count" style="color:#4a4a52" class="ml-0.5"></span></h3>
+      <input id="model-search" type="text" placeholder="モデルを検索…" class="field" />
+      <div class="space-y-2 pt-0.5">
+        <label class="flex items-center justify-between cursor-pointer select-none">
+          <span class="text-[13.5px]" style="color:var(--text-dim)">無料モデルのみ</span>
+          <input id="filter-free" type="checkbox" class="sr-only peer"><span class="switch"></span>
+        </label>
+        <label class="flex items-center justify-between cursor-pointer select-none">
+          <span class="text-[13.5px]" style="color:var(--text-dim)">画像対応モデルのみ</span>
+          <input id="filter-vision" type="checkbox" class="sr-only peer"><span class="switch"></span>
+        </label>
+      </div>
+      <p id="model-info" class="text-[11.5px] leading-snug min-h-[14px]" style="color:var(--muted)"></p>
+      <button id="refresh-models" class="text-[12px] font-medium inline-flex items-center gap-1.5 hover:text-white transition-colors" style="color:var(--text-dim)">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-2.6-6.4M21 3v6h-6"/></svg>
+        一覧を再取得
+      </button>
+    </section>
+
+    <div class="border-t border-c"></div>
+
+    <!-- システムプロンプト -->
+    <section class="space-y-2.5">
+      <h3 class="eyebrow">システムプロンプト</h3>
+      <textarea id="system-prompt" rows="5" placeholder="例: あなたは親切で簡潔な日本語アシスタントです。" class="field resize-y leading-relaxed"></textarea>
+    </section>
+
+    <div class="border-t border-c"></div>
+
+    <!-- コスト -->
+    <section class="space-y-2.5">
+      <div class="flex items-center justify-between">
+        <h3 class="eyebrow">累計コスト</h3>
+        <button id="reset-cost" class="text-[11px] hover:text-rose-400 font-medium transition-colors" style="color:var(--muted)">リセット</button>
+      </div>
+      <div class="rounded-2xl p-4" style="background:var(--surface);border:1px solid var(--border)">
+        <div class="flex items-end justify-between">
+          <span class="text-[11px] uppercase tracking-wide" style="color:var(--muted)">Total</span>
+          <span id="cost-total" class="text-xl font-bold tracking-tight tabular-nums">$0.000000</span>
+        </div>
+        <div id="cost-by-model" class="mt-3 space-y-1.5 text-[11.5px]" style="color:var(--text-dim)"></div>
+      </div>
+    </section>
+
+    <div class="border-t border-c"></div>
+
+    <!-- 操作 -->
+    <section class="space-y-2">
+      <h3 class="eyebrow mb-1">操作</h3>
+      <button id="clear-chat" class="btn-press w-full text-[13px] rounded-xl py-2.5 font-medium inline-flex items-center justify-center gap-2 transition-colors" style="background:var(--surface);border:1px solid var(--border);color:var(--text-dim)">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6"/></svg>
         会話をクリア
       </button>
-      <button id="lock-btn" class="btn-press text-[12px] text-zinc-500 hover:text-indigo-600 hover:border-indigo-200 border border-zinc-200 rounded-xl py-2.5 px-3 font-medium transition-colors inline-flex items-center gap-1.5" title="ロック">
-        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>
-        ロック
+      <button id="lock-btn" class="btn-press w-full text-[13px] rounded-xl py-2.5 font-medium inline-flex items-center justify-center gap-2 transition-colors" style="background:var(--surface);border:1px solid var(--border);color:var(--text-dim)">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>
+        ロックする
       </button>
-    </div>
-  </aside>
-
-  <!-- チャット領域 -->
-  <main class="flex-1 flex flex-col h-full relative min-w-0" id="drop-zone">
-    <header class="glass h-16 shrink-0 px-6 border-b border-zinc-200/70 flex items-center justify-between">
-      <div class="flex items-center gap-2.5">
-        <button id="menu-btn" class="md:hidden text-zinc-500 -ml-1 p-1" aria-label="メニュー">
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
-        </button>
-        <h1 class="font-bold tracking-tight text-[15px]">チャット</h1>
-      </div>
-      <span id="active-model" class="text-[11px] font-medium text-zinc-500 bg-zinc-100/80 border border-zinc-200/70 rounded-full px-3 py-1 max-w-[55vw] truncate"></span>
-    </header>
-
-    <!-- メッセージスレッド -->
-    <div id="thread" class="flex-1 overflow-y-auto scroll-thin flex flex-col px-4 sm:px-6 py-6">
-      <!-- 空状態 -->
-      <div id="empty-state" class="m-auto max-w-xl w-full text-center px-4">
-        <div class="brand-gradient w-14 h-14 rounded-2xl mx-auto flex items-center justify-center text-white shadow-xl shadow-indigo-500/25 mb-5 pop">
-          <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l1.9 5.8L20 10l-5.1 1.2L12 17l-1.9-5.8L4 10l6.1-1.2z"/></svg>
-        </div>
-        <h2 class="text-xl font-bold tracking-tight mb-1.5">どんなことでも聞いてください</h2>
-        <p class="text-[13px] text-zinc-500 mb-7">モデルを選んでメッセージを送信。画像も添付できます。</p>
-        <div class="grid sm:grid-cols-2 gap-2.5 text-left">
-          <button class="suggest chip" data-text="量子コンピューターの仕組みを、中学生にもわかるように説明して。">🧠 むずかしい概念を、やさしく解説</button>
-          <button class="suggest chip" data-text="次のPythonコードをレビューして、改善点を教えて：\n\n">🐍 コードをレビューしてもらう</button>
-          <button class="suggest chip" data-text="この画像に写っているものを説明して。">🖼️ 画像について質問する（要・画像対応モデル）</button>
-          <button class="suggest chip" data-text="週末に行ける、東京近郊の日帰り旅行プランを3つ提案して。">🗺️ アイデアを出してもらう</button>
-        </div>
-      </div>
-    </div>
-
-    <!-- ドロップ時のオーバーレイ -->
-    <div id="drop-overlay" class="hidden absolute inset-0 bg-indigo-500/5 backdrop-blur-[2px] z-20 flex items-center justify-center pointer-events-none p-6">
-      <div class="border-2 border-dashed border-indigo-400 rounded-3xl w-full h-full flex flex-col items-center justify-center text-indigo-600 gap-2">
-        <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v13"/></svg>
-        <span class="font-semibold">画像をここにドロップ</span>
-      </div>
-    </div>
-
-    <!-- 入力エリア -->
-    <div class="shrink-0 px-4 sm:px-6 pb-5 pt-1">
-      <div class="max-w-3xl mx-auto">
-        <div id="attachments" class="flex flex-wrap gap-2 mb-2 empty:hidden"></div>
-        <div class="bg-white rounded-[22px] border border-zinc-200 shadow-lg shadow-zinc-300/30 focus-within:border-indigo-300 focus-within:shadow-indigo-200/40 transition-all p-2 pl-3">
-          <textarea id="input" rows="1" placeholder="メッセージを入力…  （Enterで送信 / Shift+Enterで改行）" class="w-full bg-transparent text-[14.5px] leading-relaxed resize-none max-h-44 outline-none placeholder:text-zinc-400 px-1 pt-2"></textarea>
-          <div class="flex items-center justify-between pt-1">
-            <label class="btn-press cursor-pointer text-zinc-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-xl p-2 transition-colors" title="画像を添付">
-              <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>
-              <input id="file-input" type="file" accept="image/*" multiple class="hidden" />
-            </label>
-            <div class="flex items-center gap-2">
-              <button id="stop-btn" class="hidden btn-press bg-zinc-900 hover:bg-zinc-800 text-white text-[13px] font-semibold pl-3 pr-3.5 py-2 rounded-xl inline-flex items-center gap-1.5">
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="6" width="12" height="12" rx="2"/></svg>停止
-              </button>
-              <button id="send-btn" class="btn-press brand-gradient disabled:opacity-40 text-white rounded-xl w-10 h-10 flex items-center justify-center shadow-lg shadow-indigo-500/25 hover:brightness-105" title="送信">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
-              </button>
-            </div>
-          </div>
-        </div>
-        <p class="text-center text-[10.5px] text-zinc-400 mt-2">応答は端末内に保存されます。APIキーは暗号化済み。</p>
-      </div>
-    </div>
-  </main>
-
-  <!-- モバイル用サイドバー背景 -->
-  <div id="sidebar-backdrop" class="hidden fixed inset-0 bg-zinc-900/30 backdrop-blur-sm z-30 md:hidden"></div>
-</div>
+      <button id="forget-btn2" class="btn-press w-full text-[12px] rounded-xl py-2 font-medium hover:text-rose-400 transition-colors" style="color:var(--muted)">APIキーを削除</button>
+    </section>
+  </div>
+</aside>
 
 <script>
 "use strict";
 
-/* ============================================================
-   定数 / localStorage キー
-============================================================ */
+/* ============================================================ 定数 / LSキー */
 const LS = {
-  enc:     "or_chat_apikey_enc",
-  models:  "or_chat_models",
-  model:   "or_chat_model",
-  system:  "or_chat_system",
-  history: "or_chat_history",
-  costs:   "or_chat_costs",
-  filters: "or_chat_filters",
+  enc:"or_chat_apikey_enc", models:"or_chat_models", model:"or_chat_model",
+  system:"or_chat_system", history:"or_chat_history", costs:"or_chat_costs", filters:"or_chat_filters",
 };
 const API_BASE = "https://openrouter.ai/api/v1";
 const APP_TITLE = "OpenRouter Chat UI";
 
-/* ============================================================
-   状態
-============================================================ */
-let API_KEY = null;
-let MODELS = [];
-let messages = [];
-let pendingImages = [];
-let abortCtrl = null;
+/* ============================================================ 状態 */
+let API_KEY = null, MODELS = [], messages = [], pendingImages = [], abortCtrl = null;
 
-/* ============================================================
-   Web Crypto: PBKDF2 -> AES-GCM
-============================================================ */
-const enc = new TextEncoder();
-const dec = new TextDecoder();
-
-function bufToB64(buf) {
-  const bytes = new Uint8Array(buf);
-  let s = "";
-  for (let i = 0; i < bytes.length; i++) s += String.fromCharCode(bytes[i]);
-  return btoa(s);
-}
-function b64ToBuf(b64) {
-  const s = atob(b64);
-  const bytes = new Uint8Array(s.length);
-  for (let i = 0; i < s.length; i++) bytes[i] = s.charCodeAt(i);
-  return bytes.buffer;
-}
+/* ============================================================ Web Crypto */
+const enc = new TextEncoder(), dec = new TextDecoder();
+const bufToB64 = (buf) => { const b=new Uint8Array(buf); let s=""; for(let i=0;i<b.length;i++)s+=String.fromCharCode(b[i]); return btoa(s); };
+const b64ToBuf = (b64) => { const s=atob(b64); const b=new Uint8Array(s.length); for(let i=0;i<s.length;i++)b[i]=s.charCodeAt(i); return b.buffer; };
 
 async function deriveKey(password, salt) {
-  const baseKey = await crypto.subtle.importKey(
-    "raw", enc.encode(password), "PBKDF2", false, ["deriveKey"]
-  );
-  return crypto.subtle.deriveKey(
-    { name: "PBKDF2", salt, iterations: 200000, hash: "SHA-256" },
-    baseKey,
-    { name: "AES-GCM", length: 256 },
-    false,
-    ["encrypt", "decrypt"]
-  );
+  const baseKey = await crypto.subtle.importKey("raw", enc.encode(password), "PBKDF2", false, ["deriveKey"]);
+  return crypto.subtle.deriveKey({ name:"PBKDF2", salt, iterations:200000, hash:"SHA-256" },
+    baseKey, { name:"AES-GCM", length:256 }, false, ["encrypt","decrypt"]);
 }
-
 async function encryptKey(apiKey, password) {
   const salt = crypto.getRandomValues(new Uint8Array(16));
   const iv = crypto.getRandomValues(new Uint8Array(12));
   const key = await deriveKey(password, salt);
-  const cipher = await crypto.subtle.encrypt({ name: "AES-GCM", iv }, key, enc.encode(apiKey));
+  const cipher = await crypto.subtle.encrypt({ name:"AES-GCM", iv }, key, enc.encode(apiKey));
   return { salt: bufToB64(salt.buffer), iv: bufToB64(iv.buffer), data: bufToB64(cipher) };
 }
-
 async function decryptKey(password) {
   const stored = JSON.parse(localStorage.getItem(LS.enc));
-  const salt = new Uint8Array(b64ToBuf(stored.salt));
-  const iv = new Uint8Array(b64ToBuf(stored.iv));
+  const salt = new Uint8Array(b64ToBuf(stored.salt)), iv = new Uint8Array(b64ToBuf(stored.iv));
   const key = await deriveKey(password, salt);
-  const plain = await crypto.subtle.decrypt({ name: "AES-GCM", iv }, key, b64ToBuf(stored.data));
+  const plain = await crypto.subtle.decrypt({ name:"AES-GCM", iv }, key, b64ToBuf(stored.data));
   return dec.decode(plain);
 }
 
-/* ============================================================
-   ゲート（セットアップ / アンロック）
-============================================================ */
+/* ============================================================ ゲート */
 const $ = (id) => document.getElementById(id);
-
 function showGate() {
   $("gate").classList.remove("hidden");
+  closeSettings();
   if (localStorage.getItem(LS.enc)) {
-    $("gate-setup").classList.add("hidden");
-    $("gate-unlock").classList.remove("hidden");
+    $("gate-setup").classList.add("hidden"); $("gate-unlock").classList.remove("hidden");
     setTimeout(() => $("unlock-pass").focus(), 50);
   } else {
-    $("gate-unlock").classList.add("hidden");
-    $("gate-setup").classList.remove("hidden");
+    $("gate-unlock").classList.add("hidden"); $("gate-setup").classList.remove("hidden");
     setTimeout(() => $("setup-key").focus(), 50);
   }
 }
 function hideGate() { $("gate").classList.add("hidden"); }
 
 $("setup-btn").addEventListener("click", async () => {
-  const k = $("setup-key").value.trim();
-  const p = $("setup-pass").value;
-  const p2 = $("setup-pass2").value;
-  const msg = $("setup-msg");
-  msg.textContent = "";
-  if (!k) { msg.textContent = "APIキーを入力してください。"; return; }
-  if (p.length < 4) { msg.textContent = "パスワードは4文字以上にしてください。"; return; }
-  if (p !== p2) { msg.textContent = "パスワード（確認）が一致しません。"; return; }
+  const k=$("setup-key").value.trim(), p=$("setup-pass").value, p2=$("setup-pass2").value, msg=$("setup-msg");
+  msg.textContent="";
+  if (!k) { msg.textContent="APIキーを入力してください。"; return; }
+  if (p.length<4) { msg.textContent="パスワードは4文字以上にしてください。"; return; }
+  if (p!==p2) { msg.textContent="パスワード（確認）が一致しません。"; return; }
   try {
-    const encObj = await encryptKey(k, p);
-    localStorage.setItem(LS.enc, JSON.stringify(encObj));
-    API_KEY = k;
-    hideGate();
-    await onUnlocked();
-  } catch (e) {
-    msg.textContent = "保存に失敗しました: " + e.message;
-  }
+    localStorage.setItem(LS.enc, JSON.stringify(await encryptKey(k, p)));
+    API_KEY = k; hideGate(); await onUnlocked();
+  } catch (e) { msg.textContent = "保存に失敗しました: " + e.message; }
 });
-
 $("unlock-btn").addEventListener("click", async () => {
-  const p = $("unlock-pass").value;
-  const msg = $("unlock-msg");
-  msg.textContent = "";
-  try {
-    API_KEY = await decryptKey(p);
-    $("unlock-pass").value = "";
-    hideGate();
-    await onUnlocked();
-  } catch (e) {
-    msg.textContent = "パスワードが違います。";
-  }
+  const msg=$("unlock-msg"); msg.textContent="";
+  try { API_KEY = await decryptKey($("unlock-pass").value); $("unlock-pass").value=""; hideGate(); await onUnlocked(); }
+  catch { msg.textContent = "パスワードが違います。"; }
 });
-
-$("forget-btn").addEventListener("click", () => {
+function forgetKey() {
   if (confirm("保存済みの暗号化APIキーを削除しますか？（会話履歴やコストは残ります）")) {
-    localStorage.removeItem(LS.enc);
-    showGate();
+    localStorage.removeItem(LS.enc); API_KEY=null; showGate();
   }
-});
+}
+$("forget-btn").addEventListener("click", forgetKey);
+$("forget-btn2").addEventListener("click", forgetKey);
+$("lock-btn").addEventListener("click", () => { API_KEY=null; showGate(); });
+$("unlock-pass").addEventListener("keydown", (e)=>{ if(e.key==="Enter") $("unlock-btn").click(); });
+$("setup-pass2").addEventListener("keydown", (e)=>{ if(e.key==="Enter") $("setup-btn").click(); });
 
-$("lock-btn").addEventListener("click", () => { API_KEY = null; showGate(); });
+/* ============================================================ 設定パネル */
+function openSettings() {
+  const bd=$("settings-backdrop");
+  bd.classList.remove("hidden"); requestAnimationFrame(()=>bd.classList.add("opacity-100"));
+  $("settings-panel").classList.add("open");
+}
+function closeSettings() {
+  const bd=$("settings-backdrop");
+  bd.classList.remove("opacity-100");
+  $("settings-panel").classList.remove("open");
+  setTimeout(()=>bd.classList.add("hidden"), 250);
+}
+$("settings-btn").addEventListener("click", openSettings);
+$("settings-close").addEventListener("click", closeSettings);
+$("settings-backdrop").addEventListener("click", closeSettings);
+document.addEventListener("keydown", (e)=>{ if(e.key==="Escape") closeSettings(); });
 
-$("unlock-pass").addEventListener("keydown", (e) => { if (e.key === "Enter") $("unlock-btn").click(); });
-$("setup-pass2").addEventListener("keydown", (e) => { if (e.key === "Enter") $("setup-btn").click(); });
-
-/* ============================================================
-   アンロック後の初期化
-============================================================ */
+/* ============================================================ アンロック後 */
 async function onUnlocked() {
-  loadSystemPrompt();
-  loadFilters();
-  renderCosts();
-  loadHistory();
-  await loadModels(false);
+  loadSystemPrompt(); loadFilters(); renderCosts(); loadHistory(); await loadModels(false);
 }
 
-/* ============================================================
-   モデル一覧
-============================================================ */
+/* ============================================================ モデル一覧 */
 function normalizeModels(raw) {
   return raw.map((m) => {
     const pricing = m.pricing || {};
-    const prompt = parseFloat(pricing.prompt || "0");
-    const completion = parseFloat(pricing.completion || "0");
+    const prompt = parseFloat(pricing.prompt || "0"), completion = parseFloat(pricing.completion || "0");
     const modalities = (m.architecture && m.architecture.input_modalities) || [];
-    const pp = isNaN(prompt) ? 0 : prompt;
-    const pc = isNaN(completion) ? 0 : completion;
-    return {
-      id: m.id,
-      name: m.name || m.id,
-      pricePrompt: pp,
-      priceCompletion: pc,
-      vision: modalities.includes("image"),
-      free: pp === 0 && pc === 0,
-    };
+    const pp = isNaN(prompt)?0:prompt, pc = isNaN(completion)?0:completion;
+    return { id:m.id, name:m.name||m.id, pricePrompt:pp, priceCompletion:pc,
+      vision: modalities.includes("image"), free: pp===0 && pc===0 };
   });
 }
-
 async function loadModels(forceRefresh) {
   const cached = localStorage.getItem(LS.models);
-  if (cached && !forceRefresh) {
-    try { MODELS = JSON.parse(cached); renderModelOptions(); } catch {}
-  }
+  if (cached && !forceRefresh) { try { MODELS=JSON.parse(cached); renderModelOptions(); } catch {} }
   try {
-    const res = await fetch(`${API_BASE}/models`, { headers: { Authorization: `Bearer ${API_KEY}` } });
-    if (!res.ok) throw new Error("HTTP " + res.status);
+    const res = await fetch(`${API_BASE}/models`, { headers:{ Authorization:`Bearer ${API_KEY}` } });
+    if (!res.ok) throw new Error("HTTP "+res.status);
     const data = await res.json();
     MODELS = normalizeModels(data.data || []);
     localStorage.setItem(LS.models, JSON.stringify(MODELS));
     renderModelOptions();
-  } catch (e) {
-    if (!MODELS.length) $("model-info").textContent = "モデル一覧の取得に失敗しました: " + e.message;
-  }
+  } catch (e) { if (!MODELS.length) $("model-info").textContent = "モデル一覧の取得に失敗: " + e.message; }
 }
-
 function getFilters() {
-  return {
-    search: $("model-search").value.trim().toLowerCase(),
-    free: $("filter-free").checked,
-    vision: $("filter-vision").checked,
-  };
+  return { search:$("model-search").value.trim().toLowerCase(), free:$("filter-free").checked, vision:$("filter-vision").checked };
 }
-
 function renderModelOptions() {
-  const f = getFilters();
-  const sel = $("model-select");
+  const f = getFilters(), sel = $("model-select");
   const prev = localStorage.getItem(LS.model) || sel.value;
   const filtered = MODELS.filter((m) => {
     if (f.free && !m.free) return false;
@@ -488,269 +419,182 @@ function renderModelOptions() {
   filtered.forEach((m) => {
     const opt = document.createElement("option");
     opt.value = m.id;
-    opt.textContent = (m.free ? "🆓 " : "") + (m.vision ? "🖼 " : "") + m.name;
+    opt.textContent = (m.free?"🆓 ":"") + (m.vision?"🖼 ":"") + m.name;
     sel.appendChild(opt);
   });
-  if (filtered.some((m) => m.id === prev)) sel.value = prev;
+  if (filtered.some((m)=>m.id===prev)) sel.value = prev;
   $("model-count").textContent = MODELS.length ? `(${filtered.length}/${MODELS.length})` : "";
   onModelChange();
 }
-
-function currentModel() { return MODELS.find((m) => m.id === $("model-select").value) || null; }
-
+function currentModel() { return MODELS.find((m)=>m.id===$("model-select").value) || null; }
 function onModelChange() {
   const m = currentModel();
-  if (!m) { $("model-info").textContent = ""; $("active-model").textContent = ""; return; }
+  if (!m) { $("model-info").textContent=""; return; }
   localStorage.setItem(LS.model, m.id);
   const tags = [];
   if (m.free) tags.push("無料");
-  else tags.push("入力 $" + (m.pricePrompt * 1e6).toFixed(3) + " / 出力 $" + (m.priceCompletion * 1e6).toFixed(3) + " (per 1M)");
+  else tags.push("入力 $"+(m.pricePrompt*1e6).toFixed(3)+" / 出力 $"+(m.priceCompletion*1e6).toFixed(3)+" (per 1M)");
   if (m.vision) tags.push("画像対応");
   $("model-info").textContent = tags.join("  ・  ");
-  $("active-model").textContent = m.id;
 }
-
 $("model-select").addEventListener("change", onModelChange);
 $("refresh-models").addEventListener("click", () => loadModels(true));
-["model-search", "filter-free", "filter-vision"].forEach((id) => {
-  $(id).addEventListener("input", () => { saveFilters(); renderModelOptions(); });
-});
-
+["model-search","filter-free","filter-vision"].forEach((id)=>{ $(id).addEventListener("input", ()=>{ saveFilters(); renderModelOptions(); }); });
 function saveFilters() { localStorage.setItem(LS.filters, JSON.stringify(getFilters())); }
 function loadFilters() {
-  try {
-    const f = JSON.parse(localStorage.getItem(LS.filters) || "{}");
-    if (f.search) $("model-search").value = f.search;
-    $("filter-free").checked = !!f.free;
-    $("filter-vision").checked = !!f.vision;
+  try { const f = JSON.parse(localStorage.getItem(LS.filters)||"{}");
+    if (f.search) $("model-search").value=f.search;
+    $("filter-free").checked=!!f.free; $("filter-vision").checked=!!f.vision;
   } catch {}
 }
 
-/* ============================================================
-   システムプロンプト永続化
-============================================================ */
+/* ============================================================ システムプロンプト */
 function loadSystemPrompt() { $("system-prompt").value = localStorage.getItem(LS.system) || ""; }
-$("system-prompt").addEventListener("input", () => { localStorage.setItem(LS.system, $("system-prompt").value); });
+$("system-prompt").addEventListener("input", ()=>{ localStorage.setItem(LS.system, $("system-prompt").value); });
 
-/* ============================================================
-   コスト累計
-============================================================ */
-function loadCosts() {
-  try { return JSON.parse(localStorage.getItem(LS.costs)) || { total: 0, models: {} }; }
-  catch { return { total: 0, models: {} }; }
-}
-function addCost(modelId, cost, promptTokens, completionTokens) {
-  const c = loadCosts();
-  c.total += cost;
-  if (!c.models[modelId]) c.models[modelId] = { cost: 0, prompt: 0, completion: 0, calls: 0 };
-  const mc = c.models[modelId];
-  mc.cost += cost;
-  mc.prompt += promptTokens || 0;
-  mc.completion += completionTokens || 0;
-  mc.calls += 1;
-  localStorage.setItem(LS.costs, JSON.stringify(c));
-  renderCosts();
+/* ============================================================ コスト */
+function loadCosts() { try { return JSON.parse(localStorage.getItem(LS.costs)) || {total:0,models:{}}; } catch { return {total:0,models:{}}; } }
+function addCost(modelId, cost, pt, ct) {
+  const c = loadCosts(); c.total += cost;
+  if (!c.models[modelId]) c.models[modelId] = {cost:0,prompt:0,completion:0,calls:0};
+  const mc = c.models[modelId]; mc.cost+=cost; mc.prompt+=pt||0; mc.completion+=ct||0; mc.calls+=1;
+  localStorage.setItem(LS.costs, JSON.stringify(c)); renderCosts();
 }
 function renderCosts() {
   const c = loadCosts();
-  $("cost-total").textContent = "$" + c.total.toFixed(6);
-  const box = $("cost-by-model");
-  box.innerHTML = "";
-  const entries = Object.entries(c.models).sort((a, b) => b[1].cost - a[1].cost);
-  if (!entries.length) { box.innerHTML = '<span class="text-zinc-300">まだ利用がありません</span>'; return; }
+  $("cost-total").textContent = "$"+c.total.toFixed(6);
+  const box = $("cost-by-model"); box.innerHTML = "";
+  const entries = Object.entries(c.models).sort((a,b)=>b[1].cost-a[1].cost);
+  if (!entries.length) { box.innerHTML = '<span style="color:#4a4a52">まだ利用がありません</span>'; return; }
   for (const [id, mc] of entries) {
     const row = document.createElement("div");
     row.className = "flex justify-between gap-2 items-center";
-    const short = id.split("/").pop();
-    row.innerHTML = `<span class="truncate text-zinc-500" title="${id}">${short}</span>` +
-      `<span class="shrink-0 font-semibold text-zinc-700 tabular-nums">$${mc.cost.toFixed(6)}</span>`;
+    row.innerHTML = `<span class="truncate" style="color:var(--muted)" title="${id}">${id.split("/").pop()}</span>`+
+      `<span class="shrink-0 font-semibold tabular-nums" style="color:var(--text-dim)">$${mc.cost.toFixed(6)}</span>`;
     box.appendChild(row);
   }
 }
-$("reset-cost").addEventListener("click", () => {
-  if (confirm("累計コストをリセットしますか？")) { localStorage.removeItem(LS.costs); renderCosts(); }
-});
+$("reset-cost").addEventListener("click", () => { if (confirm("累計コストをリセットしますか？")) { localStorage.removeItem(LS.costs); renderCosts(); } });
 
-/* ============================================================
-   会話履歴の描画 / 永続化
-============================================================ */
+/* ============================================================ 会話履歴 */
 function saveHistory() { localStorage.setItem(LS.history, JSON.stringify(messages)); }
-function updateEmptyState() { $("empty-state").classList.toggle("hidden", messages.length > 0); }
-
+function updateEmptyState() { $("empty-state").classList.toggle("hidden", messages.length>0); }
 function loadHistory() {
-  try { messages = JSON.parse(localStorage.getItem(LS.history)) || []; }
-  catch { messages = []; }
-  document.querySelectorAll(".msg-row").forEach((el) => el.remove());
-  messages.forEach((m) => renderMessage(m.role, m.content));
-  updateEmptyState();
-  scrollBottom();
+  try { messages = JSON.parse(localStorage.getItem(LS.history)) || []; } catch { messages = []; }
+  document.querySelectorAll(".msg-row").forEach((el)=>el.remove());
+  messages.forEach((m)=>renderMessage(m.role, m.content));
+  updateEmptyState(); scrollBottom();
 }
-$("clear-chat").addEventListener("click", () => {
+function clearChat() {
   if (confirm("会話履歴を消去しますか？")) {
-    messages = [];
-    saveHistory();
-    document.querySelectorAll(".msg-row").forEach((el) => el.remove());
+    messages = []; saveHistory();
+    document.querySelectorAll(".msg-row").forEach((el)=>el.remove());
     updateEmptyState();
   }
-});
+}
+$("clear-chat").addEventListener("click", clearChat);
+$("new-chat").addEventListener("click", clearChat);
 
 function extractParts(content) {
-  if (typeof content === "string") return { text: content, images: [] };
-  const text = content.filter((p) => p.type === "text").map((p) => p.text).join("\n");
-  const images = content.filter((p) => p.type === "image_url").map((p) => p.image_url.url);
+  if (typeof content === "string") return { text:content, images:[] };
+  const text = content.filter((p)=>p.type==="text").map((p)=>p.text).join("\n");
+  const images = content.filter((p)=>p.type==="image_url").map((p)=>p.image_url.url);
   return { text, images };
 }
-
-function escapeHtml(s) {
-  return s.replace(/[&<>"']/g, (c) => ({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[c]));
-}
+function escapeHtml(s) { return s.replace(/[&<>"']/g, (c)=>({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[c])); }
 function formatBody(text) {
-  const parts = text.split(/```/);
-  let html = "";
+  const parts = text.split(/```/); let html = "";
   parts.forEach((part, i) => {
-    if (i % 2 === 1) {
-      const body = part.replace(/^[a-zA-Z0-9]*\n/, "");
-      html += `<pre><code>${escapeHtml(body)}</code></pre>`;
-    } else {
-      html += escapeHtml(part);
-    }
+    if (i % 2 === 1) html += `<pre><code>${escapeHtml(part.replace(/^[a-zA-Z0-9]*\n/, ""))}</code></pre>`;
+    else html += escapeHtml(part);
   });
   return html;
 }
 
-const AI_AVATAR = `<div class="shrink-0 w-8 h-8 rounded-xl brand-gradient flex items-center justify-center text-white shadow-md shadow-indigo-500/20"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l1.9 5.8L20 10l-5.1 1.2L12 17l-1.9-5.8L4 10l6.1-1.2z"/></svg></div>`;
-const USER_AVATAR = `<div class="shrink-0 w-8 h-8 rounded-xl bg-zinc-200 text-zinc-500 flex items-center justify-center"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M5 21a7 7 0 0 1 14 0"/></svg></div>`;
-
 function renderMessage(role, content) {
   const { text, images } = extractParts(content);
   const isUser = role === "user";
-
   const row = document.createElement("div");
-  row.className = "msg-row fade-in w-full max-w-3xl mx-auto flex gap-3 mb-6 " + (isUser ? "flex-row-reverse" : "");
-  row.innerHTML = isUser ? USER_AVATAR : AI_AVATAR;
+  row.className = "msg-row fade-in w-full max-w-3xl mx-auto mb-7 flex " + (isUser ? "justify-end" : "");
 
-  const col = document.createElement("div");
-  col.className = "flex flex-col min-w-0 " + (isUser ? "items-end" : "items-start");
-
-  const label = document.createElement("span");
-  label.className = "text-[11px] font-semibold text-zinc-400 mb-1 px-1";
-  label.textContent = isUser ? "あなた" : "AI";
-  col.appendChild(label);
-
-  const bubble = document.createElement("div");
-  bubble.className = "max-w-full rounded-2xl px-4 py-3 shadow-sm " +
-    (isUser ? "brand-gradient text-white rounded-tr-md" : "bg-white border border-zinc-200/80 text-zinc-800 rounded-tl-md");
+  const block = document.createElement("div");
+  if (isUser) {
+    block.className = "max-w-[85%] rounded-2xl rounded-br-md px-4 py-2.5";
+    block.style.background = "var(--surface)";
+    block.style.border = "1px solid var(--border)";
+  } else {
+    block.className = "w-full";
+  }
 
   let inner = "";
   if (images.length) {
     inner += '<div class="flex flex-wrap gap-2 ' + (text ? "mb-2.5" : "") + '">' +
-      images.map((u) => `<img src="${u}" class="h-28 rounded-xl object-cover ${isUser ? "ring-1 ring-white/30" : "ring-1 ring-zinc-200"}" />`).join("") +
-      "</div>";
+      images.map((u)=>`<img src="${u}" class="h-28 rounded-xl object-cover" style="border:1px solid var(--border-2)" />`).join("") + "</div>";
   }
   inner += `<div class="msg-body">${formatBody(text)}</div>`;
-  bubble.innerHTML = inner;
-  col.appendChild(bubble);
-  row.appendChild(col);
-
+  block.innerHTML = inner;
+  row.appendChild(block);
   $("thread").appendChild(row);
-  return bubble;
+  return block;
 }
-
 function scrollBottom() { const t = $("thread"); t.scrollTop = t.scrollHeight; }
 
-/* ============================================================
-   画像添付（ファイル / D&D / ペースト）
-============================================================ */
+/* ============================================================ 画像添付 */
 function fileToDataURL(file) {
-  return new Promise((resolve, reject) => {
-    const r = new FileReader();
-    r.onload = () => resolve(r.result);
-    r.onerror = reject;
-    r.readAsDataURL(file);
-  });
+  return new Promise((resolve, reject) => { const r=new FileReader(); r.onload=()=>resolve(r.result); r.onerror=reject; r.readAsDataURL(file); });
 }
 async function addImageFiles(files) {
-  for (const file of files) {
-    if (!file.type.startsWith("image/")) continue;
-    pendingImages.push(await fileToDataURL(file));
-  }
+  for (const file of files) { if (!file.type.startsWith("image/")) continue; pendingImages.push(await fileToDataURL(file)); }
   renderAttachments();
 }
 function renderAttachments() {
-  const box = $("attachments");
-  box.innerHTML = "";
+  const box = $("attachments"); box.innerHTML = "";
   pendingImages.forEach((url, idx) => {
     const wrap = document.createElement("div");
-    wrap.className = "relative group";
+    wrap.className = "relative";
     wrap.innerHTML =
-      `<img src="${url}" class="h-16 w-16 object-cover rounded-xl border border-zinc-200" />` +
-      `<button data-idx="${idx}" class="att-del absolute -top-1.5 -right-1.5 bg-zinc-900 text-white rounded-full w-5 h-5 text-xs leading-none flex items-center justify-center shadow hover:bg-rose-500 transition-colors">×</button>`;
+      `<img src="${url}" class="h-16 w-16 object-cover rounded-xl" style="border:1px solid var(--border-2)" />`+
+      `<button data-idx="${idx}" class="att-del absolute -top-1.5 -right-1.5 text-white rounded-full w-5 h-5 text-xs leading-none flex items-center justify-center transition-colors" style="background:#000;border:1px solid var(--border-2)">×</button>`;
     box.appendChild(wrap);
   });
-  box.querySelectorAll(".att-del").forEach((b) => {
-    b.addEventListener("click", () => { pendingImages.splice(parseInt(b.dataset.idx), 1); renderAttachments(); });
-  });
+  box.querySelectorAll(".att-del").forEach((b)=>{ b.addEventListener("click", ()=>{ pendingImages.splice(parseInt(b.dataset.idx),1); renderAttachments(); }); });
 }
+$("file-input").addEventListener("change", (e)=>{ addImageFiles(Array.from(e.target.files)); e.target.value=""; });
 
-$("file-input").addEventListener("change", (e) => { addImageFiles(Array.from(e.target.files)); e.target.value = ""; });
+const dz = $("drop-zone"); let dragDepth = 0;
+dz.addEventListener("dragenter", (e)=>{ e.preventDefault(); dragDepth++; $("drop-overlay").classList.remove("hidden"); });
+dz.addEventListener("dragover", (e)=>{ e.preventDefault(); });
+dz.addEventListener("dragleave", ()=>{ dragDepth--; if (dragDepth<=0){ dragDepth=0; $("drop-overlay").classList.add("hidden"); } });
+dz.addEventListener("drop", (e)=>{ e.preventDefault(); dragDepth=0; $("drop-overlay").classList.add("hidden"); if (e.dataTransfer.files.length) addImageFiles(Array.from(e.dataTransfer.files)); });
 
-const dz = $("drop-zone");
-let dragDepth = 0;
-dz.addEventListener("dragenter", (e) => { e.preventDefault(); dragDepth++; $("drop-overlay").classList.remove("hidden"); });
-dz.addEventListener("dragover", (e) => { e.preventDefault(); });
-dz.addEventListener("dragleave", () => { dragDepth--; if (dragDepth <= 0) { dragDepth = 0; $("drop-overlay").classList.add("hidden"); } });
-dz.addEventListener("drop", (e) => {
-  e.preventDefault(); dragDepth = 0; $("drop-overlay").classList.add("hidden");
-  if (e.dataTransfer.files.length) addImageFiles(Array.from(e.dataTransfer.files));
-});
-
-$("input").addEventListener("paste", (e) => {
-  const items = e.clipboardData && e.clipboardData.items;
-  if (!items) return;
+$("input").addEventListener("paste", (e)=>{
+  const items = e.clipboardData && e.clipboardData.items; if (!items) return;
   const imgs = [];
-  for (const it of items) { if (it.type.startsWith("image/")) { const f = it.getAsFile(); if (f) imgs.push(f); } }
+  for (const it of items) { if (it.type.startsWith("image/")) { const f=it.getAsFile(); if (f) imgs.push(f); } }
   if (imgs.length) { e.preventDefault(); addImageFiles(imgs); }
 });
 
-/* ============================================================
-   サジェストチップ / モバイルサイドバー
-============================================================ */
-document.querySelectorAll(".suggest").forEach((c) => {
-  c.addEventListener("click", () => {
-    const t = c.dataset.text.replace(/\\n/g, "\n");
-    inputEl.value = t;
-    inputEl.dispatchEvent(new Event("input"));
-    inputEl.focus();
+/* ============================================================ サジェスト */
+document.querySelectorAll(".suggest").forEach((c)=>{
+  c.addEventListener("click", ()=>{
+    inputEl.value = c.dataset.text.replace(/\\n/g, "\n");
+    inputEl.dispatchEvent(new Event("input")); inputEl.focus();
   });
 });
 
-function openSidebar() { $("sidebar").classList.add("mobile-open"); $("sidebar-backdrop").classList.remove("hidden"); }
-function closeSidebar() { $("sidebar").classList.remove("mobile-open"); $("sidebar-backdrop").classList.add("hidden"); }
-$("menu-btn").addEventListener("click", openSidebar);
-$("sidebar-backdrop").addEventListener("click", closeSidebar);
-
-/* ============================================================
-   送信 / ストリーミング
-============================================================ */
+/* ============================================================ 送信 / ストリーミング */
 const inputEl = $("input");
-inputEl.addEventListener("input", () => {
-  inputEl.style.height = "auto";
-  inputEl.style.height = Math.min(inputEl.scrollHeight, 176) + "px";
-});
-inputEl.addEventListener("keydown", (e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send(); } });
+inputEl.addEventListener("input", ()=>{ inputEl.style.height="auto"; inputEl.style.height=Math.min(inputEl.scrollHeight,176)+"px"; });
+inputEl.addEventListener("keydown", (e)=>{ if (e.key==="Enter" && !e.shiftKey) { e.preventDefault(); send(); } });
 $("send-btn").addEventListener("click", send);
-$("stop-btn").addEventListener("click", () => { if (abortCtrl) abortCtrl.abort(); });
-
-function setSending(on) {
-  $("send-btn").classList.toggle("hidden", on);
-  $("stop-btn").classList.toggle("hidden", !on);
-}
+$("stop-btn").addEventListener("click", ()=>{ if (abortCtrl) abortCtrl.abort(); });
+function setSending(on) { $("send-btn").classList.toggle("hidden", on); $("stop-btn").classList.toggle("hidden", !on); }
 
 function buildUserContent(text, images) {
   if (!images.length) return text;
   const parts = [];
-  if (text) parts.push({ type: "text", text });
-  images.forEach((url) => parts.push({ type: "image_url", image_url: { url } }));
+  if (text) parts.push({ type:"text", text });
+  images.forEach((url)=>parts.push({ type:"image_url", image_url:{ url } }));
   return parts;
 }
 
@@ -764,60 +608,42 @@ async function send() {
   const images = pendingImages.slice();
   const userContent = buildUserContent(text, images);
 
-  messages.push({ role: "user", content: userContent });
-  updateEmptyState();
-  renderMessage("user", userContent);
-  saveHistory();
+  messages.push({ role:"user", content:userContent });
+  updateEmptyState(); renderMessage("user", userContent); saveHistory();
 
-  inputEl.value = "";
-  inputEl.style.height = "auto";
-  pendingImages = [];
-  renderAttachments();
-  scrollBottom();
+  inputEl.value = ""; inputEl.style.height = "auto";
+  pendingImages = []; renderAttachments(); scrollBottom();
 
-  const bubble = renderMessage("assistant", "");
-  const bodyEl = bubble.querySelector(".msg-body");
-  bodyEl.classList.add("typing");
-  scrollBottom();
+  const block = renderMessage("assistant", "");
+  const bodyEl = block.querySelector(".msg-body");
+  bodyEl.classList.add("typing"); scrollBottom();
 
   const sys = $("system-prompt").value.trim();
   const reqMessages = [];
-  if (sys) reqMessages.push({ role: "system", content: sys });
+  if (sys) reqMessages.push({ role:"system", content:sys });
   for (const m of messages) reqMessages.push(m);
 
   setSending(true);
   abortCtrl = new AbortController();
-  let answer = "";
-  let usage = null;
+  let answer = "", usage = null;
 
   try {
     const res = await fetch(`${API_BASE}/chat/completions`, {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${API_KEY}`,
-        "Content-Type": "application/json",
-        "HTTP-Referer": location.origin || "https://localhost",
-        "X-Title": APP_TITLE,
-      },
-      body: JSON.stringify({ model: model.id, messages: reqMessages, stream: true, usage: { include: true } }),
+      method:"POST",
+      headers:{ Authorization:`Bearer ${API_KEY}`, "Content-Type":"application/json",
+        "HTTP-Referer": location.origin || "https://localhost", "X-Title": APP_TITLE },
+      body: JSON.stringify({ model:model.id, messages:reqMessages, stream:true, usage:{ include:true } }),
       signal: abortCtrl.signal,
     });
+    if (!res.ok) { const errText = await res.text().catch(()=> ""); throw new Error(`HTTP ${res.status}: ${errText.slice(0,300)}`); }
 
-    if (!res.ok) {
-      const errText = await res.text().catch(() => "");
-      throw new Error(`HTTP ${res.status}: ${errText.slice(0, 300)}`);
-    }
-
-    const reader = res.body.getReader();
-    const decoder = new TextDecoder();
+    const reader = res.body.getReader(), decoder = new TextDecoder();
     let buffer = "";
-
     while (true) {
       const { done, value } = await reader.read();
       if (done) break;
-      buffer += decoder.decode(value, { stream: true });
-      const lines = buffer.split("\n");
-      buffer = lines.pop();
+      buffer += decoder.decode(value, { stream:true });
+      const lines = buffer.split("\n"); buffer = lines.pop();
       for (const line of lines) {
         const t = line.trim();
         if (!t.startsWith("data:")) continue;
@@ -826,59 +652,34 @@ async function send() {
         try {
           const json = JSON.parse(data);
           const delta = json.choices && json.choices[0] && json.choices[0].delta;
-          if (delta && delta.content) {
-            answer += delta.content;
-            bodyEl.innerHTML = formatBody(answer);
-            scrollBottom();
-          }
+          if (delta && delta.content) { answer += delta.content; bodyEl.innerHTML = formatBody(answer); scrollBottom(); }
           if (json.usage) usage = json.usage;
         } catch {}
       }
     }
   } catch (e) {
-    if (e.name === "AbortError") answer += (answer ? "\n\n" : "") + "⏹ 生成を停止しました。";
-    else answer += (answer ? "\n\n" : "") + "⚠️ エラー: " + e.message;
+    if (e.name === "AbortError") answer += (answer?"\n\n":"") + "⏹ 生成を停止しました。";
+    else answer += (answer?"\n\n":"") + "⚠️ エラー: " + e.message;
   } finally {
     bodyEl.classList.remove("typing");
     bodyEl.innerHTML = formatBody(answer || "(応答なし)");
-    abortCtrl = null;
-    setSending(false);
-    messages.push({ role: "assistant", content: answer });
-    saveHistory();
-    recordCost(model, usage);
-    scrollBottom();
+    abortCtrl = null; setSending(false);
+    messages.push({ role:"assistant", content:answer }); saveHistory();
+    recordCost(model, usage); scrollBottom();
   }
 }
-
 function recordCost(model, usage) {
   if (!usage) return;
-  const pt = usage.prompt_tokens || 0;
-  const ct = usage.completion_tokens || 0;
-  let cost = (typeof usage.cost === "number") ? usage.cost : pt * model.pricePrompt + ct * model.priceCompletion;
+  const pt = usage.prompt_tokens||0, ct = usage.completion_tokens||0;
+  const cost = (typeof usage.cost==="number") ? usage.cost : pt*model.pricePrompt + ct*model.priceCompletion;
   addCost(model.id, cost, pt, ct);
 }
 
-/* ============================================================
-   起動
-============================================================ */
+/* ============================================================ 起動 */
 window.addEventListener("DOMContentLoaded", () => {
-  if (!window.crypto || !crypto.subtle) {
-    alert("このブラウザは Web Crypto API に対応していないため利用できません。HTTPS または localhost で開いてください。");
-  }
+  if (!window.crypto || !crypto.subtle) alert("このブラウザは Web Crypto API 非対応のため利用できません。HTTPS か localhost で開いてください。");
   showGate();
 });
 </script>
-
-<style>
-  /* モバイル: サイドバーをドロワー化 */
-  @media (max-width: 767px) {
-    #sidebar {
-      position: fixed; left: 0; top: 0; bottom: 0; z-index: 40;
-      transform: translateX(-100%); transition: transform .25s cubic-bezier(.2,.7,.3,1);
-      box-shadow: 0 20px 60px rgba(0,0,0,.25);
-    }
-    #sidebar.mobile-open { transform: translateX(0); }
-  }
-</style>
 </body>
 </html>
