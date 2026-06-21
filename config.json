@@ -48,6 +48,19 @@
   ],
   "history": [
     {
+      "id": "mercari_m67379566525",
+      "name": "【最終値引】BMW X1専用　純正フロアマット ZB0FM-F48",
+      "price": 5800,
+      "platform": "メルカリ",
+      "url": "https://jp.mercari.com/item/m67379566525",
+      "image_url": "https://static.mercdn.net/thumb/item/webp/m67379566525_1.jpg?1779297748",
+      "keyword": "F48 BMW X1 フロアマット",
+      "ai_comment": "[gemma-4-31b-it] ラバー製かどうかの記載がなく、セット内容（4枚か）も不明なため。",
+      "ai_ok": false,
+      "market_info": "メルカリ相場: ¥22353（売れ済み平均）",
+      "detected_at": "2026-06-21T01:42:13.720592"
+    },
+    {
       "id": "mercari_m20986458998",
       "name": "BMW X1 F48 フロアマット 2枚セット（助手席・左後席）",
       "price": 5500,
