@@ -48,6 +48,19 @@
   ],
   "history": [
     {
+      "id": "mercari_m98658886800",
+      "name": "ViewSonic 27インチ 高さ調整 画面回転 2k モニター",
+      "price": 16500,
+      "platform": "メルカリ",
+      "url": "https://jp.mercari.com/item/m98658886800",
+      "image_url": "https://static.mercdn.net/thumb/item/webp/m98658886800_1.jpg?1781436539",
+      "keyword": "2K モニター",
+      "ai_comment": "AI判定失敗（全モデル応答なし）— 通知スキップ",
+      "ai_ok": false,
+      "market_info": "メルカリ相場: ¥9718（売れ済み平均）",
+      "detected_at": "2026-06-22T08:34:20.652596"
+    },
+    {
       "id": "mercari_m65880257584",
       "name": "新古品 Xiaomi モニター 本体 Xiaomi 2K モニター A27Qi",
       "price": 18000,
@@ -673,23 +686,23 @@
     }
   ],
   "last_run": {
-    "started_at": "2026-06-22T08:31:11.622171",
+    "started_at": "2026-06-22T08:33:23.052889",
     "keywords": [
       {
         "keyword": "F48 BMW X1 フロアマット",
-        "scraped": 59,
+        "scraped": 56,
         "new": 0,
         "ai_judged": 0,
         "ai_ok": 0,
-        "market_info": "メルカリ相場: ¥23075（売れ済み平均）"
+        "market_info": "メルカリ相場: ¥21448（売れ済み平均）"
       },
       {
         "keyword": "2K モニター",
         "scraped": 90,
-        "new": 0,
-        "ai_judged": 0,
+        "new": 1,
+        "ai_judged": 1,
         "ai_ok": 0,
-        "market_info": "メルカリ相場: ¥9575（売れ済み平均）"
+        "market_info": "メルカリ相場: ¥9718（売れ済み平均）"
       }
     ]
   }
