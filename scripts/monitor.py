@@ -682,6 +682,32 @@ def process_keyword(keyword_config: dict, seen_ids: dict) -> list[dict]:
         new_items = [it for it in new_items if it["price"] >= min_price]
         print(f"  最低価格フィルタ(¥{min_price}以上): {len(new_items)}件 (除外 {before - len(new_items)}件)")
 
+    # 除外ワードフィルタ（config exclude_words + GENRE_EXCLUDE_WORDS）
+    exclude_words_raw = keyword_config.get("exclude_words", [])
+    genre_excl = GENRE_EXCLUDE_WORDS.get(genre, [])
+    all_exclude = list({w.lower() for w in exclude_words_raw + genre_excl})
+    if all_exclude:
+        before = len(new_items)
+        new_items = [
+            it for it in new_items
+            if not any(w in it["name"].lower() for w in all_exclude)
+        ]
+        removed = before - len(new_items)
+        if removed:
+            print(f"  除外ワードフィルタ: {removed}件除外")
+
+    # 必須ワードフィルタ（require_words）
+    require_words_raw = [w.lower() for w in keyword_config.get("require_words", [])]
+    if require_words_raw:
+        before = len(new_items)
+        new_items = [
+            it for it in new_items
+            if any(w in it["name"].lower() for w in require_words_raw)
+        ]
+        removed = before - len(new_items)
+        if removed:
+            print(f"  必須ワードフィルタ: {removed}件除外")
+
     # お得判定（上限価格以下かどうかのみチェック — 相場比較はAIに任せる）
     def is_good_deal(it: dict) -> bool:
         p = it["price"]
