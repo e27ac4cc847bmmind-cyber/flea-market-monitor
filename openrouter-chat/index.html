@@ -112,7 +112,7 @@
   .z-20{z-index:20} .z-40{z-index:40} .z-50{z-index:50}
 
   /* sizing */
-  .h-screen{height:100vh} .h-full{height:100%}
+  .h-screen{height:100vh;height:100dvh} .h-full{height:100%}
   .h-4{height:16px} .h-5{height:20px} .h-9{height:36px} .h-10{height:40px} .h-12{height:48px} .h-14{height:56px} .h-16{height:64px} .h-28{height:112px}
   .w-full{width:100%} .w-5{width:20px} .w-9{width:36px} .w-10{width:40px} .w-12{width:48px} .w-16{width:64px} .w-\[380px\]{width:380px}
   .min-w-0{min-width:0} .min-h-\[14px\]{min-height:14px}
@@ -648,6 +648,11 @@ function renderMessage(role, content) {
   return block;
 }
 function scrollBottom() { const t = $("thread"); t.scrollTop = t.scrollHeight; }
+/* 自動追従：ユーザーが上にスクロールしたら追従を止め、自由に読めるようにする */
+let stickToBottom = true;
+function isNearBottom() { const t = $("thread"); return t.scrollHeight - t.scrollTop - t.clientHeight < 96; }
+$("thread").addEventListener("scroll", () => { stickToBottom = isNearBottom(); });
+function followBottom() { if (stickToBottom) scrollBottom(); }
 
 /* ============================================================ 画像添付 */
 function fileToDataURL(file) {
@@ -722,7 +727,7 @@ async function send() {
   updateEmptyState(); renderMessage("user", userContent); saveHistory();
 
   inputEl.value = ""; inputEl.style.height = "auto";
-  pendingImages = []; renderAttachments(); scrollBottom();
+  pendingImages = []; renderAttachments(); stickToBottom = true; scrollBottom();
 
   const block = renderMessage("assistant", "");
   const bodyEl = block.querySelector(".msg-body");
@@ -762,7 +767,7 @@ async function send() {
         try {
           const json = JSON.parse(data);
           const delta = json.choices && json.choices[0] && json.choices[0].delta;
-          if (delta && delta.content) { answer += delta.content; bodyEl.innerHTML = formatBody(answer); scrollBottom(); }
+          if (delta && delta.content) { answer += delta.content; bodyEl.innerHTML = formatBody(answer); followBottom(); }
           if (json.usage) usage = json.usage;
         } catch {}
       }
@@ -775,7 +780,7 @@ async function send() {
     bodyEl.innerHTML = formatBody(answer || "(応答なし)");
     abortCtrl = null; setSending(false);
     messages.push({ role:"assistant", content:answer }); saveHistory();
-    recordCost(model, usage); scrollBottom();
+    recordCost(model, usage); followBottom();
   }
 }
 function recordCost(model, usage) {
