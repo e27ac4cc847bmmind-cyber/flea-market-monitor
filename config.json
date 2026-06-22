@@ -48,6 +48,19 @@
   ],
   "history": [
     {
+      "id": "mercari_m55067100902",
+      "name": "Z-EDGE ゲーミングモニター 2K 165Hz 27インチ",
+      "price": 16000,
+      "platform": "メルカリ",
+      "url": "https://jp.mercari.com/item/m55067100902",
+      "image_url": "https://static.mercdn.net/thumb/item/webp/m55067100902_1.jpg?1777970178",
+      "keyword": "2K モニター",
+      "ai_comment": "[deepseek-v4-flash] USB Type-C接続給電に対応していない可能性が高く、条件を満たさないため。",
+      "ai_ok": false,
+      "market_info": "メルカリ相場: ¥10422（売れ済み平均）",
+      "detected_at": "2026-06-22T12:01:24.575010"
+    },
+    {
       "id": "mercari_m36127704388",
       "name": "Acouto 2K モバイルモニター 11インチ XC11 Pro",
       "price": 7500,
@@ -751,7 +764,7 @@
     }
   ],
   "last_run": {
-    "started_at": "2026-06-22T11:58:37.564840",
+    "started_at": "2026-06-22T12:00:43.476629",
     "keywords": [
       {
         "keyword": "F48 BMW X1 フロアマット",
@@ -764,10 +777,10 @@
       {
         "keyword": "2K モニター",
         "scraped": 90,
-        "new": 0,
-        "ai_judged": 0,
+        "new": 1,
+        "ai_judged": 1,
         "ai_ok": 0,
-        "market_info": "メルカリ相場: ¥9092（売れ済み平均）"
+        "market_info": "メルカリ相場: ¥10422（売れ済み平均）"
       }
     ]
   }
