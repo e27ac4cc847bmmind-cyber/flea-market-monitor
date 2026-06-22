@@ -10,17 +10,17 @@
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;450;500;600;700&display=swap" rel="stylesheet" />
 <style>
   :root {
-    --bg: #f7f8fa;          /* キャンバス */
+    --bg: #fafafa;           /* キャンバス（ニュートラル） */
     --surface: #ffffff;      /* カード・吹き出し */
-    --surface-2: #f1f2f5;    /* 入力の塗り・ホバー */
-    --border: #e6e8ec;       /* 通常の境界 */
-    --border-2: #d7dae0;     /* 入力欄の境界（やや濃い） */
-    --text: #1f2430;         /* 本文（純黒は避ける） */
-    --text-2: #51596b;       /* 副次テキスト */
-    --muted: #8b93a3;        /* 補助・プレースホルダ寄り */
-    --accent: #4f46e5;       /* アクセント（限定使用） */
-    --accent-soft: #eef0fe;  /* アクセントの淡い面 */
-    --ring: rgba(79,70,229,.18);
+    --surface-2: #f4f4f5;    /* 入力の塗り・ホバー */
+    --border: #e8e8ea;       /* 通常の境界 */
+    --border-2: #d6d6da;     /* 入力欄の境界（やや濃い） */
+    --text: #18181b;         /* 本文（ニアブラック） */
+    --text-2: #52525b;       /* 副次テキスト */
+    --muted: #a1a1aa;        /* 補助・プレースホルダ寄り */
+    --accent: #18181b;       /* アクセント＝ニアブラック（Vercel調） */
+    --accent-soft: #f4f4f5;  /* アクセントの淡い面 */
+    --ring: rgba(24,24,27,.13);
   }
   * { font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Hiragino Sans", "Noto Sans JP", sans-serif; }
   html, body { height: 100%; }
@@ -37,7 +37,7 @@
   /* 入力フィールド共通：はっきり「入力できる場所」と分かる形 */
   .field {
     width: 100%; background: var(--surface); border: 1px solid var(--border-2);
-    border-radius: 12px; padding: 11px 13px; font-size: 14px; color: var(--text);
+    border-radius: 10px; padding: 11px 13px; font-size: 14px; color: var(--text);
     transition: border-color .15s, box-shadow .15s; outline: none;
   }
   .field::placeholder { color: var(--muted); }
@@ -75,8 +75,11 @@
   .btn-press:active { transform: scale(.97); }
 
   /* サジェスト */
-  .chip { border: 1px solid var(--border-2); background: var(--surface); border-radius: 14px; padding: 13px 15px; text-align:left; font-size: 14px; color: var(--text-2); transition: border-color .15s, box-shadow .15s, transform .12s; cursor: pointer; }
-  .chip:hover { border-color: var(--accent); color: var(--text); box-shadow: 0 6px 18px -10px var(--ring); transform: translateY(-1px); }
+  .chip { border: 1px solid var(--border-2); background: var(--surface); border-radius: 12px; padding: 13px 15px; text-align:left; font-size: 14px; color: var(--text-2); transition: border-color .15s, box-shadow .15s, transform .12s; cursor: pointer; }
+  .chip:hover { border-color: var(--text); color: var(--text); box-shadow: 0 6px 18px -12px rgba(0,0,0,.3); transform: translateY(-1px); }
+
+  /* コンポーザー：フォーカス時に枠を締める（Vercel調） */
+  #composer:focus-within { border-color: var(--text) !important; }
 
   /* 設定パネル */
   #settings-panel { transform: translateX(100%); transition: transform .28s cubic-bezier(.2,.7,.3,1); }
@@ -165,8 +168,8 @@
   <div class="shrink-0 px-4 sm:px-6 pb-5 pt-1">
     <div class="max-w-3xl mx-auto">
       <div id="attachments" class="flex flex-wrap gap-2 mb-2 empty:hidden"></div>
-      <div id="composer" class="rounded-3xl bg-white p-2.5 pl-4 transition-shadow shadow-sm hover:shadow-md focus-within:shadow-md" style="border:1.5px solid var(--border-2)">
-        <textarea id="input" rows="1" placeholder="メッセージを入力…" class="w-full bg-transparent text-[16px] leading-relaxed resize-none outline-none px-1 pt-2" style="color:var(--text);min-height:44px;max-height:200px"></textarea>
+      <div id="composer" class="rounded-2xl bg-white p-3 pl-4 transition-shadow shadow-sm hover:shadow-md focus-within:shadow-md" style="border:1px solid var(--border-2)">
+        <textarea id="input" rows="1" placeholder="メッセージを入力…" class="w-full bg-transparent text-[16px] leading-relaxed resize-none outline-none px-1 pt-2" style="color:var(--text);min-height:64px;max-height:220px"></textarea>
         <div class="flex items-center justify-between pt-1.5">
           <label class="btn-press icon-btn cursor-pointer" title="画像を添付">
             <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21.44 11.05l-9.19 9.19a5 5 0 0 1-7.07-7.07l9.19-9.19a3.5 3.5 0 0 1 4.95 4.95l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>
@@ -583,7 +586,7 @@ document.querySelectorAll(".suggest").forEach((c)=>{
 
 /* ============================================================ 送信 / ストリーミング */
 const inputEl = $("input");
-inputEl.addEventListener("input", ()=>{ inputEl.style.height="auto"; inputEl.style.height=Math.min(inputEl.scrollHeight,200)+"px"; });
+inputEl.addEventListener("input", ()=>{ inputEl.style.height="auto"; inputEl.style.height=Math.min(inputEl.scrollHeight,220)+"px"; });
 inputEl.addEventListener("keydown", (e)=>{ if (e.key==="Enter" && !e.shiftKey) { e.preventDefault(); send(); } });
 $("send-btn").addEventListener("click", send);
 $("stop-btn").addEventListener("click", ()=>{ if (abortCtrl) abortCtrl.abort(); });
