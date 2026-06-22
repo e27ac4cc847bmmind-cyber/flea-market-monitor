@@ -48,6 +48,32 @@
   ],
   "history": [
     {
+      "id": "mercari_m40132042297",
+      "name": "ARZOPA A1 GAMUT MINI 2K モバイルモニター",
+      "price": 8800,
+      "platform": "メルカリ",
+      "url": "https://jp.mercari.com/item/m40132042297",
+      "image_url": "https://static.mercdn.net/thumb/item/webp/m40132042297_1.jpg?1782041137",
+      "keyword": "2K モニター",
+      "ai_comment": "AI判定失敗（全モデル応答なし）— 通知スキップ",
+      "ai_ok": false,
+      "market_info": "メルカリ相場: ¥9528（売れ済み平均）",
+      "detected_at": "2026-06-22T10:34:59.672629"
+    },
+    {
+      "id": "paypay_z630353976",
+      "name": "Acouto 2K モバイルモニター 11インチ XC11 Pro",
+      "price": 7500,
+      "platform": "PayPayフリマ",
+      "url": "https://paypayfleamarket.yahoo.co.jp/item/z630353976",
+      "image_url": "https://auc-pctr.c.yimg.jp/i/auctions.c.yimg.jp/images.auctions.yahoo.co.jp/image/dr000/auc0206/users/bae88b84e073045efef70d71939250373e585adc/i-img1200x900-1781959767279g23sfz.jpg?pri=s&w=298&h=298&ccw=298&cch=298&fill=1&fw=298&fh=298&up=0&nf_src=sy&nf_path=images/auc/pc/top/image/1.0.3/na_170x170.png&nf_st=200",
+      "keyword": "2K モニター",
+      "ai_comment": "AI判定失敗（全モデル応答なし）— 通知スキップ",
+      "ai_ok": false,
+      "market_info": "メルカリ相場: ¥9528（売れ済み平均）",
+      "detected_at": "2026-06-22T10:35:49.432820"
+    },
+    {
       "id": "mercari_m98658886800",
       "name": "ViewSonic 27インチ 高さ調整 画面回転 2k モニター",
       "price": 16500,
@@ -686,7 +712,7 @@
     }
   ],
   "last_run": {
-    "started_at": "2026-06-22T10:31:37.549494",
+    "started_at": "2026-06-22T10:33:49.120580",
     "keywords": [
       {
         "keyword": "F48 BMW X1 フロアマット",
@@ -694,13 +720,13 @@
         "new": 0,
         "ai_judged": 0,
         "ai_ok": 0,
-        "market_info": "メルカリ相場: ¥11018（売れ済み平均）"
+        "market_info": "メルカリ相場: ¥21372（売れ済み平均）"
       },
       {
         "keyword": "2K モニター",
         "scraped": 90,
-        "new": 0,
-        "ai_judged": 0,
+        "new": 19,
+        "ai_judged": 10,
         "ai_ok": 0,
         "market_info": "メルカリ相場: ¥9528（売れ済み平均）"
       }
