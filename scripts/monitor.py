@@ -480,11 +480,10 @@ REASON: 50文字以内の理由"""
 JUDGMENT: YES または NO
 REASON: 50文字以内の理由"""
 
-    # 実在する安定モデルのみ（無料モデルは 404削除・429枯渇 で全滅したため有料の激安モデルを主力に）
     MODELS = [
-        "openai/gpt-4o-mini",                      # 主力: 安定・激安（~$0.15/1M）
-        "google/gemini-2.0-flash-001",             # 予備: 安定版（:exp は削除済み）
-        "meta-llama/llama-3.3-70b-instruct:free",  # 最終手段: 無料（レート制限あり）
+        "deepseek/deepseek-v4-flash",              # 主力: DeepSeek V4 Flash
+        "openai/gpt-4o-mini",                      # 予備: 安定・激安
+        "google/gemini-2.0-flash-001",             # 最終手段
     ]
 
     for model in MODELS:
@@ -541,15 +540,15 @@ def send_discord_notification(item: dict, keyword_config: dict, ai_result: dict,
         return
 
     embed = {
-        "title": f"\U0001f6cd️ {item['name'][:100]}",
+        "title": f"🛍️ {item['name'][:100]}",
         "url": item["url"],
         "color": 0x00FF7F,
         "fields": [
-            {"name": "\U0001f4b0 価格", "value": f"¥{item['price']:,}", "inline": True},
-            {"name": "\U0001f3ea プラットフォーム", "value": item["platform"], "inline": True},
-            {"name": "\U0001f50d キーワード", "value": keyword_config["keyword"], "inline": True},
-            {"name": "\U0001f4ca 相場情報", "value": market_info, "inline": False},
-            {"name": "\U0001f916 AI判定", "value": ai_result["reason"], "inline": False},
+            {"name": "💰 価格", "value": f"¥{item['price']:,}", "inline": True},
+            {"name": "🏪 プラットフォーム", "value": item["platform"], "inline": True},
+            {"name": "🔍 キーワード", "value": keyword_config["keyword"], "inline": True},
+            {"name": "📊 相場情報", "value": market_info, "inline": False},
+            {"name": "🤖 AI判定", "value": ai_result["reason"], "inline": False},
         ],
         "timestamp": datetime.utcnow().isoformat() + "Z",
         "footer": {"text": "フリマ監視システム"},
