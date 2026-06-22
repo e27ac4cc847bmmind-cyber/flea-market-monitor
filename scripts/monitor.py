@@ -71,7 +71,7 @@ def save_json(path: Path, data: dict):
 
 
 def load_seen_ids(path: Path) -> dict:
-    """seen_ids を読み込み、旧リスト形式を TTL付き辞書形式に自動移行する"""
+    """近報がTTL付き辞書形式に自動移行する"""
     raw = load_json(path)
     result = {}
     for key, val in raw.items():
@@ -90,7 +90,7 @@ def load_seen_ids(path: Path) -> dict:
 
 def parse_price(text: str) -> Optional[int]:
     # ¥マーク直後の数字を優先（「1988年 ¥34,800」の誤認識を防ぐ）
-    m = re.search(r"[¥￥]\s*([\d,]+)", text)
+    m = re.search(r"[¥･]\s*([\d,]+)", text)
     if m:
         p = int(m.group(1).replace(",", ""))
         if 100 <= p <= 10_000_000:
@@ -196,8 +196,8 @@ def get_mercari_market_price(keyword: str) -> Optional[float]:
     return None
 
 
-# ==================== カテゴリIDマッピング ====================
-# Mercari Japan カテゴリID（genre → category_id）
+# ==================== カテゴリーIDマッピング ====================
+# Mercari Japan カテゴリーID（genre → category_id）
 MERCARI_CATEGORY_IDS: dict[str, str] = {
     "electronics": "668",   # PC周辺機器（ディスプレイ・モニター含む）
     "display":     "3869",  # ディスプレイ・モニター本体
@@ -209,7 +209,7 @@ MERCARI_CATEGORY_IDS: dict[str, str] = {
     "fashion":     "",      # 広すぎて絞らない（レディース/メンズ等で別ID）
 }
 
-# Rakuma (fril.jp) カテゴリID（genre → category_id）
+# Rakuma (fril.jp) カテゴリーID（genre → category_id）
 RAKUMA_CATEGORY_IDS: dict[str, str] = {
     "electronics": "307",   # スマホ・タブレット・パソコン
     "display":     "1349",  # ディスプレイ
@@ -221,10 +221,10 @@ RAKUMA_CATEGORY_IDS: dict[str, str] = {
     "fashion":     "",      # 広すぎて絞らない
 }
 
-# PayPayフリマ カテゴリID（genre → category_id）
+# PayPayフリマ カテゴリーID（genre → category_id）
 PAYPAY_CATEGORY_IDS: dict[str, str] = {
     "electronics": "3",     # スマホ・タブレット・パソコン
-    "display":     "",      # サブカテゴリID不明のためキーワード検索のみ
+    "display":     "",      # サブカテゴリーID不明のためキーワード検索のみ
     "games":       "1",     # ゲーム
     "books":       "6",     # 本・雑誌・マンガ
     "sports":      "8",     # スポーツ・レジャー
@@ -256,7 +256,7 @@ def scrape_mercari(keyword: str, max_price: int, category_id: str = "") -> list[
                 continue
             item_id = item_id.group()
 
-            # 画像のaltから商品名、srcから画像URLを取得
+            # 画像のaltから商品名、srcから画像ーURLを取得
             img = a.find("img")
             raw_name = (img.get("alt", "") if img else "") or a.get_text(" ", strip=True)[:80]
             # メルカリはalt末尾に「のサムネイル」が付くので除去
@@ -318,10 +318,10 @@ def scrape_rakuma(keyword: str, max_price: int, category_id: str = "") -> list[d
             href = a.get("href", "")
             item_id = href.rstrip("/").split("/")[-1]
 
-            # 商品名: img alt、画像URL: data-original（遅延読み込み）
+            # 商品名: img alt、画像ーURL: data-original（遅延読み込み）
             img = box.find("img")
             name = img.get("alt", "").strip() if img else ""
-            # data-original が本物の画像URL（srcはダミー）
+            # data-original が本物の画像ーURL（srcはダミー）
             image_url = (img.get("data-original", "") or img.get("src", "")) if img else ""
             if not name:
                 name = a.get_text(strip=True)[:80]
@@ -455,7 +455,7 @@ def ai_judge(item: dict, keyword_config: dict, market_price: Optional[float], sp
 {chr(10).join(lines)}
 
 判定基準（すべて満たす場合のみYES）：
-1. 本物の{metal_name}製品か（偽物・メッキ品・レプリカ・複製ではないか）
+1. 本物の{metal_name}製品か（唇物・メッキ品・レプリカ・複製ではないか）
 2. 1オンス（31.1g）以上の純{metal_name}か
 3. 上限価格以下でお得か{extra}
 
@@ -473,7 +473,7 @@ REASON: 50文字以内の理由"""
 
 判定基準（すべて満たす場合のみYES）：
 1. これは「{target_keyword}」そのもの（本体）か？アクセサリー・周辺機器・関連商品・別用途の商品ではないか（例: モニター検索でKVMスイッチ・ベビーモニター・ケーブルはNO）
-2. 正規品・本物で実用に足る状態か（偽物・詐欺的出品・パーツ取り・ジャンク・破損品ではないか）
+2. 正規品・本物で実用に足る状態か（唇物・詐欺的出品・パーツ取り・ジャンク・破損品ではないか）
 3. 相場と比べて適正か（価格情報が提供されている場合）{extra}
 
 必ず以下の形式で回答：
@@ -539,7 +539,7 @@ def send_discord_notification(item: dict, keyword_config: dict, ai_result: dict,
         return
 
     embed = {
-        "title": f"🛍️ {item['name'][:100]}",
+        "title": f"🛙 {item['name'][:100]}",
         "url": item["url"],
         "color": 0x00FF7F,
         "fields": [
@@ -682,6 +682,32 @@ def process_keyword(keyword_config: dict, seen_ids: dict) -> list[dict]:
         new_items = [it for it in new_items if it["price"] >= min_price]
         print(f"  最低価格フィルタ(¥{min_price}以上): {len(new_items)}件 (除外 {before - len(new_items)}件)")
 
+    # 除外ワードフィルタ（config exclude_words + GENRE_EXCLUDE_WORDS）
+    exclude_words_raw = keyword_config.get("exclude_words", [])
+    genre_excl = GENRE_EXCLUDE_WORDS.get(genre, [])
+    all_exclude = list({w.lower() for w in exclude_words_raw + genre_excl})
+    if all_exclude:
+        before = len(new_items)
+        new_items = [
+            it for it in new_items
+            if not any(w in it["name"].lower() for w in all_exclude)
+        ]
+        removed = before - len(new_items)
+        if removed:
+            print(f"  除外ワードフィルタ: {removed}件除外")
+
+    # 必須ワードフィルタ（require_words）
+    require_words_raw = [w.lower() for w in keyword_config.get("require_words", [])]
+    if require_words_raw:
+        before = len(new_items)
+        new_items = [
+            it for it in new_items
+            if any(w in it["name"].lower() for w in require_words_raw)
+        ]
+        removed = before - len(new_items)
+        if removed:
+            print(f"  必須ワードフィルタ: {removed}件除外")
+
     # お得判定（上限価格以下かどうかのみチェック — 相場比較はAIに任せる）
     def is_good_deal(it: dict) -> bool:
         p = it["price"]
@@ -724,7 +750,7 @@ def process_keyword(keyword_config: dict, seen_ids: dict) -> list[dict]:
             send_discord_notification(item, keyword_config, ai_result, market_info)
 
     # seen_ids 更新（TTL付き辞書形式）
-    # AI判定済みIDのみ追加する — キーワード不一致・ワードフィルタ落ち・価格未達はここに入れない
+    # AI判定済みIDのみ追加する — キーワード不一致・ワードフィルタ蔦ち・価格未達はここに入れない
     # → それらのアイテムは次回ランで自動的に再評価される（価格変動にも対応）
     today = datetime.now().date().isoformat()
     new_seen_dict = {id: date for id, date in keyword_seen_dict.items() if date >= cutoff}
