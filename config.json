@@ -48,6 +48,19 @@
   ],
   "history": [
     {
+      "id": "mercari_m24695872345",
+      "name": "cocopar 13.3型 2K モバイルモニター USB-C",
+      "price": 7480,
+      "platform": "メルカリ",
+      "url": "https://jp.mercari.com/item/m24695872345",
+      "image_url": "https://static.mercdn.net/thumb/item/webp/m24695872345_1.jpg?1781439615",
+      "keyword": "2K モニター",
+      "ai_comment": "[deepseek-v4-flash] 13.3型は24インチ未満であり、ユーザーのサイズ条件を満たさないため。",
+      "ai_ok": false,
+      "market_info": "メルカリ相場: ¥9940（売れ済み平均）",
+      "detected_at": "2026-06-22T21:57:00.558438"
+    },
+    {
       "id": "mercari_m55067100902",
       "name": "Z-EDGE ゲーミングモニター 2K 165Hz 27インチ",
       "price": 16000,
@@ -764,7 +777,7 @@
     }
   ],
   "last_run": {
-    "started_at": "2026-06-22T21:54:07.477752",
+    "started_at": "2026-06-22T21:56:07.697936",
     "keywords": [
       {
         "keyword": "F48 BMW X1 フロアマット",
@@ -772,13 +785,13 @@
         "new": 0,
         "ai_judged": 0,
         "ai_ok": 0,
-        "market_info": "メルカリ相場: ¥10828（売れ済み平均）"
+        "market_info": "メルカリ相場: ¥20196（売れ済み平均）"
       },
       {
         "keyword": "2K モニター",
         "scraped": 90,
-        "new": 0,
-        "ai_judged": 0,
+        "new": 1,
+        "ai_judged": 1,
         "ai_ok": 0,
         "market_info": "メルカリ相場: ¥9940（売れ済み平均）"
       }
