@@ -48,6 +48,19 @@
   ],
   "history": [
     {
+      "id": "mercari_m36127704388",
+      "name": "Acouto 2K モバイルモニター 11インチ XC11 Pro",
+      "price": 7500,
+      "platform": "メルカリ",
+      "url": "https://jp.mercari.com/item/m36127704388",
+      "image_url": "https://static.mercdn.net/thumb/item/webp/m36127704388_1.jpg?1781959437",
+      "keyword": "2K モニター",
+      "ai_comment": "[gpt-4o-mini] 11インチでサイズが小さく、24インチ以上の条件を満たさないため。",
+      "ai_ok": false,
+      "market_info": "メルカリ相場: ¥9092（売れ済み平均）",
+      "detected_at": "2026-06-22T11:26:44.476263"
+    },
+    {
       "id": "mercari_m68080728088",
       "name": "BMW X1 F48 純正フロアマット 前後セット クリップ付き ブラック",
       "price": 4980,
@@ -738,21 +751,21 @@
     }
   ],
   "last_run": {
-    "started_at": "2026-06-22T11:23:49.875731",
+    "started_at": "2026-06-22T11:25:47.234183",
     "keywords": [
       {
         "keyword": "F48 BMW X1 フロアマット",
-        "scraped": 61,
+        "scraped": 60,
         "new": 0,
         "ai_judged": 0,
         "ai_ok": 0,
-        "market_info": "メルカリ相場: ¥10436（売れ済み平均）"
+        "market_info": "メルカリ相場: ¥20333（売れ済み平均）"
       },
       {
         "keyword": "2K モニター",
         "scraped": 90,
-        "new": 0,
-        "ai_judged": 0,
+        "new": 1,
+        "ai_judged": 1,
         "ai_ok": 0,
         "market_info": "メルカリ相場: ¥9092（売れ済み平均）"
       }
