@@ -480,9 +480,11 @@ REASON: 50文字以内の理由"""
 JUDGMENT: YES または NO
 REASON: 50文字以内の理由"""
 
+    # 実在する安定モデルのみ（無料モデルは 404削除・429枯渇 で全滅したため有料の激安モデルを主力に）
     MODELS = [
-        "google/gemini-2.0-flash-exp:free",
-        "meta-llama/llama-3.3-70b-instruct:free",
+        "openai/gpt-4o-mini",                      # 主力: 安定・激安（~$0.15/1M）
+        "google/gemini-2.0-flash-001",             # 予備: 安定版（:exp は削除済み）
+        "meta-llama/llama-3.3-70b-instruct:free",  # 最終手段: 無料（レート制限あり）
     ]
 
     for model in MODELS:
