@@ -84,6 +84,14 @@
   #settings-panel { transform: translateX(100%); transition: transform .28s cubic-bezier(.2,.7,.3,1); }
   #settings-panel.open { transform: translateX(0); }
   #settings-backdrop { transition: opacity .25s; }
+
+  /* モデルピッカー */
+  .chip-toggle { cursor:pointer; }
+  .chip-pill { display:inline-block; padding:5px 11px; border-radius:999px; font-size:12px; border:1px solid var(--border-2); color:var(--text-2); background:#fff; transition:background .15s,color .15s,border-color .15s; user-select:none; }
+  .chip-toggle input:checked + .chip-pill { background:var(--accent); color:#fff; border-color:var(--accent); }
+  .model-row { display:flex; align-items:center; gap:8px; width:100%; text-align:left; padding:10px 11px; border-radius:10px; cursor:pointer; background:transparent; border:0; color:var(--text); font-size:13.5px; }
+  .model-row:hover { background:var(--surface-2); }
+  .model-row.active { background:var(--accent-soft); font-weight:600; }
 </style>
 
 <!-- ====== 自己完結ユーティリティCSS（Tailwind CDN非依存） ====== -->
@@ -243,17 +251,36 @@
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>
     </button>
 
-    <div class="select-wrap justify-self-center min-w-0 max-w-full">
-      <select id="model-select" title="モデルを選択"
-        class="btn-press text-[13.5px] font-medium rounded-full pl-4 pr-9 py-2 max-w-full truncate cursor-pointer bg-white"
-        style="border:1px solid var(--border-2);color:var(--text)"></select>
-      <span class="chev"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg></span>
-    </div>
+    <button id="model-btn" class="btn-press justify-self-center inline-flex items-center gap-1.5 text-[13.5px] font-medium rounded-full pl-4 pr-3 py-2 max-w-full bg-white" style="border:1px solid var(--border-2);color:var(--text)" title="モデルを選択・絞り込み">
+      <span id="model-btn-label" class="truncate">モデルを選択</span>
+      <svg class="shrink-0" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round" style="color:var(--text-2)"><path d="M6 9l6 6 6-6"/></svg>
+    </button>
 
     <button id="settings-btn" class="icon-btn justify-self-end" title="設定" aria-label="設定">
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9c.2.61.74 1.05 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
     </button>
   </header>
+
+  <!-- モデルピッカー -->
+  <div id="model-backdrop" class="hidden fixed inset-0 z-40"></div>
+  <div id="model-menu" class="hidden fixed z-50 bg-white flex flex-col" style="top:58px;left:50%;transform:translateX(-50%);width:min(93vw,440px);max-height:72vh;border:1px solid var(--border);border-radius:18px;box-shadow:0 25px 50px -12px rgba(0,0,0,.25)">
+    <div class="p-3" style="border-bottom:1px solid var(--border)">
+      <input id="model-search" type="text" placeholder="モデルを検索（gpt, claude, gemini…）" class="field mb-2" />
+      <div class="flex flex-wrap items-center gap-1.5">
+        <label class="chip-toggle"><input id="filter-top" type="checkbox" class="sr-only"><span class="chip-pill">⭐ 人気</span></label>
+        <label class="chip-toggle"><input id="filter-free" type="checkbox" class="sr-only"><span class="chip-pill">🆓 無料</span></label>
+        <label class="chip-toggle"><input id="filter-vision" type="checkbox" class="sr-only"><span class="chip-pill">🖼 画像</span></label>
+        <span id="model-count" class="text-[11px]" style="color:var(--muted);margin-left:auto"></span>
+      </div>
+    </div>
+    <div id="model-list" class="overflow-y-auto scroll-thin" style="padding:6px"></div>
+    <div class="flex items-center justify-between gap-2" style="padding:9px 12px;border-top:1px solid var(--border)">
+      <p id="model-info" class="hint truncate"></p>
+      <button id="refresh-models" class="shrink-0 text-[12px] font-medium inline-flex items-center gap-1" style="color:var(--accent)">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-2.6-6.4M21 3v6h-6"/></svg>再取得
+      </button>
+    </div>
+  </div>
 
   <!-- メッセージスレッド -->
   <div id="thread" class="flex-1 overflow-y-auto scroll-thin flex flex-col px-4 sm:px-6 py-6">
@@ -317,32 +344,6 @@
   </div>
 
   <div class="flex-1 overflow-y-auto scroll-thin px-5 py-6 space-y-8">
-    <!-- モデル -->
-    <section class="space-y-3">
-      <div>
-        <h3 class="label">モデルの絞り込み <span id="model-count" class="font-normal ml-0.5" style="color:var(--muted)"></span></h3>
-        <p class="hint mt-0.5">上部バーのプルダウンに表示するモデルを絞り込めます。</p>
-      </div>
-      <input id="model-search" type="text" placeholder="例: gpt, claude, gemini …" class="field" />
-      <div class="space-y-2.5 pt-0.5">
-        <label class="flex items-center justify-between cursor-pointer select-none">
-          <span class="text-[13.5px]" style="color:var(--text-2)">無料モデルのみ表示</span>
-          <input id="filter-free" type="checkbox" class="sr-only peer"><span class="switch"></span>
-        </label>
-        <label class="flex items-center justify-between cursor-pointer select-none">
-          <span class="text-[13.5px]" style="color:var(--text-2)">画像対応モデルのみ表示</span>
-          <input id="filter-vision" type="checkbox" class="sr-only peer"><span class="switch"></span>
-        </label>
-      </div>
-      <p id="model-info" class="hint min-h-[14px]"></p>
-      <button id="refresh-models" class="text-[12.5px] font-medium inline-flex items-center gap-1.5 hover:brightness-90 transition" style="color:var(--accent)">
-        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-2.6-6.4M21 3v6h-6"/></svg>
-        モデル一覧を再取得
-      </button>
-    </section>
-
-    <div class="border-t border-c"></div>
-
     <!-- システムプロンプト -->
     <section class="space-y-2">
       <div>
@@ -400,6 +401,10 @@ const APP_TITLE = "OpenRouter Chat UI";
 
 /* ============================================================ 状態 */
 let API_KEY = null, MODELS = [], messages = [], pendingImages = [], abortCtrl = null;
+let selectedModelId = localStorage.getItem(LS.model) || "";
+/* 「人気/主要モデル」フィルタ用：主要フラッグシップの id パターン（OpenRouter APIに人気順は無いため厳選） */
+const POPULAR_PATTERNS = ["openai/gpt-4o","openai/gpt-4.1","openai/o1","openai/o3","openai/o4","anthropic/claude-3.5-sonnet","anthropic/claude-3.7-sonnet","anthropic/claude-sonnet-4","anthropic/claude-opus-4","google/gemini-2.0-flash","google/gemini-2.5-pro","google/gemini-2.5-flash","meta-llama/llama-3.3-70b","meta-llama/llama-4","deepseek/deepseek-chat","deepseek/deepseek-r1","qwen/qwen-2.5-72b","qwen/qwen3","mistralai/mistral-large","mistralai/mistral-small","x-ai/grok-2","x-ai/grok-3"];
+const isTop = (m) => POPULAR_PATTERNS.some((p) => m.id.includes(p));
 
 /* ============================================================ Web Crypto */
 const enc = new TextEncoder(), dec = new TextDecoder();
@@ -483,7 +488,7 @@ function closeSettings() {
 $("settings-btn").addEventListener("click", openSettings);
 $("settings-close").addEventListener("click", closeSettings);
 $("settings-backdrop").addEventListener("click", closeSettings);
-document.addEventListener("keydown", (e)=>{ if(e.key==="Escape") closeSettings(); });
+document.addEventListener("keydown", (e)=>{ if(e.key==="Escape"){ closeSettings(); closeModelMenu(); } });
 
 /* ============================================================ アンロック後 */
 async function onUnlocked() {
@@ -503,58 +508,81 @@ function normalizeModels(raw) {
 }
 async function loadModels(forceRefresh) {
   const cached = localStorage.getItem(LS.models);
-  if (cached && !forceRefresh) { try { MODELS=JSON.parse(cached); renderModelOptions(); } catch {} }
+  if (cached && !forceRefresh) { try { MODELS=JSON.parse(cached); renderModelList(); } catch {} }
   try {
     const res = await fetch(`${API_BASE}/models`, { headers:{ Authorization:`Bearer ${API_KEY}` } });
     if (!res.ok) throw new Error("HTTP "+res.status);
     const data = await res.json();
     MODELS = normalizeModels(data.data || []);
     localStorage.setItem(LS.models, JSON.stringify(MODELS));
-    renderModelOptions();
+    renderModelList();
   } catch (e) { if (!MODELS.length) $("model-info").textContent = "モデル一覧の取得に失敗: " + e.message; }
 }
 function getFilters() {
-  return { search:$("model-search").value.trim().toLowerCase(), free:$("filter-free").checked, vision:$("filter-vision").checked };
+  return { search:$("model-search").value.trim().toLowerCase(), free:$("filter-free").checked, vision:$("filter-vision").checked, top:$("filter-top").checked };
 }
-function renderModelOptions() {
-  const f = getFilters(), sel = $("model-select");
-  const prev = localStorage.getItem(LS.model) || sel.value;
-  const filtered = MODELS.filter((m) => {
+function filteredModels() {
+  const f = getFilters();
+  return MODELS.filter((m) => {
     if (f.free && !m.free) return false;
     if (f.vision && !m.vision) return false;
+    if (f.top && !isTop(m)) return false;
     if (f.search && !(m.id.toLowerCase().includes(f.search) || m.name.toLowerCase().includes(f.search))) return false;
     return true;
   });
-  sel.innerHTML = "";
-  filtered.forEach((m) => {
-    const opt = document.createElement("option");
-    opt.value = m.id;
-    opt.textContent = (m.free?"🆓 ":"") + (m.vision?"🖼 ":"") + m.name;
-    sel.appendChild(opt);
-  });
-  if (filtered.some((m)=>m.id===prev)) sel.value = prev;
-  $("model-count").textContent = MODELS.length ? `(${filtered.length}/${MODELS.length})` : "";
-  onModelChange();
 }
-function currentModel() { return MODELS.find((m)=>m.id===$("model-select").value) || null; }
+function renderModelList() {
+  const filtered = filteredModels();
+  if (!selectedModelId || !MODELS.some((m)=>m.id===selectedModelId)) {
+    selectedModelId = ((filtered[0] || MODELS[0] || {}).id) || "";
+    if (selectedModelId) localStorage.setItem(LS.model, selectedModelId);
+  }
+  const list = $("model-list");
+  list.innerHTML = "";
+  if (!filtered.length) list.innerHTML = '<p class="hint" style="padding:18px;text-align:center">該当するモデルがありません</p>';
+  filtered.forEach((m) => {
+    const row = document.createElement("button");
+    row.className = "model-row" + (m.id===selectedModelId ? " active" : "");
+    const badges = (isTop(m)?"⭐":"") + (m.free?"🆓":"") + (m.vision?"🖼":"");
+    row.innerHTML = `<span class="truncate" style="flex:1 1 auto">${escapeHtml(m.name)}</span>` +
+      `<span class="shrink-0" style="font-size:11px;color:var(--muted)">${badges}${m.free?" 無料":""}</span>`;
+    row.addEventListener("click", () => selectModel(m.id));
+    list.appendChild(row);
+  });
+  $("model-count").textContent = MODELS.length ? `${filtered.length} / ${MODELS.length}` : "";
+  updateModelLabel(); onModelChange();
+}
+function selectModel(id) {
+  selectedModelId = id;
+  localStorage.setItem(LS.model, id);
+  updateModelLabel(); onModelChange(); closeModelMenu();
+}
+function currentModel() { return MODELS.find((m)=>m.id===selectedModelId) || null; }
+function updateModelLabel() {
+  const m = currentModel();
+  $("model-btn-label").textContent = m ? ((m.free?"🆓 ":"") + m.name) : "モデルを選択";
+}
 function onModelChange() {
   const m = currentModel();
   if (!m) { $("model-info").textContent=""; return; }
-  localStorage.setItem(LS.model, m.id);
   const tags = [];
   if (m.free) tags.push("無料");
-  else tags.push("入力 $"+(m.pricePrompt*1e6).toFixed(3)+" / 出力 $"+(m.priceCompletion*1e6).toFixed(3)+" (per 1M)");
+  else tags.push("入力 $"+(m.pricePrompt*1e6).toFixed(3)+" / 出力 $"+(m.priceCompletion*1e6).toFixed(3)+" (1M)");
   if (m.vision) tags.push("画像対応");
-  $("model-info").textContent = tags.join("  ・  ");
+  if (isTop(m)) tags.push("人気");
+  $("model-info").textContent = tags.join(" ・ ");
 }
-$("model-select").addEventListener("change", onModelChange);
+function openModelMenu() { renderModelList(); $("model-backdrop").classList.remove("hidden"); $("model-menu").classList.remove("hidden"); setTimeout(()=>$("model-search").focus(), 50); }
+function closeModelMenu() { $("model-backdrop").classList.add("hidden"); $("model-menu").classList.add("hidden"); }
+$("model-btn").addEventListener("click", openModelMenu);
+$("model-backdrop").addEventListener("click", closeModelMenu);
 $("refresh-models").addEventListener("click", () => loadModels(true));
-["model-search","filter-free","filter-vision"].forEach((id)=>{ $(id).addEventListener("input", ()=>{ saveFilters(); renderModelOptions(); }); });
+["model-search","filter-free","filter-vision","filter-top"].forEach((id)=>{ $(id).addEventListener("input", ()=>{ saveFilters(); renderModelList(); }); });
 function saveFilters() { localStorage.setItem(LS.filters, JSON.stringify(getFilters())); }
 function loadFilters() {
   try { const f = JSON.parse(localStorage.getItem(LS.filters)||"{}");
     if (f.search) $("model-search").value=f.search;
-    $("filter-free").checked=!!f.free; $("filter-vision").checked=!!f.vision;
+    $("filter-free").checked=!!f.free; $("filter-vision").checked=!!f.vision; $("filter-top").checked=!!f.top;
   } catch {}
 }
 
