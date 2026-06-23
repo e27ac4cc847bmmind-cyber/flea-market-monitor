@@ -654,6 +654,17 @@ function isNearBottom() { const t = $("thread"); return t.scrollHeight - t.scrol
 $("thread").addEventListener("scroll", () => { stickToBottom = isNearBottom(); });
 function followBottom() { if (stickToBottom) scrollBottom(); }
 
+/* APIエラーを読みやすい日本語に整形 */
+function friendlyError(status, body) {
+  let msg = (body || "").slice(0, 400);
+  try { const j = JSON.parse(body); msg = (j.error && j.error.message) || msg; } catch {}
+  if (status === 429) return `⚠️ レート制限（429）\n${msg}\n\n対処: 数十秒待ってから再送信 / 上部メニューで別の無料モデルに切り替え / 自分のOpenRouterキーで上限を緩和（設定→Integrations）。`;
+  if (status === 401 || status === 403) return `⚠️ 認証エラー（${status}）\nAPIキーが無効か権限がありません。設定からキーを再設定してください。`;
+  if (status === 402) return `⚠️ クレジット不足（402）\n残高が不足しています。無料モデルを選ぶか、OpenRouterでクレジットを追加してください。`;
+  if (status >= 500) return `⚠️ サーバー側エラー（${status}）\n${msg}\n\nしばらく待って再送信してください。`;
+  return `⚠️ エラー ${status}\n${msg}`;
+}
+
 /* ============================================================ 画像添付 */
 function fileToDataURL(file) {
   return new Promise((resolve, reject) => { const r=new FileReader(); r.onload=()=>resolve(r.result); r.onerror=reject; r.readAsDataURL(file); });
@@ -743,14 +754,30 @@ async function send() {
   let answer = "", usage = null;
 
   try {
-    const res = await fetch(`${API_BASE}/chat/completions`, {
+    const reqInit = {
       method:"POST",
       headers:{ Authorization:`Bearer ${API_KEY}`, "Content-Type":"application/json",
         "HTTP-Referer": location.origin || "https://localhost", "X-Title": APP_TITLE },
       body: JSON.stringify({ model:model.id, messages:reqMessages, stream:true, usage:{ include:true } }),
       signal: abortCtrl.signal,
-    });
-    if (!res.ok) { const errText = await res.text().catch(()=> ""); throw new Error(`HTTP ${res.status}: ${errText.slice(0,300)}`); }
+    };
+    let res, attempt = 0;
+    while (true) {
+      res = await fetch(`${API_BASE}/chat/completions`, reqInit);
+      if (res.ok) break;
+      const errText = await res.text().catch(()=> "");
+      if ([429, 502, 503].includes(res.status) && attempt < 2) {
+        attempt++;
+        const wait = attempt * 2;
+        bodyEl.classList.remove("typing");
+        bodyEl.innerHTML = formatBody(`⏳ 混雑のため再試行します… (${attempt}/2 ・ ${wait}秒待機)`);
+        followBottom();
+        await new Promise((r)=>setTimeout(r, wait * 1000));
+        bodyEl.classList.add("typing");
+        continue;
+      }
+      throw new Error(friendlyError(res.status, errText));
+    }
 
     const reader = res.body.getReader(), decoder = new TextDecoder();
     let buffer = "";
@@ -774,7 +801,7 @@ async function send() {
     }
   } catch (e) {
     if (e.name === "AbortError") answer += (answer?"\n\n":"") + "⏹ 生成を停止しました。";
-    else answer += (answer?"\n\n":"") + "⚠️ エラー: " + e.message;
+    else answer += (answer?"\n\n":"") + (e.message || ("⚠️ エラー: " + e));
   } finally {
     bodyEl.classList.remove("typing");
     bodyEl.innerHTML = formatBody(answer || "(応答なし)");
