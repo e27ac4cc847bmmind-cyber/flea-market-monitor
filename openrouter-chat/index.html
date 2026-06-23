@@ -481,6 +481,8 @@ let compareModels = [];  // 比較モードで選んだモデルID（最大3）
 /* 「人気/主要モデル」フィルタ用：主要フラッグシップの id パターン（OpenRouter APIに人気順は無いため厳選） */
 const POPULAR_PATTERNS = ["openai/gpt-4o","openai/gpt-4.1","openai/o1","openai/o3","openai/o4","anthropic/claude-3.5-sonnet","anthropic/claude-3.7-sonnet","anthropic/claude-sonnet-4","anthropic/claude-opus-4","google/gemini-2.0-flash","google/gemini-2.5-pro","google/gemini-2.5-flash","meta-llama/llama-3.3-70b","meta-llama/llama-4","deepseek/deepseek-chat","deepseek/deepseek-r1","qwen/qwen-2.5-72b","qwen/qwen3","mistralai/mistral-large","mistralai/mistral-small","x-ai/grok-2","x-ai/grok-3"];
 const isTop = (m) => POPULAR_PATTERNS.some((p) => m.id.includes(p));
+/* 1Mトークンあたりの価格を読みやすく整形 */
+const fmtPM = (v) => { const x = (v||0)*1e6; if (x===0) return "0"; if (x<0.1) return x.toFixed(3); if (x<10) return x.toFixed(2); return x.toFixed(1); };
 
 /* ============================================================ Web Crypto */
 const enc = new TextEncoder(), dec = new TextDecoder();
@@ -622,8 +624,13 @@ function renderModelList() {
     row.className = "model-row" + (on ? " active" : "");
     const badges = (isTop(m)?"⭐":"") + (m.free?"🆓":"") + (m.vision?"🖼":"");
     const mark = compareMode ? `<span class="cmp-check shrink-0">${on?"☑":"☐"}</span>` : "";
-    row.innerHTML = mark + `<span class="truncate" style="flex:1 1 auto">${escapeHtml(m.name)}</span>` +
-      `<span class="shrink-0" style="font-size:11px;color:var(--muted)">${badges}${m.free?" 無料":""}</span>`;
+    const price = m.free ? '<span style="color:#16a34a">無料</span>' : `入 $${fmtPM(m.pricePrompt)} / 出 $${fmtPM(m.priceCompletion)} <span style="opacity:.7">/1M</span>`;
+    row.innerHTML = mark +
+      `<span style="flex:1 1 auto;min-width:0">` +
+        `<span class="truncate" style="display:block">${escapeHtml(m.name)}</span>` +
+        `<span style="display:block;font-size:11px;color:var(--muted)">${price}</span>` +
+      `</span>` +
+      `<span class="shrink-0" style="font-size:13px;align-self:flex-start">${badges}</span>`;
     row.addEventListener("click", () => selectModel(m.id));
     list.appendChild(row);
   });
