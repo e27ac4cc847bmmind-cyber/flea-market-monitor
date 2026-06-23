@@ -48,6 +48,32 @@
   ],
   "history": [
     {
+      "id": "rakuma_ec0e5e0ef21951bc8cb43488bd49d06e",
+      "name": "【みか。さま専用】BMW X1 F48 純正Mスポーツフロアマット一式(車内アクセサリ)",
+      "price": 9000,
+      "platform": "ラクマ",
+      "url": "https://item.fril.jp/ec0e5e0ef21951bc8cb43488bd49d06e",
+      "image_url": "https://img.fril.jp/img/483022593/m/1415814004.jpg?1638582505",
+      "keyword": "F48 BMW X1 フロアマット",
+      "ai_comment": "[deepseek-v4-flash] 商品はMスポーツ仕様でラバー製ではない可能性が高く、状態も不明なため条件を満たさない。",
+      "ai_ok": false,
+      "market_info": "メルカリ相場: ¥20196（売れ済み平均）",
+      "detected_at": "2026-06-23T06:00:05.429449"
+    },
+    {
+      "id": "rakuma_fbba08ca8d7005c04bafd5ea31a228e0",
+      "name": "ビーエムダブリュー(BMW)のBMW X1 f48 純正フロアマット 4点セット(車内アクセサリ)",
+      "price": 4000,
+      "platform": "ラクマ",
+      "url": "https://item.fril.jp/fbba08ca8d7005c04bafd5ea31a228e0",
+      "image_url": "https://img.fril.jp/img/226866326/m/644579382.jpg?1557400415",
+      "keyword": "F48 BMW X1 フロアマット",
+      "ai_comment": "[deepseek-v4-flash] ラバー製か不明で、状態の詳細が不足しており要件を満たすか判断できないため。",
+      "ai_ok": false,
+      "market_info": "メルカリ相場: ¥20196（売れ済み平均）",
+      "detected_at": "2026-06-23T06:00:10.146175"
+    },
+    {
       "id": "mercari_m98695396031",
       "name": "cocopar モバイルモニター 13.3インチ 2K 2560×1600",
       "price": 10000,
@@ -790,15 +816,15 @@
     }
   ],
   "last_run": {
-    "started_at": "2026-06-23T05:57:35.902481",
+    "started_at": "2026-06-23T05:59:36.798379",
     "keywords": [
       {
         "keyword": "F48 BMW X1 フロアマット",
-        "scraped": 59,
-        "new": 0,
-        "ai_judged": 0,
+        "scraped": 37,
+        "new": 2,
+        "ai_judged": 2,
         "ai_ok": 0,
-        "market_info": "メルカリ相場: ¥10700（売れ済み平均）"
+        "market_info": "メルカリ相場: ¥20196（売れ済み平均）"
       },
       {
         "keyword": "2K モニター",
@@ -806,7 +832,7 @@
         "new": 0,
         "ai_judged": 0,
         "ai_ok": 0,
-        "market_info": "メルカリ相場: ¥9941（売れ済み平均）"
+        "market_info": "メルカリ相場: ¥9864（売れ済み平均）"
       }
     ]
   }
