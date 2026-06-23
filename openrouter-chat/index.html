@@ -105,6 +105,26 @@
   #settings-panel { transform: translateX(100%); transition: transform .28s cubic-bezier(.2,.7,.3,1); }
   #settings-panel.open { transform: translateX(0); }
   #settings-backdrop { transition: opacity .25s; }
+  #convos-panel { transform: translateX(-100%); transition: transform .28s cubic-bezier(.2,.7,.3,1); box-shadow: 0 25px 50px -12px rgba(0,0,0,.25); }
+  #convos-panel.open { transform: translateX(0); }
+  #convos-backdrop { transition: opacity .25s; }
+
+  /* 会話行 */
+  .convo-row { display:flex; align-items:center; gap:2px; border-radius:10px; padding:2px; }
+  .convo-row:hover { background:var(--surface-2); }
+  .convo-row.active { background:var(--accent-soft); }
+  .convo-open { flex:1 1 auto; min-width:0; text-align:left; padding:8px 10px; font-size:13.5px; color:var(--text); background:transparent; border:0; cursor:pointer; }
+  .convo-row.active .convo-open { font-weight:600; }
+  .convo-ico { flex:0 0 auto; width:30px; height:30px; border-radius:8px; background:transparent; border:0; cursor:pointer; color:var(--muted); font-size:13px; opacity:0; transition:opacity .15s,background .15s; }
+  .convo-row:hover .convo-ico { opacity:1; }
+  .convo-ico:hover { background:#ececef; color:var(--text); }
+
+  /* メッセージ操作 */
+  .msg-actions { display:flex; gap:4px; margin-top:6px; opacity:0; transition:opacity .15s; }
+  .msg-row:hover .msg-actions { opacity:1; }
+  .msg-act { font-size:11.5px; color:var(--text-2); border:1px solid var(--border); border-radius:8px; padding:3px 9px; background:#fff; cursor:pointer; transition:background .15s,border-color .15s; }
+  .msg-act:hover { background:var(--surface-2); border-color:var(--border-2); }
+  @media (hover:none) { .msg-actions, .convo-ico { opacity:1; } }
 
   /* モデルピッカー */
   .chip-toggle { cursor:pointer; }
@@ -268,9 +288,14 @@
 
   <!-- 上部バー -->
   <header class="shrink-0 h-14 px-3 sm:px-4 grid grid-cols-3 items-center border-b border-c bg-white/80 backdrop-blur">
-    <button id="new-chat" class="icon-btn justify-self-start" title="新しい会話（クリア）" aria-label="新しい会話">
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>
-    </button>
+    <div class="justify-self-start flex items-center gap-0.5">
+      <button id="convos-btn" class="icon-btn" title="会話一覧" aria-label="会話一覧">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
+      </button>
+      <button id="new-chat" class="icon-btn" title="新しい会話" aria-label="新しい会話">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>
+      </button>
+    </div>
 
     <button id="model-btn" class="btn-press justify-self-center inline-flex items-center gap-1.5 text-[13.5px] font-medium rounded-full pl-4 pr-3 py-2 max-w-full bg-white" style="border:1px solid var(--border-2);color:var(--text)" title="モデルを選択・絞り込み">
       <span id="model-btn-label" class="truncate">モデルを選択</span>
@@ -355,6 +380,24 @@
 </div>
 
 <!-- ===================== 設定パネル ===================== -->
+<!-- ===================== 会話一覧ドロワー ===================== -->
+<div id="convos-backdrop" class="hidden fixed inset-0 bg-slate-900/25 z-40 opacity-0"></div>
+<aside id="convos-panel" class="fixed top-0 left-0 bottom-0 z-50 w-[300px] max-w-[88vw] flex flex-col bg-white" style="border-right:1px solid var(--border)">
+  <div class="h-14 shrink-0 px-4 flex items-center justify-between border-b border-c">
+    <h2 class="font-semibold text-[15px]">会話</h2>
+    <div class="flex items-center gap-1">
+      <button id="convos-new" class="icon-btn" title="新しい会話" aria-label="新しい会話">
+        <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>
+      </button>
+      <button id="convos-close" class="icon-btn" aria-label="閉じる">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg>
+      </button>
+    </div>
+  </div>
+  <div class="p-3 shrink-0"><input id="convos-search" type="text" placeholder="会話を検索…" class="field" /></div>
+  <div id="convos-list" class="flex-1 overflow-y-auto scroll-thin px-2 pb-3"></div>
+</aside>
+
 <div id="settings-backdrop" class="hidden fixed inset-0 bg-slate-900/25 z-40 opacity-0"></div>
 <aside id="settings-panel" class="fixed top-0 right-0 bottom-0 z-50 w-[380px] max-w-[90vw] flex flex-col bg-white shadow-2xl shadow-slate-900/15" style="border-left:1px solid var(--border)">
   <div class="h-14 shrink-0 px-5 flex items-center justify-between border-b border-c">
@@ -416,6 +459,7 @@
 const LS = {
   enc:"or_chat_apikey_enc", models:"or_chat_models", model:"or_chat_model",
   system:"or_chat_system", history:"or_chat_history", costs:"or_chat_costs", filters:"or_chat_filters",
+  convos:"or_chat_convos", cur:"or_chat_cur",
 };
 const API_BASE = "https://openrouter.ai/api/v1";
 const APP_TITLE = "OpenRouter Chat UI";
@@ -509,11 +553,11 @@ function closeSettings() {
 $("settings-btn").addEventListener("click", openSettings);
 $("settings-close").addEventListener("click", closeSettings);
 $("settings-backdrop").addEventListener("click", closeSettings);
-document.addEventListener("keydown", (e)=>{ if(e.key==="Escape"){ closeSettings(); closeModelMenu(); } });
+document.addEventListener("keydown", (e)=>{ if(e.key==="Escape"){ closeSettings(); closeModelMenu(); closeConvos(); } });
 
 /* ============================================================ アンロック後 */
 async function onUnlocked() {
-  loadSystemPrompt(); loadFilters(); renderCosts(); loadHistory(); await loadModels(false);
+  loadSystemPrompt(); loadFilters(); renderCosts(); loadConversations(); loadHistory(); await loadModels(false);
 }
 
 /* ============================================================ モデル一覧 */
@@ -635,24 +679,81 @@ function renderCosts() {
 }
 $("reset-cost").addEventListener("click", () => { if (confirm("累計コストをリセットしますか？")) { localStorage.removeItem(LS.costs); renderCosts(); } });
 
-/* ============================================================ 会話履歴 */
-function saveHistory() { localStorage.setItem(LS.history, JSON.stringify(messages)); }
+/* ============================================================ 会話（複数スレッド） */
+let conversations = [];
+let currentConvId = null;
+const makeConv = (msgs) => ({ id: "c"+Date.now().toString(36)+Math.random().toString(36).slice(2,6), title:"", messages: msgs||[], updatedAt: Date.now() });
+const currentConv = () => conversations.find(c=>c.id===currentConvId) || conversations[0];
+function convTitle(c) {
+  if (c.title) return c.title;
+  const fu = c.messages.find(m=>m.role==="user");
+  if (fu) { const { text } = extractParts(fu.content); if (text) return text.slice(0,40); }
+  return "新しい会話";
+}
+function saveConversations() { localStorage.setItem(LS.convos, JSON.stringify(conversations)); localStorage.setItem(LS.cur, currentConvId||""); }
+function loadConversations() {
+  try { conversations = JSON.parse(localStorage.getItem(LS.convos)) || []; } catch { conversations = []; }
+  currentConvId = localStorage.getItem(LS.cur) || null;
+  if (!conversations.length) {
+    let old = []; try { old = JSON.parse(localStorage.getItem(LS.history)) || []; } catch {}
+    const c = makeConv(old); conversations = [c]; currentConvId = c.id; saveConversations();
+  }
+  if (!conversations.some(c=>c.id===currentConvId)) currentConvId = conversations[0].id;
+}
 function updateEmptyState() { $("empty-state").classList.toggle("hidden", messages.length>0); }
-function loadHistory() {
-  try { messages = JSON.parse(localStorage.getItem(LS.history)) || []; } catch { messages = []; }
+function renderThread() {
   document.querySelectorAll(".msg-row").forEach((el)=>el.remove());
-  messages.forEach((m)=>renderMessage(m.role, m.content));
+  messages.forEach((m, i)=>renderMessage(m.role, m.content, i));
   updateEmptyState(); scrollBottom();
 }
-function clearChat() {
-  if (confirm("会話履歴を消去しますか？")) {
-    messages = []; saveHistory();
-    document.querySelectorAll(".msg-row").forEach((el)=>el.remove());
-    updateEmptyState();
-  }
+function saveHistory() { const c = currentConv(); if (!c) return; c.messages = messages; c.updatedAt = Date.now(); saveConversations(); renderConvosList(); }
+function loadHistory() { const c = currentConv(); messages = c ? c.messages : []; renderThread(); }
+
+function newConversation() { const c = makeConv([]); conversations.unshift(c); currentConvId = c.id; messages = []; saveConversations(); renderThread(); renderConvosList(); closeConvos(); inputEl.focus(); }
+function switchConversation(id) { currentConvId = id; loadHistory(); saveConversations(); renderConvosList(); closeConvos(); }
+function deleteConversation(id) {
+  if (!confirm("この会話を削除しますか？")) return;
+  conversations = conversations.filter(c=>c.id!==id);
+  if (!conversations.length) conversations = [makeConv([])];
+  if (id===currentConvId) currentConvId = conversations[0].id;
+  saveConversations(); loadHistory(); renderConvosList();
 }
+function renameConversation(id) {
+  const c = conversations.find(x=>x.id===id); if (!c) return;
+  const t = prompt("会話のタイトル", convTitle(c)); if (t===null) return;
+  c.title = t.trim(); saveConversations(); renderConvosList();
+}
+function clearChat() { if (!confirm("この会話の内容を消去しますか？")) return; messages = []; saveHistory(); renderThread(); }
+function renderConvosList() {
+  const box = $("convos-list"); if (!box) return;
+  const q = ($("convos-search").value||"").toLowerCase();
+  box.innerHTML = "";
+  conversations.slice().sort((a,b)=>b.updatedAt-a.updatedAt)
+    .filter(c=>!q || convTitle(c).toLowerCase().includes(q))
+    .forEach(c=>{
+      const row = document.createElement("div");
+      row.className = "convo-row" + (c.id===currentConvId ? " active" : "");
+      row.innerHTML = `<button class="convo-open" data-id="${c.id}"><span class="truncate">${escapeHtml(convTitle(c))}</span></button>`+
+        `<button class="convo-ico convo-rename" data-id="${c.id}" title="名前を変更">✎</button>`+
+        `<button class="convo-ico convo-del" data-id="${c.id}" title="削除">🗑</button>`;
+      box.appendChild(row);
+    });
+}
+function openConvos() { renderConvosList(); const bd=$("convos-backdrop"); bd.classList.remove("hidden"); requestAnimationFrame(()=>bd.classList.add("opacity-100")); $("convos-panel").classList.add("open"); }
+function closeConvos() { const bd=$("convos-backdrop"); bd.classList.remove("opacity-100"); $("convos-panel").classList.remove("open"); setTimeout(()=>bd.classList.add("hidden"),250); }
+$("convos-btn").addEventListener("click", openConvos);
+$("convos-close").addEventListener("click", closeConvos);
+$("convos-backdrop").addEventListener("click", closeConvos);
+$("convos-new").addEventListener("click", newConversation);
+$("new-chat").addEventListener("click", newConversation);
+$("convos-search").addEventListener("input", renderConvosList);
+$("convos-list").addEventListener("click", (e)=>{
+  const open=e.target.closest(".convo-open"), ren=e.target.closest(".convo-rename"), del=e.target.closest(".convo-del");
+  if (del) deleteConversation(del.dataset.id);
+  else if (ren) renameConversation(ren.dataset.id);
+  else if (open) switchConversation(open.dataset.id);
+});
 $("clear-chat").addEventListener("click", clearChat);
-$("new-chat").addEventListener("click", clearChat);
 
 function extractParts(content) {
   if (typeof content === "string") return { text:content, images:[] };
@@ -718,11 +819,11 @@ function formatBody(src) {
   return html;
 }
 
-function renderMessage(role, content) {
+function renderMessage(role, content, index) {
   const { text, images } = extractParts(content);
   const isUser = role === "user";
   const row = document.createElement("div");
-  row.className = "msg-row fade-in w-full max-w-3xl mx-auto mb-7 flex " + (isUser ? "justify-end" : "");
+  row.className = "msg-row fade-in w-full max-w-3xl mx-auto mb-7 flex flex-col " + (isUser ? "items-end" : "items-start");
 
   const block = document.createElement("div");
   if (isUser) {
@@ -741,6 +842,15 @@ function renderMessage(role, content) {
   inner += `<div class="msg-body">${formatBody(text)}</div>`;
   block.innerHTML = inner;
   row.appendChild(block);
+
+  if (typeof index === "number") {
+    const actions = document.createElement("div");
+    actions.className = "msg-actions";
+    actions.innerHTML = isUser
+      ? `<button class="msg-act" data-act="edit" data-i="${index}">✏️ 編集</button>`
+      : `<button class="msg-act" data-act="regen" data-i="${index}">↻ 再生成</button><button class="msg-act" data-act="copy" data-i="${index}">📋 コピー</button>`;
+    row.appendChild(actions);
+  }
   $("thread").appendChild(row);
   return block;
 }
@@ -756,6 +866,25 @@ $("thread").addEventListener("click", (e) => {
   const code = btn.closest(".code-wrap").querySelector("pre code");
   navigator.clipboard.writeText(code.textContent).then(() => { const o = btn.textContent; btn.textContent = "コピー済み"; setTimeout(() => { btn.textContent = o; }, 1200); });
 });
+/* メッセージ操作（再生成 / 編集 / コピー） */
+$("thread").addEventListener("click", (e) => {
+  const a = e.target.closest(".msg-act"); if (!a) return;
+  const i = +a.dataset.i, act = a.dataset.act;
+  if (act === "edit") editMessage(i);
+  else if (act === "regen") regenerateAt(i);
+  else if (act === "copy") { const { text } = extractParts(messages[i].content); navigator.clipboard.writeText(text).then(() => { const o=a.textContent; a.textContent="コピー済み"; setTimeout(()=>{ a.textContent=o; },1200); }); }
+});
+function editMessage(i) {
+  const { text } = extractParts(messages[i].content);
+  messages = messages.slice(0, i); saveHistory(); renderThread();
+  inputEl.value = text; inputEl.dispatchEvent(new Event("input")); inputEl.focus();
+}
+async function regenerateAt(i) {
+  if (!API_KEY) { showGate(); return; }
+  if (!currentModel()) { alert("モデルを選択してください。"); return; }
+  messages = messages.slice(0, i); saveHistory(); renderThread();
+  stickToBottom = true; await streamAssistant();
+}
 
 /* APIエラーを読みやすい日本語に整形 */
 function friendlyError(status, body) {
@@ -838,11 +967,15 @@ async function send() {
   const userContent = buildUserContent(text, images);
 
   messages.push({ role:"user", content:userContent });
-  updateEmptyState(); renderMessage("user", userContent); saveHistory();
-
   inputEl.value = ""; inputEl.style.height = "auto";
-  pendingImages = []; renderAttachments(); stickToBottom = true; scrollBottom();
+  pendingImages = []; renderAttachments();
+  updateEmptyState(); saveHistory(); stickToBottom = true; renderThread();
 
+  await streamAssistant();
+}
+
+async function streamAssistant() {
+  const model = currentModel();
   const block = renderMessage("assistant", "");
   const bodyEl = block.querySelector(".msg-body");
   bodyEl.classList.add("typing"); scrollBottom();
@@ -910,7 +1043,7 @@ async function send() {
     bodyEl.innerHTML = formatBody(answer || "(応答なし)");
     abortCtrl = null; setSending(false);
     messages.push({ role:"assistant", content:answer }); saveHistory();
-    recordCost(model, usage); followBottom();
+    recordCost(model, usage); renderThread(); followBottom();
   }
 }
 function recordCost(model, usage) {
