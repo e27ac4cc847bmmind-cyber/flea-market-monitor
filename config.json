@@ -48,6 +48,19 @@
   ],
   "history": [
     {
+      "id": "mercari_m51000477245",
+      "name": "モバイルモニター 14インチ 2K解像度 モバイルディスプレイ",
+      "price": 8000,
+      "platform": "メルカリ",
+      "url": "https://jp.mercari.com/item/m51000477245",
+      "image_url": "https://static.mercdn.net/thumb/item/webp/m51000477245_1.jpg?1782222677",
+      "keyword": "2K モニター",
+      "ai_comment": "[gpt-4o-mini] ユーザーの指示に従い、24インチ以上の要件を満たしていないため。",
+      "ai_ok": false,
+      "market_info": "メルカリ相場: ¥8234（売れ済み平均）",
+      "detected_at": "2026-06-23T13:53:32.752147"
+    },
+    {
       "id": "rakuma_ec0e5e0ef21951bc8cb43488bd49d06e",
       "name": "【みか。さま専用】BMW X1 F48 純正Mスポーツフロアマット一式(車内アクセサリ)",
       "price": 9000,
@@ -816,7 +829,7 @@
     }
   ],
   "last_run": {
-    "started_at": "2026-06-23T13:50:19.747542",
+    "started_at": "2026-06-23T13:52:28.779686",
     "keywords": [
       {
         "keyword": "F48 BMW X1 フロアマット",
@@ -824,15 +837,15 @@
         "new": 0,
         "ai_judged": 0,
         "ai_ok": 0,
-        "market_info": "メルカリ相場: ¥19446（売れ済み平均）"
+        "market_info": "メルカリ相場: ¥21957（売れ済み平均）"
       },
       {
         "keyword": "2K モニター",
         "scraped": 90,
-        "new": 0,
-        "ai_judged": 0,
+        "new": 1,
+        "ai_judged": 1,
         "ai_ok": 0,
-        "market_info": "メルカリ相場: ¥8577（売れ済み平均）"
+        "market_info": "メルカリ相場: ¥8234（売れ済み平均）"
       }
     ]
   }
