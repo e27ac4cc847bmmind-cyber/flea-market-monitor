@@ -133,6 +133,13 @@
   .model-row { display:flex; align-items:center; gap:8px; width:100%; text-align:left; padding:10px 11px; border-radius:10px; cursor:pointer; background:transparent; border:0; color:var(--text); font-size:13.5px; }
   .model-row:hover { background:var(--surface-2); }
   .model-row.active { background:var(--accent-soft); font-weight:600; }
+  .cmp-check { font-size:14px; color:var(--accent); }
+
+  /* マルチモデル比較 */
+  .cmp-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(240px,1fr)); gap:12px; }
+  .cmp-card { border:1px solid var(--border); border-radius:14px; overflow:hidden; background:#fff; display:flex; flex-direction:column; }
+  .cmp-head { font-size:12px; font-weight:600; color:var(--text-2); padding:8px 12px; background:var(--surface-2); border-bottom:1px solid var(--border); position:sticky; top:0; }
+  .cmp-card .msg-body { padding:12px; font-size:14px; }
 </style>
 
 <!-- ====== 自己完結ユーティリティCSS（Tailwind CDN非依存） ====== -->
@@ -316,8 +323,10 @@
         <label class="chip-toggle"><input id="filter-top" type="checkbox" class="sr-only"><span class="chip-pill">⭐ 人気</span></label>
         <label class="chip-toggle"><input id="filter-free" type="checkbox" class="sr-only"><span class="chip-pill">🆓 無料</span></label>
         <label class="chip-toggle"><input id="filter-vision" type="checkbox" class="sr-only"><span class="chip-pill">🖼 画像</span></label>
+        <label class="chip-toggle" title="複数モデルに同時送信して比較"><input id="cmp-toggle" type="checkbox" class="sr-only"><span class="chip-pill">⚔️ 比較</span></label>
         <span id="model-count" class="text-[11px]" style="color:var(--muted);margin-left:auto"></span>
       </div>
+      <p id="cmp-hint" class="hidden hint" style="margin-top:8px">比較するモデルをタップで選択（最大3）。もう一度タップで解除。</p>
     </div>
     <div id="model-list" class="overflow-y-auto scroll-thin" style="padding:6px"></div>
     <div class="flex items-center justify-between gap-2" style="padding:9px 12px;border-top:1px solid var(--border)">
@@ -459,7 +468,7 @@
 const LS = {
   enc:"or_chat_apikey_enc", models:"or_chat_models", model:"or_chat_model",
   system:"or_chat_system", history:"or_chat_history", costs:"or_chat_costs", filters:"or_chat_filters",
-  convos:"or_chat_convos", cur:"or_chat_cur",
+  convos:"or_chat_convos", cur:"or_chat_cur", cmpmode:"or_chat_cmpmode", cmpmodels:"or_chat_cmpmodels",
 };
 const API_BASE = "https://openrouter.ai/api/v1";
 const APP_TITLE = "OpenRouter Chat UI";
@@ -467,6 +476,8 @@ const APP_TITLE = "OpenRouter Chat UI";
 /* ============================================================ 状態 */
 let API_KEY = null, MODELS = [], messages = [], pendingImages = [], abortCtrl = null;
 let selectedModelId = localStorage.getItem(LS.model) || "";
+let compareMode = false;
+let compareModels = [];  // 比較モードで選んだモデルID（最大3）
 /* 「人気/主要モデル」フィルタ用：主要フラッグシップの id パターン（OpenRouter APIに人気順は無いため厳選） */
 const POPULAR_PATTERNS = ["openai/gpt-4o","openai/gpt-4.1","openai/o1","openai/o3","openai/o4","anthropic/claude-3.5-sonnet","anthropic/claude-3.7-sonnet","anthropic/claude-sonnet-4","anthropic/claude-opus-4","google/gemini-2.0-flash","google/gemini-2.5-pro","google/gemini-2.5-flash","meta-llama/llama-3.3-70b","meta-llama/llama-4","deepseek/deepseek-chat","deepseek/deepseek-r1","qwen/qwen-2.5-72b","qwen/qwen3","mistralai/mistral-large","mistralai/mistral-small","x-ai/grok-2","x-ai/grok-3"];
 const isTop = (m) => POPULAR_PATTERNS.some((p) => m.id.includes(p));
@@ -557,7 +568,7 @@ document.addEventListener("keydown", (e)=>{ if(e.key==="Escape"){ closeSettings(
 
 /* ============================================================ アンロック後 */
 async function onUnlocked() {
-  loadSystemPrompt(); loadFilters(); renderCosts(); loadConversations(); loadHistory(); await loadModels(false);
+  loadSystemPrompt(); loadFilters(); loadCompare(); renderCosts(); loadConversations(); loadHistory(); await loadModels(false);
 }
 
 /* ============================================================ モデル一覧 */
@@ -607,9 +618,11 @@ function renderModelList() {
   if (!filtered.length) list.innerHTML = '<p class="hint" style="padding:18px;text-align:center">該当するモデルがありません</p>';
   filtered.forEach((m) => {
     const row = document.createElement("button");
-    row.className = "model-row" + (m.id===selectedModelId ? " active" : "");
+    const on = compareMode ? compareModels.includes(m.id) : (m.id===selectedModelId);
+    row.className = "model-row" + (on ? " active" : "");
     const badges = (isTop(m)?"⭐":"") + (m.free?"🆓":"") + (m.vision?"🖼":"");
-    row.innerHTML = `<span class="truncate" style="flex:1 1 auto">${escapeHtml(m.name)}</span>` +
+    const mark = compareMode ? `<span class="cmp-check shrink-0">${on?"☑":"☐"}</span>` : "";
+    row.innerHTML = mark + `<span class="truncate" style="flex:1 1 auto">${escapeHtml(m.name)}</span>` +
       `<span class="shrink-0" style="font-size:11px;color:var(--muted)">${badges}${m.free?" 無料":""}</span>`;
     row.addEventListener("click", () => selectModel(m.id));
     list.appendChild(row);
@@ -618,15 +631,35 @@ function renderModelList() {
   updateModelLabel(); onModelChange();
 }
 function selectModel(id) {
+  if (compareMode) {
+    const i = compareModels.indexOf(id);
+    if (i >= 0) compareModels.splice(i, 1);
+    else { if (compareModels.length >= 3) { alert("比較は最大3モデルまでです。"); return; } compareModels.push(id); }
+    saveCompare(); updateModelLabel(); renderModelList();
+    return;
+  }
   selectedModelId = id;
   localStorage.setItem(LS.model, id);
   updateModelLabel(); onModelChange(); closeModelMenu();
 }
 function currentModel() { return MODELS.find((m)=>m.id===selectedModelId) || null; }
 function updateModelLabel() {
+  if (compareMode) { $("model-btn-label").textContent = compareModels.length ? `⚔️ ${compareModels.length}モデルで比較` : "⚔️ 比較するモデルを選択"; return; }
   const m = currentModel();
   $("model-btn-label").textContent = m ? ((m.free?"🆓 ":"") + m.name) : "モデルを選択";
 }
+function saveCompare() { localStorage.setItem(LS.cmpmode, compareMode?"1":""); localStorage.setItem(LS.cmpmodels, JSON.stringify(compareModels)); }
+function loadCompare() {
+  compareMode = localStorage.getItem(LS.cmpmode) === "1";
+  try { compareModels = JSON.parse(localStorage.getItem(LS.cmpmodels)) || []; } catch { compareModels = []; }
+  $("cmp-toggle").checked = compareMode;
+  $("cmp-hint").classList.toggle("hidden", !compareMode);
+}
+$("cmp-toggle").addEventListener("change", () => {
+  compareMode = $("cmp-toggle").checked;
+  $("cmp-hint").classList.toggle("hidden", !compareMode);
+  saveCompare(); updateModelLabel(); renderModelList();
+});
 function onModelChange() {
   const m = currentModel();
   if (!m) { $("model-info").textContent=""; return; }
@@ -958,8 +991,8 @@ function buildUserContent(text, images) {
 
 async function send() {
   if (!API_KEY) { showGate(); return; }
-  const model = currentModel();
-  if (!model) { alert("モデルを選択してください。"); return; }
+  if (compareMode && compareModels.length < 2) { openModelMenu(); alert("比較するモデルを2つ以上選んでください。"); return; }
+  if (!compareMode && !currentModel()) { alert("モデルを選択してください。"); return; }
   const text = inputEl.value.trim();
   if (!text && !pendingImages.length) return;
 
@@ -971,40 +1004,27 @@ async function send() {
   pendingImages = []; renderAttachments();
   updateEmptyState(); saveHistory(); stickToBottom = true; renderThread();
 
-  await streamAssistant();
+  if (compareMode) await sendCompare(); else await streamAssistant();
 }
 
-async function streamAssistant() {
-  const model = currentModel();
-  const block = renderMessage("assistant", "");
-  const bodyEl = block.querySelector(".msg-body");
-  bodyEl.classList.add("typing"); scrollBottom();
-
-  const sys = $("system-prompt").value.trim();
-  const reqMessages = [];
-  if (sys) reqMessages.push({ role:"system", content:sys });
-  for (const m of messages) reqMessages.push(m);
-
-  setSending(true);
-  abortCtrl = new AbortController();
-  let answer = "", usage = null;
-
+/* 1モデル分のSSEストリーミング（リトライ込み）。bodyEl に逐次描画し {answer,usage} を返す */
+async function runStream(model, reqMessages, bodyEl) {
+  let answer = "", usage = null, attempt = 0;
+  const reqInit = {
+    method:"POST",
+    headers:{ Authorization:`Bearer ${API_KEY}`, "Content-Type":"application/json",
+      "HTTP-Referer": location.origin || "https://localhost", "X-Title": APP_TITLE },
+    body: JSON.stringify({ model:model.id, messages:reqMessages, stream:true, usage:{ include:true } }),
+    signal: abortCtrl.signal,
+  };
   try {
-    const reqInit = {
-      method:"POST",
-      headers:{ Authorization:`Bearer ${API_KEY}`, "Content-Type":"application/json",
-        "HTTP-Referer": location.origin || "https://localhost", "X-Title": APP_TITLE },
-      body: JSON.stringify({ model:model.id, messages:reqMessages, stream:true, usage:{ include:true } }),
-      signal: abortCtrl.signal,
-    };
-    let res, attempt = 0;
+    let res;
     while (true) {
       res = await fetch(`${API_BASE}/chat/completions`, reqInit);
       if (res.ok) break;
       const errText = await res.text().catch(()=> "");
       if ([429, 502, 503].includes(res.status) && attempt < 2) {
-        attempt++;
-        const wait = attempt * 2;
+        attempt++; const wait = attempt * 2;
         bodyEl.classList.remove("typing");
         bodyEl.innerHTML = formatBody(`⏳ 混雑のため再試行します… (${attempt}/2 ・ ${wait}秒待機)`);
         followBottom();
@@ -1014,7 +1034,6 @@ async function streamAssistant() {
       }
       throw new Error(friendlyError(res.status, errText));
     }
-
     const reader = res.body.getReader(), decoder = new TextDecoder();
     let buffer = "";
     while (true) {
@@ -1038,13 +1057,63 @@ async function streamAssistant() {
   } catch (e) {
     if (e.name === "AbortError") answer += (answer?"\n\n":"") + "⏹ 生成を停止しました。";
     else answer += (answer?"\n\n":"") + (e.message || ("⚠️ エラー: " + e));
-  } finally {
-    bodyEl.classList.remove("typing");
-    bodyEl.innerHTML = formatBody(answer || "(応答なし)");
-    abortCtrl = null; setSending(false);
-    messages.push({ role:"assistant", content:answer }); saveHistory();
-    recordCost(model, usage); renderThread(); followBottom();
   }
+  return { answer, usage };
+}
+
+async function streamAssistant() {
+  const model = currentModel();
+  const block = renderMessage("assistant", "");
+  const bodyEl = block.querySelector(".msg-body");
+  bodyEl.classList.add("typing"); scrollBottom();
+
+  const sys = $("system-prompt").value.trim();
+  const reqMessages = [];
+  if (sys) reqMessages.push({ role:"system", content:sys });
+  for (const m of messages) reqMessages.push(m);
+
+  setSending(true); abortCtrl = new AbortController();
+  const { answer, usage } = await runStream(model, reqMessages, bodyEl);
+  bodyEl.classList.remove("typing"); bodyEl.innerHTML = formatBody(answer || "(応答なし)");
+  abortCtrl = null; setSending(false);
+  messages.push({ role:"assistant", content:answer }); saveHistory();
+  recordCost(model, usage); renderThread(); followBottom();
+}
+
+/* マルチモデル比較：同じ文脈をN個のモデルに同時送信し、横並びカードで並行ストリーミング */
+async function sendCompare() {
+  const models = compareModels.map(id=>MODELS.find(m=>m.id===id)).filter(Boolean);
+  const sys = $("system-prompt").value.trim();
+  const base = [];
+  if (sys) base.push({ role:"system", content:sys });
+  for (const m of messages) base.push(m);
+
+  const row = document.createElement("div");
+  row.className = "msg-row fade-in w-full mx-auto mb-7";
+  row.style.maxWidth = "min(100%, 1100px)";
+  const grid = document.createElement("div");
+  grid.className = "cmp-grid";
+  const cards = models.map((m)=>{
+    const card = document.createElement("div");
+    card.className = "cmp-card";
+    card.innerHTML = `<div class="cmp-head">${escapeHtml(m.name)}</div><div class="msg-body typing"></div>`;
+    grid.appendChild(card);
+    return { model:m, bodyEl: card.querySelector(".msg-body") };
+  });
+  row.appendChild(grid); $("thread").appendChild(row); scrollBottom();
+
+  setSending(true); abortCtrl = new AbortController();
+  const answers = await Promise.all(cards.map(async (c)=>{
+    const { answer, usage } = await runStream(c.model, base, c.bodyEl);
+    c.bodyEl.classList.remove("typing"); c.bodyEl.innerHTML = formatBody(answer || "(応答なし)");
+    recordCost(c.model, usage);
+    return answer || "(応答なし)";
+  }));
+  abortCtrl = null; setSending(false);
+
+  const combined = cards.map((c, i)=>`### ${c.model.name}\n\n${answers[i]}`).join("\n\n---\n\n");
+  messages.push({ role:"assistant", content: combined });
+  saveHistory(); renderThread(); followBottom();
 }
 function recordCost(model, usage) {
   if (!usage) return;
