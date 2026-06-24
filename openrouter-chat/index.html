@@ -134,6 +134,7 @@
   .model-row:hover { background:var(--surface-2); }
   .model-row.active { background:var(--accent-soft); font-weight:600; }
   .cmp-check { font-size:14px; color:var(--accent); }
+  .model-sep { font-size:11px; font-weight:600; letter-spacing:.04em; color:var(--muted); padding:8px 10px 4px; position:sticky; top:0; background:#fff; }
 
   /* マルチモデル比較 */
   .cmp-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(240px,1fr)); gap:12px; }
@@ -617,8 +618,7 @@ function renderModelList() {
   }
   const list = $("model-list");
   list.innerHTML = "";
-  if (!filtered.length) list.innerHTML = '<p class="hint" style="padding:18px;text-align:center">該当するモデルがありません</p>';
-  filtered.forEach((m) => {
+  const addRow = (m) => {
     const row = document.createElement("button");
     const on = compareMode ? compareModels.includes(m.id) : (m.id===selectedModelId);
     row.className = "model-row" + (on ? " active" : "");
@@ -633,7 +633,23 @@ function renderModelList() {
       `<span class="shrink-0" style="font-size:13px;align-self:flex-start">${badges}</span>`;
     row.addEventListener("click", () => selectModel(m.id));
     list.appendChild(row);
-  });
+  };
+  const sep = (label) => { const d = document.createElement("div"); d.className = "model-sep"; d.textContent = label; list.appendChild(d); };
+
+  // 比較モードでは選択中のモデルを最上部に固定（検索/フィルタで隠れていても外せるように）
+  if (compareMode && compareModels.length) {
+    const selModels = compareModels.map((id)=>MODELS.find((m)=>m.id===id)).filter(Boolean);
+    sep(`選択中（${selModels.length}/3）`);
+    selModels.forEach(addRow);
+    const selSet = new Set(compareModels);
+    const rest = filtered.filter((m)=>!selSet.has(m.id));
+    sep("ほかのモデル");
+    if (!rest.length) list.insertAdjacentHTML("beforeend", '<p class="hint" style="padding:14px;text-align:center">該当なし</p>');
+    rest.forEach(addRow);
+  } else {
+    if (!filtered.length) list.innerHTML = '<p class="hint" style="padding:18px;text-align:center">該当するモデルがありません</p>';
+    filtered.forEach(addRow);
+  }
   $("model-count").textContent = MODELS.length ? `${filtered.length} / ${MODELS.length}` : "";
   updateModelLabel(); onModelChange();
 }
