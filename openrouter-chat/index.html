@@ -2,8 +2,15 @@
 <html lang="ja">
 <head>
 <meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover" />
 <title>OpenRouter Chat</title>
+<meta name="theme-color" content="#fafafa" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="default" />
+<meta name="apple-mobile-web-app-title" content="OR Chat" />
+<link rel="manifest" href="manifest.webmanifest" />
+<link rel="icon" href="icon.svg" type="image/svg+xml" />
+<link rel="apple-touch-icon" href="icon.svg" />
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;450;500;600;700&display=swap" rel="stylesheet" />
@@ -124,6 +131,9 @@
   .msg-row:hover .msg-actions { opacity:1; }
   .msg-act { font-size:11.5px; color:var(--text-2); border:1px solid var(--border); border-radius:8px; padding:3px 9px; background:#fff; cursor:pointer; transition:background .15s,border-color .15s; }
   .msg-act:hover { background:var(--surface-2); border-color:var(--border-2); }
+  .msg-act.speaking { background:var(--accent-soft); border-color:var(--accent); color:var(--accent); }
+  #mic-btn.mic-on { color:#fff; background:var(--accent); animation:micpulse 1.2s ease-in-out infinite; }
+  @keyframes micpulse { 0%,100%{ box-shadow:0 0 0 0 rgba(24,24,27,.25); } 50%{ box-shadow:0 0 0 5px rgba(24,24,27,0); } }
   @media (hover:none) { .msg-actions, .convo-ico { opacity:1; } }
 
   /* モデルピッカー */
@@ -365,10 +375,15 @@
       <div id="composer" class="rounded-2xl bg-white p-3 pl-4 transition-shadow shadow-sm hover:shadow-md focus-within:shadow-md" style="border:1px solid var(--border-2)">
         <textarea id="input" rows="1" placeholder="メッセージを入力…" class="w-full bg-transparent text-[16px] leading-relaxed resize-none outline-none px-1 pt-2" style="color:var(--text);min-height:64px;max-height:220px"></textarea>
         <div class="flex items-center justify-between pt-1.5">
-          <label class="btn-press icon-btn cursor-pointer" title="画像を添付">
-            <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21.44 11.05l-9.19 9.19a5 5 0 0 1-7.07-7.07l9.19-9.19a3.5 3.5 0 0 1 4.95 4.95l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>
-            <input id="file-input" type="file" accept="image/*" multiple class="hidden" />
-          </label>
+          <div class="flex items-center gap-0.5">
+            <label class="btn-press icon-btn cursor-pointer" title="画像を添付">
+              <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21.44 11.05l-9.19 9.19a5 5 0 0 1-7.07-7.07l9.19-9.19a3.5 3.5 0 0 1 4.95 4.95l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>
+              <input id="file-input" type="file" accept="image/*" multiple class="hidden" />
+            </label>
+            <button id="mic-btn" class="btn-press icon-btn hidden" title="音声入力" aria-label="音声入力">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg>
+            </button>
+          </div>
           <div class="flex items-center gap-2">
             <button id="stop-btn" class="hidden btn-press text-[13px] font-medium rounded-full pl-3 pr-3.5 h-10 inline-flex items-center gap-1.5 bg-white hover:bg-slate-50" style="border:1px solid var(--border-2);color:var(--text)">
               <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="6" width="12" height="12" rx="2.5"/></svg>停止
@@ -908,7 +923,7 @@ function renderMessage(role, content, index) {
     actions.className = "msg-actions";
     actions.innerHTML = isUser
       ? `<button class="msg-act" data-act="edit" data-i="${index}">✏️ 編集</button>`
-      : `<button class="msg-act" data-act="regen" data-i="${index}">↻ 再生成</button><button class="msg-act" data-act="copy" data-i="${index}">📋 コピー</button>`;
+      : `<button class="msg-act" data-act="regen" data-i="${index}">↻ 再生成</button><button class="msg-act" data-act="speak" data-i="${index}">🔊 読み上げ</button><button class="msg-act" data-act="copy" data-i="${index}">📋 コピー</button>`;
     row.appendChild(actions);
   }
   $("thread").appendChild(row);
@@ -932,8 +947,20 @@ $("thread").addEventListener("click", (e) => {
   const i = +a.dataset.i, act = a.dataset.act;
   if (act === "edit") editMessage(i);
   else if (act === "regen") regenerateAt(i);
+  else if (act === "speak") speakText(extractParts(messages[i].content).text, a);
   else if (act === "copy") { const { text } = extractParts(messages[i].content); navigator.clipboard.writeText(text).then(() => { const o=a.textContent; a.textContent="コピー済み"; setTimeout(()=>{ a.textContent=o; },1200); }); }
 });
+
+/* 読み上げ（Web Speech Synthesis） */
+function speakText(text, btn) {
+  if (!("speechSynthesis" in window)) { alert("このブラウザは読み上げに対応していません。"); return; }
+  if (speechSynthesis.speaking) { speechSynthesis.cancel(); document.querySelectorAll(".msg-act.speaking").forEach(b=>{ b.classList.remove("speaking"); b.textContent="🔊 読み上げ"; }); return; }
+  const clean = String(text).replace(/```[\s\S]*?```/g, " コードブロック ").replace(/[#*_`>|]/g, "");
+  const u = new SpeechSynthesisUtterance(clean);
+  u.lang = /[ぁ-んァ-ン一-龯]/.test(clean) ? "ja-JP" : "en-US";
+  if (btn) { btn.classList.add("speaking"); btn.textContent = "⏹ 停止"; u.onend = u.onerror = () => { btn.classList.remove("speaking"); btn.textContent = "🔊 読み上げ"; }; }
+  speechSynthesis.speak(u);
+}
 function editMessage(i) {
   const { text } = extractParts(messages[i].content);
   messages = messages.slice(0, i); saveHistory(); renderThread();
@@ -1007,6 +1034,27 @@ inputEl.addEventListener("keydown", (e)=>{ if (e.key==="Enter" && !e.shiftKey) {
 $("send-btn").addEventListener("click", send);
 $("stop-btn").addEventListener("click", ()=>{ if (abortCtrl) abortCtrl.abort(); });
 function setSending(on) { $("send-btn").classList.toggle("hidden", on); $("stop-btn").classList.toggle("hidden", !on); }
+
+/* 音声入力（Web Speech Recognition） */
+const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+let recog = null, recognizing = false, micBase = "";
+if (SR) {
+  $("mic-btn").classList.remove("hidden");
+  recog = new SR(); recog.lang = "ja-JP"; recog.interimResults = true; recog.continuous = false;
+  recog.onresult = (e) => {
+    let txt = "";
+    for (let i = 0; i < e.results.length; i++) txt += e.results[i][0].transcript;
+    inputEl.value = (micBase ? micBase + " " : "") + txt;
+    inputEl.dispatchEvent(new Event("input"));
+  };
+  recog.onend = () => { recognizing = false; $("mic-btn").classList.remove("mic-on"); };
+  recog.onerror = () => { recognizing = false; $("mic-btn").classList.remove("mic-on"); };
+  $("mic-btn").addEventListener("click", () => {
+    if (recognizing) { recog.stop(); return; }
+    micBase = inputEl.value.trim();
+    try { recog.start(); recognizing = true; $("mic-btn").classList.add("mic-on"); inputEl.focus(); } catch {}
+  });
+}
 
 function buildUserContent(text, images) {
   if (!images.length) return text;
@@ -1189,6 +1237,7 @@ function recordCost(model, usage) {
 window.addEventListener("DOMContentLoaded", () => {
   if (!window.crypto || !crypto.subtle) alert("このブラウザは Web Crypto API 非対応のため利用できません。HTTPS か localhost で開いてください。");
   showGate();
+  if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js").catch(()=>{});
 });
 </script>
 </body>
