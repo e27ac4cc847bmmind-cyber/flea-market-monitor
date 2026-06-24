@@ -141,6 +141,9 @@
   .cmp-card { border:1px solid var(--border); border-radius:14px; overflow:hidden; background:#fff; display:flex; flex-direction:column; }
   .cmp-head { font-size:12px; font-weight:600; color:var(--text-2); padding:8px 12px; background:var(--surface-2); border-bottom:1px solid var(--border); position:sticky; top:0; }
   .cmp-card .msg-body { padding:12px; font-size:14px; }
+  .judge-bar { display:flex; justify-content:center; }
+  .judge-btn { font-size:13px; font-weight:600; color:#fff; background:var(--accent); border:0; border-radius:999px; padding:9px 18px; cursor:pointer; box-shadow:0 1px 2px rgba(0,0,0,.05); }
+  .judge-btn:hover { filter:brightness(.95); }
 </style>
 
 <!-- ====== 自己完結ユーティリティCSS（Tailwind CDN非依存） ====== -->
@@ -479,6 +482,7 @@ let API_KEY = null, MODELS = [], messages = [], pendingImages = [], abortCtrl = 
 let selectedModelId = localStorage.getItem(LS.model) || "";
 let compareMode = false;
 let compareModels = [];  // 比較モードで選んだモデルID（最大3）
+let pendingJudge = null;  // 直近の比較結果（ジャッジ採点用）
 /* 「人気/主要モデル」フィルタ用：主要フラッグシップの id パターン（OpenRouter APIに人気順は無いため厳選） */
 const POPULAR_PATTERNS = ["openai/gpt-4o","openai/gpt-4.1","openai/o1","openai/o3","openai/o4","anthropic/claude-3.5-sonnet","anthropic/claude-3.7-sonnet","anthropic/claude-sonnet-4","anthropic/claude-opus-4","google/gemini-2.0-flash","google/gemini-2.5-pro","google/gemini-2.5-flash","meta-llama/llama-3.3-70b","meta-llama/llama-4","deepseek/deepseek-chat","deepseek/deepseek-r1","qwen/qwen-2.5-72b","qwen/qwen3","mistralai/mistral-large","mistralai/mistral-small","x-ai/grok-2","x-ai/grok-3"];
 const isTop = (m) => POPULAR_PATTERNS.some((p) => m.id.includes(p));
@@ -758,7 +762,7 @@ function loadConversations() {
 }
 function updateEmptyState() { $("empty-state").classList.toggle("hidden", messages.length>0); }
 function renderThread() {
-  document.querySelectorAll(".msg-row").forEach((el)=>el.remove());
+  document.querySelectorAll(".msg-row, .judge-bar").forEach((el)=>el.remove());
   messages.forEach((m, i)=>renderMessage(m.role, m.content, i));
   updateEmptyState(); scrollBottom();
 }
@@ -1022,6 +1026,7 @@ async function send() {
   const images = pendingImages.slice();
   const userContent = buildUserContent(text, images);
 
+  pendingJudge = null;
   messages.push({ role:"user", content:userContent });
   inputEl.value = ""; inputEl.style.height = "auto";
   pendingImages = []; renderAttachments();
@@ -1106,6 +1111,8 @@ async function streamAssistant() {
 /* マルチモデル比較：同じ文脈をN個のモデルに同時送信し、横並びカードで並行ストリーミング */
 async function sendCompare() {
   const models = compareModels.map(id=>MODELS.find(m=>m.id===id)).filter(Boolean);
+  const lastUser = messages[messages.length-1];
+  const promptText = lastUser ? extractParts(lastUser.content).text : "";
   const sys = $("system-prompt").value.trim();
   const base = [];
   if (sys) base.push({ role:"system", content:sys });
@@ -1137,6 +1144,39 @@ async function sendCompare() {
   const combined = cards.map((c, i)=>`### ${c.model.name}\n\n${answers[i]}`).join("\n\n---\n\n");
   messages.push({ role:"assistant", content: combined });
   saveHistory(); renderThread(); followBottom();
+
+  pendingJudge = { prompt: promptText, entries: cards.map((c, i)=>({ name:c.model.name, answer: answers[i] })) };
+  showJudgeBar();
+}
+
+function showJudgeBar() {
+  document.querySelectorAll(".judge-bar").forEach((e)=>e.remove());
+  if (!pendingJudge) return;
+  const judge = currentModel();
+  const bar = document.createElement("div");
+  bar.className = "judge-bar w-full max-w-3xl mx-auto mb-7";
+  bar.innerHTML = `<button id="judge-go" class="judge-btn">⚖️ ジャッジに採点させる${judge?`（審査員: ${escapeHtml(judge.name)}）`:"（要・審査員モデル選択）"}</button>`;
+  $("thread").appendChild(bar);
+  bar.querySelector("#judge-go").addEventListener("click", runJudge);
+  followBottom();
+}
+async function runJudge() {
+  if (!pendingJudge) return;
+  const judge = currentModel();
+  if (!judge) { alert("審査員モデルを選んでください（⚔️比較を一旦オフにして、モデルを1つ選択）。"); return; }
+  const data = pendingJudge; pendingJudge = null;
+  document.querySelectorAll(".judge-bar").forEach((e)=>e.remove());
+  const sys = "あなたは厳格で公平なAI審査員です。各回答を観点（正確さ・有用性・分かりやすさ）ごとに評価し、10点満点で採点してください。Markdownの表で点数をまとめ、各回答の長所と短所を簡潔に述べ、最後に「🏆 勝者」を1つ明記してください。";
+  const body = `# ユーザーの質問\n${data.prompt || "(省略)"}\n\n# 評価対象の回答\n` +
+    data.entries.map((e,i)=>`## ${i+1}. ${e.name}\n${e.answer}`).join("\n\n");
+  const block = renderMessage("assistant", "");
+  const bodyEl = block.querySelector(".msg-body"); bodyEl.classList.add("typing"); scrollBottom();
+  setSending(true); abortCtrl = new AbortController();
+  const { answer, usage } = await runStream(judge, [{ role:"system", content:sys }, { role:"user", content:body }], bodyEl);
+  bodyEl.classList.remove("typing"); bodyEl.innerHTML = formatBody(answer || "(応答なし)");
+  abortCtrl = null; setSending(false);
+  messages.push({ role:"assistant", content: `⚖️ **ジャッジ採点**（審査員: ${judge.name}）\n\n${answer}` });
+  saveHistory(); recordCost(judge, usage); renderThread(); followBottom();
 }
 function recordCost(model, usage) {
   if (!usage) return;
