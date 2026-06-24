@@ -337,17 +337,18 @@
         <label class="chip-toggle"><input id="filter-top" type="checkbox" class="sr-only"><span class="chip-pill">⭐ 人気</span></label>
         <label class="chip-toggle"><input id="filter-free" type="checkbox" class="sr-only"><span class="chip-pill">🆓 無料</span></label>
         <label class="chip-toggle"><input id="filter-vision" type="checkbox" class="sr-only"><span class="chip-pill">🖼 画像</span></label>
-        <label class="chip-toggle" title="複数モデルに同時送信して比較"><input id="cmp-toggle" type="checkbox" class="sr-only"><span class="chip-pill">⚔️ 比較</span></label>
+        <label id="cmp-chip" class="chip-toggle" title="複数モデルに同時送信して比較"><input id="cmp-toggle" type="checkbox" class="sr-only"><span class="chip-pill">⚔️ 比較</span></label>
         <span id="model-count" class="text-[11px]" style="color:var(--muted);margin-left:auto"></span>
       </div>
       <p id="cmp-hint" class="hidden hint" style="margin-top:8px">比較するモデルをタップで選択（最大3）。もう一度タップで解除。</p>
       <div id="judge-row" class="hidden" style="margin-top:8px;display:flex;align-items:center;gap:8px">
         <span class="hint" style="white-space:nowrap">⚖️ 審査員</span>
-        <div class="select-wrap" style="flex:1 1 auto">
-          <select id="judge-select" class="field" style="padding-right:32px"></select>
-          <span class="chev"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg></span>
-        </div>
+        <button id="judge-btn" class="btn-press" style="flex:1 1 auto;min-width:0;display:flex;align-items:center;justify-content:space-between;gap:6px;background:#fff;border:1px solid var(--border-2);border-radius:10px;padding:9px 12px;font-size:13.5px;color:var(--text);cursor:pointer">
+          <span id="judge-label" class="truncate">なし（並列表示のみ）</span>
+          <svg class="shrink-0" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round" style="color:var(--text-2)"><path d="M6 9l6 6 6-6"/></svg>
+        </button>
       </div>
+      <p id="judge-pick-hint" class="hidden hint" style="margin-top:8px">採点する審査員モデルを選択（先頭の「採点しない」で並列表示のみ）。</p>
     </div>
     <div id="model-list" class="overflow-y-auto scroll-thin" style="padding:6px"></div>
     <div class="flex items-center justify-between gap-2" style="padding:9px 12px;border-top:1px solid var(--border)">
@@ -506,6 +507,7 @@ let compareMode = false;
 let compareModels = [];  // 比較モードで選んだモデルID（最大3）
 let pendingJudge = null;  // 直近の比較結果（ジャッジ採点用）
 let judgeModelId = "";    // 比較後に採点する審査員モデル（"" = 採点しない）
+let menuMode = "model";   // モデルメニューの用途: "model" | "judge"
 /* 「人気/主要モデル」フィルタ用：主要フラッグシップの id パターン（OpenRouter APIに人気順は無いため厳選） */
 const POPULAR_PATTERNS = ["openai/gpt-4o","openai/gpt-4.1","openai/o1","openai/o3","openai/o4","anthropic/claude-3.5-sonnet","anthropic/claude-3.7-sonnet","anthropic/claude-sonnet-4","anthropic/claude-opus-4","google/gemini-2.0-flash","google/gemini-2.5-pro","google/gemini-2.5-flash","meta-llama/llama-3.3-70b","meta-llama/llama-4","deepseek/deepseek-chat","deepseek/deepseek-r1","qwen/qwen-2.5-72b","qwen/qwen3","mistralai/mistral-large","mistralai/mistral-small","x-ai/grok-2","x-ai/grok-3"];
 const isTop = (m) => POPULAR_PATTERNS.some((p) => m.id.includes(p));
@@ -638,6 +640,7 @@ function filteredModels() {
   });
 }
 function renderModelList() {
+  const judgeMode = (menuMode === "judge");
   const filtered = filteredModels();
   if (!selectedModelId || !MODELS.some((m)=>m.id===selectedModelId)) {
     selectedModelId = ((filtered[0] || MODELS[0] || {}).id) || "";
@@ -647,10 +650,10 @@ function renderModelList() {
   list.innerHTML = "";
   const addRow = (m) => {
     const row = document.createElement("button");
-    const on = compareMode ? compareModels.includes(m.id) : (m.id===selectedModelId);
+    const on = judgeMode ? (m.id===judgeModelId) : (compareMode ? compareModels.includes(m.id) : (m.id===selectedModelId));
     row.className = "model-row" + (on ? " active" : "");
     const badges = (isTop(m)?"⭐":"") + (m.free?"🆓":"") + (m.vision?"🖼":"");
-    const mark = compareMode ? `<span class="cmp-check shrink-0">${on?"☑":"☐"}</span>` : "";
+    const mark = (compareMode && !judgeMode) ? `<span class="cmp-check shrink-0">${on?"☑":"☐"}</span>` : "";
     const price = m.free ? '<span style="color:#16a34a">無料</span>' : `入 $${fmtPM(m.pricePrompt)} / 出 $${fmtPM(m.priceCompletion)} <span style="opacity:.7">/1M</span>`;
     row.innerHTML = mark +
       `<span style="flex:1 1 auto;min-width:0">` +
@@ -663,8 +666,15 @@ function renderModelList() {
   };
   const sep = (label) => { const d = document.createElement("div"); d.className = "model-sep"; d.textContent = label; list.appendChild(d); };
 
-  // 比較モードでは選択中のモデルを最上部に固定（検索/フィルタで隠れていても外せるように）
-  if (compareMode && compareModels.length) {
+  if (judgeMode) {
+    const none = document.createElement("button");
+    none.className = "model-row" + (judgeModelId ? "" : " active");
+    none.innerHTML = `<span style="flex:1 1 auto;min-width:0"><span style="display:block">採点しない（並列表示のみ）</span></span>`;
+    none.addEventListener("click", () => selectModel(""));
+    list.appendChild(none);
+    if (!filtered.length) list.insertAdjacentHTML("beforeend", '<p class="hint" style="padding:14px;text-align:center">該当するモデルがありません</p>');
+    filtered.forEach(addRow);
+  } else if (compareMode && compareModels.length) {
     const selModels = compareModels.map((id)=>MODELS.find((m)=>m.id===id)).filter(Boolean);
     sep(`選択中（${selModels.length}/3）`);
     selModels.forEach(addRow);
@@ -678,9 +688,14 @@ function renderModelList() {
     filtered.forEach(addRow);
   }
   $("model-count").textContent = MODELS.length ? `${filtered.length} / ${MODELS.length}` : "";
-  updateModelLabel(); onModelChange();
+  updateModelLabel(); updateJudgeLabel(); onModelChange();
 }
 function selectModel(id) {
+  if (menuMode === "judge") {
+    judgeModelId = id;
+    saveCompare(); updateJudgeLabel(); closeModelMenu();
+    return;
+  }
   if (compareMode) {
     const i = compareModels.indexOf(id);
     if (i >= 0) compareModels.splice(i, 1);
@@ -698,6 +713,11 @@ function updateModelLabel() {
   const m = currentModel();
   $("model-btn-label").textContent = m ? ((m.free?"🆓 ":"") + m.name) : "モデルを選択";
 }
+function updateJudgeLabel() {
+  const el = $("judge-label"); if (!el) return;
+  const m = judgeModelId ? MODELS.find((x)=>x.id===judgeModelId) : null;
+  el.textContent = m ? m.name : "なし（並列表示のみ）";
+}
 function saveCompare() { localStorage.setItem(LS.cmpmode, compareMode?"1":""); localStorage.setItem(LS.cmpmodels, JSON.stringify(compareModels)); localStorage.setItem(LS.judge, judgeModelId); }
 function toggleCompareUI() { const on = compareMode; $("cmp-hint").classList.toggle("hidden", !on); $("judge-row").classList.toggle("hidden", !on); }
 function loadCompare() {
@@ -707,17 +727,13 @@ function loadCompare() {
   $("cmp-toggle").checked = compareMode;
   toggleCompareUI();
 }
-function populateJudgeSelect() {
-  const sel = $("judge-select"); if (!sel) return;
-  sel.innerHTML = '<option value="">なし（並列表示のみ）</option>' + MODELS.map(m=>`<option value="${m.id}">${escapeHtml(m.name)}</option>`).join("");
-  sel.value = judgeModelId;
-}
+function populateJudgeSelect() { updateJudgeLabel(); }
 $("cmp-toggle").addEventListener("change", () => {
   compareMode = $("cmp-toggle").checked;
   toggleCompareUI();
   saveCompare(); updateModelLabel(); renderModelList();
 });
-$("judge-select").addEventListener("change", () => { judgeModelId = $("judge-select").value; saveCompare(); });
+$("judge-btn").addEventListener("click", () => openModelMenu("judge"));
 function onModelChange() {
   const m = currentModel();
   if (!m) { $("model-info").textContent=""; return; }
@@ -728,9 +744,19 @@ function onModelChange() {
   if (isTop(m)) tags.push("人気");
   $("model-info").textContent = tags.join(" ・ ");
 }
-function openModelMenu() { renderModelList(); $("model-backdrop").classList.remove("hidden"); $("model-menu").classList.remove("hidden"); setTimeout(()=>$("model-search").focus(), 50); }
-function closeModelMenu() { $("model-backdrop").classList.add("hidden"); $("model-menu").classList.add("hidden"); }
-$("model-btn").addEventListener("click", openModelMenu);
+function openModelMenu(mode) {
+  menuMode = (mode === "judge") ? "judge" : "model";
+  const judgeMode = menuMode === "judge";
+  $("cmp-chip").classList.toggle("hidden", judgeMode);
+  $("cmp-hint").classList.toggle("hidden", judgeMode || !compareMode);
+  $("judge-row").classList.toggle("hidden", judgeMode || !compareMode);
+  $("judge-pick-hint").classList.toggle("hidden", !judgeMode);
+  renderModelList();
+  $("model-backdrop").classList.remove("hidden"); $("model-menu").classList.remove("hidden");
+  setTimeout(()=>$("model-search").focus(), 50);
+}
+function closeModelMenu() { menuMode = "model"; $("model-backdrop").classList.add("hidden"); $("model-menu").classList.add("hidden"); }
+$("model-btn").addEventListener("click", () => openModelMenu("model"));
 $("model-backdrop").addEventListener("click", closeModelMenu);
 $("refresh-models").addEventListener("click", () => loadModels(true));
 ["model-search","filter-free","filter-vision","filter-top"].forEach((id)=>{ $(id).addEventListener("input", ()=>{ saveFilters(); renderModelList(); }); });
