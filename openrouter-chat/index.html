@@ -341,6 +341,13 @@
         <span id="model-count" class="text-[11px]" style="color:var(--muted);margin-left:auto"></span>
       </div>
       <p id="cmp-hint" class="hidden hint" style="margin-top:8px">比較するモデルをタップで選択（最大3）。もう一度タップで解除。</p>
+      <div id="judge-row" class="hidden" style="margin-top:8px;display:flex;align-items:center;gap:8px">
+        <span class="hint" style="white-space:nowrap">⚖️ 審査員</span>
+        <div class="select-wrap" style="flex:1 1 auto">
+          <select id="judge-select" class="field" style="padding-right:32px"></select>
+          <span class="chev"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg></span>
+        </div>
+      </div>
     </div>
     <div id="model-list" class="overflow-y-auto scroll-thin" style="padding:6px"></div>
     <div class="flex items-center justify-between gap-2" style="padding:9px 12px;border-top:1px solid var(--border)">
@@ -487,7 +494,7 @@
 const LS = {
   enc:"or_chat_apikey_enc", models:"or_chat_models", model:"or_chat_model",
   system:"or_chat_system", history:"or_chat_history", costs:"or_chat_costs", filters:"or_chat_filters",
-  convos:"or_chat_convos", cur:"or_chat_cur", cmpmode:"or_chat_cmpmode", cmpmodels:"or_chat_cmpmodels",
+  convos:"or_chat_convos", cur:"or_chat_cur", cmpmode:"or_chat_cmpmode", cmpmodels:"or_chat_cmpmodels", judge:"or_chat_judge",
 };
 const API_BASE = "https://openrouter.ai/api/v1";
 const APP_TITLE = "OpenRouter Chat UI";
@@ -498,6 +505,7 @@ let selectedModelId = localStorage.getItem(LS.model) || "";
 let compareMode = false;
 let compareModels = [];  // 比較モードで選んだモデルID（最大3）
 let pendingJudge = null;  // 直近の比較結果（ジャッジ採点用）
+let judgeModelId = "";    // 比較後に採点する審査員モデル（"" = 採点しない）
 /* 「人気/主要モデル」フィルタ用：主要フラッグシップの id パターン（OpenRouter APIに人気順は無いため厳選） */
 const POPULAR_PATTERNS = ["openai/gpt-4o","openai/gpt-4.1","openai/o1","openai/o3","openai/o4","anthropic/claude-3.5-sonnet","anthropic/claude-3.7-sonnet","anthropic/claude-sonnet-4","anthropic/claude-opus-4","google/gemini-2.0-flash","google/gemini-2.5-pro","google/gemini-2.5-flash","meta-llama/llama-3.3-70b","meta-llama/llama-4","deepseek/deepseek-chat","deepseek/deepseek-r1","qwen/qwen-2.5-72b","qwen/qwen3","mistralai/mistral-large","mistralai/mistral-small","x-ai/grok-2","x-ai/grok-3"];
 const isTop = (m) => POPULAR_PATTERNS.some((p) => m.id.includes(p));
@@ -606,14 +614,14 @@ function normalizeModels(raw) {
 }
 async function loadModels(forceRefresh) {
   const cached = localStorage.getItem(LS.models);
-  if (cached && !forceRefresh) { try { MODELS=JSON.parse(cached); renderModelList(); } catch {} }
+  if (cached && !forceRefresh) { try { MODELS=JSON.parse(cached); renderModelList(); populateJudgeSelect(); } catch {} }
   try {
     const res = await fetch(`${API_BASE}/models`, { headers:{ Authorization:`Bearer ${API_KEY}` } });
     if (!res.ok) throw new Error("HTTP "+res.status);
     const data = await res.json();
     MODELS = normalizeModels(data.data || []);
     localStorage.setItem(LS.models, JSON.stringify(MODELS));
-    renderModelList();
+    renderModelList(); populateJudgeSelect();
   } catch (e) { if (!MODELS.length) $("model-info").textContent = "モデル一覧の取得に失敗: " + e.message; }
 }
 function getFilters() {
@@ -690,18 +698,26 @@ function updateModelLabel() {
   const m = currentModel();
   $("model-btn-label").textContent = m ? ((m.free?"🆓 ":"") + m.name) : "モデルを選択";
 }
-function saveCompare() { localStorage.setItem(LS.cmpmode, compareMode?"1":""); localStorage.setItem(LS.cmpmodels, JSON.stringify(compareModels)); }
+function saveCompare() { localStorage.setItem(LS.cmpmode, compareMode?"1":""); localStorage.setItem(LS.cmpmodels, JSON.stringify(compareModels)); localStorage.setItem(LS.judge, judgeModelId); }
+function toggleCompareUI() { const on = compareMode; $("cmp-hint").classList.toggle("hidden", !on); $("judge-row").classList.toggle("hidden", !on); }
 function loadCompare() {
   compareMode = localStorage.getItem(LS.cmpmode) === "1";
   try { compareModels = JSON.parse(localStorage.getItem(LS.cmpmodels)) || []; } catch { compareModels = []; }
+  judgeModelId = localStorage.getItem(LS.judge) || "";
   $("cmp-toggle").checked = compareMode;
-  $("cmp-hint").classList.toggle("hidden", !compareMode);
+  toggleCompareUI();
+}
+function populateJudgeSelect() {
+  const sel = $("judge-select"); if (!sel) return;
+  sel.innerHTML = '<option value="">なし（並列表示のみ）</option>' + MODELS.map(m=>`<option value="${m.id}">${escapeHtml(m.name)}</option>`).join("");
+  sel.value = judgeModelId;
 }
 $("cmp-toggle").addEventListener("change", () => {
   compareMode = $("cmp-toggle").checked;
-  $("cmp-hint").classList.toggle("hidden", !compareMode);
+  toggleCompareUI();
   saveCompare(); updateModelLabel(); renderModelList();
 });
+$("judge-select").addEventListener("change", () => { judgeModelId = $("judge-select").value; saveCompare(); });
 function onModelChange() {
   const m = currentModel();
   if (!m) { $("model-info").textContent=""; return; }
@@ -1193,27 +1209,12 @@ async function sendCompare() {
   messages.push({ role:"assistant", content: combined });
   saveHistory(); renderThread(); followBottom();
 
-  pendingJudge = { prompt: promptText, entries: cards.map((c, i)=>({ name:c.model.name, answer: answers[i] })) };
-  showJudgeBar();
+  // 審査員が設定されていれば自動で採点
+  const judge = judgeModelId ? MODELS.find((m)=>m.id===judgeModelId) : null;
+  if (judge) await runJudge(judge, { prompt: promptText, entries: cards.map((c, i)=>({ name:c.model.name, answer: answers[i] })) });
 }
 
-function showJudgeBar() {
-  document.querySelectorAll(".judge-bar").forEach((e)=>e.remove());
-  if (!pendingJudge) return;
-  const judge = currentModel();
-  const bar = document.createElement("div");
-  bar.className = "judge-bar w-full max-w-3xl mx-auto mb-7";
-  bar.innerHTML = `<button id="judge-go" class="judge-btn">⚖️ ジャッジに採点させる${judge?`（審査員: ${escapeHtml(judge.name)}）`:"（要・審査員モデル選択）"}</button>`;
-  $("thread").appendChild(bar);
-  bar.querySelector("#judge-go").addEventListener("click", runJudge);
-  followBottom();
-}
-async function runJudge() {
-  if (!pendingJudge) return;
-  const judge = currentModel();
-  if (!judge) { alert("審査員モデルを選んでください（⚔️比較を一旦オフにして、モデルを1つ選択）。"); return; }
-  const data = pendingJudge; pendingJudge = null;
-  document.querySelectorAll(".judge-bar").forEach((e)=>e.remove());
+async function runJudge(judge, data) {
   const sys = "あなたは厳格で公平なAI審査員です。各回答を観点（正確さ・有用性・分かりやすさ）ごとに評価し、10点満点で採点してください。Markdownの表で点数をまとめ、各回答の長所と短所を簡潔に述べ、最後に「🏆 勝者」を1つ明記してください。";
   const body = `# ユーザーの質問\n${data.prompt || "(省略)"}\n\n# 評価対象の回答\n` +
     data.entries.map((e,i)=>`## ${i+1}. ${e.name}\n${e.answer}`).join("\n\n");
