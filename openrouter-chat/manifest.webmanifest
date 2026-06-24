@@ -1,0 +1,14 @@
+{
+  "name": "OpenRouter Chat",
+  "short_name": "OR Chat",
+  "description": "OpenRouter 経由で様々なAIモデルを試せるチャットUI",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#fafafa",
+  "theme_color": "#fafafa",
+  "lang": "ja",
+  "icons": [
+    { "src": "icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }
+  ]
+}
