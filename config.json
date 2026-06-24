@@ -829,7 +829,7 @@
     }
   ],
   "last_run": {
-    "started_at": "2026-06-24T19:33:13.329594",
+    "started_at": "2026-06-24T19:35:10.198273",
     "keywords": [
       {
         "keyword": "F48 BMW X1 フロアマット",
@@ -841,7 +841,7 @@
       },
       {
         "keyword": "2K モニター",
-        "scraped": 90,
+        "scraped": 60,
         "new": 0,
         "ai_judged": 0,
         "ai_ok": 0,
