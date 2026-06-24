@@ -829,11 +829,11 @@
     }
   ],
   "last_run": {
-    "started_at": "2026-06-24T12:37:21.106860",
+    "started_at": "2026-06-24T12:39:19.269707",
     "keywords": [
       {
         "keyword": "F48 BMW X1 フロアマット",
-        "scraped": 60,
+        "scraped": 58,
         "new": 0,
         "ai_judged": 0,
         "ai_ok": 0,
@@ -845,7 +845,7 @@
         "new": 0,
         "ai_judged": 0,
         "ai_ok": 0,
-        "market_info": "相場情報なし"
+        "market_info": "メルカリ相場: ¥8841（売れ済み平均）"
       }
     ]
   }
