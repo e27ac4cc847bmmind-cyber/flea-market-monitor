@@ -48,6 +48,19 @@
   ],
   "history": [
     {
+      "id": "mercari_m61968745328",
+      "name": "DELLU2520D 25インチモニター　USB-Cハブ　2K 回転機能高さ調整",
+      "price": 16900,
+      "platform": "メルカリ",
+      "url": "https://jp.mercari.com/item/m61968745328",
+      "image_url": "https://static.mercdn.net/thumb/item/webp/m61968745328_1.jpg?1782350966",
+      "keyword": "2K モニター",
+      "ai_comment": "[deepseek-v4-flash] 相場9225円に対し16900円は高すぎるため不適正。",
+      "ai_ok": false,
+      "market_info": "メルカリ相場: ¥9225（売れ済み平均）",
+      "detected_at": "2026-06-25T01:31:51.643255"
+    },
+    {
       "id": "mercari_m92450278223",
       "name": "モバイルモニター 13.5インチ 2K ZQ-P135Q01D",
       "price": 12000,
@@ -842,11 +855,11 @@
     }
   ],
   "last_run": {
-    "started_at": "2026-06-25T01:29:11.336684",
+    "started_at": "2026-06-25T01:31:06.547738",
     "keywords": [
       {
         "keyword": "F48 BMW X1 フロアマット",
-        "scraped": 60,
+        "scraped": 59,
         "new": 0,
         "ai_judged": 0,
         "ai_ok": 0,
@@ -855,10 +868,10 @@
       {
         "keyword": "2K モニター",
         "scraped": 90,
-        "new": 0,
-        "ai_judged": 0,
+        "new": 1,
+        "ai_judged": 1,
         "ai_ok": 0,
-        "market_info": "メルカリ相場: ¥8659（売れ済み平均）"
+        "market_info": "メルカリ相場: ¥9225（売れ済み平均）"
       }
     ]
   }
