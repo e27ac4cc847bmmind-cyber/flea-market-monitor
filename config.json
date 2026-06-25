@@ -48,6 +48,19 @@
   ],
   "history": [
     {
+      "id": "mercari_m33548048421",
+      "name": "BMW X1 F48 純正フロアマット",
+      "price": 7900,
+      "platform": "メルカリ",
+      "url": "https://jp.mercari.com/item/m33548048421",
+      "image_url": "https://static.mercdn.net/thumb/item/webp/m33548048421_1.jpg?1769916098",
+      "keyword": "F48 BMW X1 フロアマット",
+      "ai_comment": "[deepseek-v4-flash] 商品名が「フロアマット」とあり、専用品の可能性があるが、純正・ラバー製・4枚セットかの明記がなく条件未達。",
+      "ai_ok": false,
+      "market_info": "メルカリ相場: ¥20374（売れ済み平均）",
+      "detected_at": "2026-06-25T17:35:41.881943"
+    },
+    {
       "id": "paypay_z633350144",
       "name": "【備品完備/おまけ付き】 KEEPTIME 14インチ 2K モバイルモニター ディスプレイ IPSパネル 2160x1440p",
       "price": 6980,
@@ -881,15 +894,15 @@
     }
   ],
   "last_run": {
-    "started_at": "2026-06-25T17:33:13.680674",
+    "started_at": "2026-06-25T17:35:20.019756",
     "keywords": [
       {
         "keyword": "F48 BMW X1 フロアマット",
-        "scraped": 59,
-        "new": 0,
-        "ai_judged": 0,
+        "scraped": 68,
+        "new": 1,
+        "ai_judged": 1,
         "ai_ok": 0,
-        "market_info": "相場情報なし"
+        "market_info": "メルカリ相場: ¥20374（売れ済み平均）"
       },
       {
         "keyword": "2K モニター",
@@ -897,7 +910,7 @@
         "new": 0,
         "ai_judged": 0,
         "ai_ok": 0,
-        "market_info": "メルカリ相場: ¥9999（売れ済み平均）"
+        "market_info": "メルカリ相場: ¥9863（売れ済み平均）"
       }
     ]
   }
