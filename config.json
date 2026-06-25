@@ -48,6 +48,19 @@
   ],
   "history": [
     {
+      "id": "mercari_m92450278223",
+      "name": "モバイルモニター 13.5インチ 2K ZQ-P135Q01D",
+      "price": 12000,
+      "platform": "メルカリ",
+      "url": "https://jp.mercari.com/item/m92450278223",
+      "image_url": "https://static.mercdn.net/thumb/item/webp/m92450278223_1.jpg?1782349595",
+      "keyword": "2K モニター",
+      "ai_comment": "[deepseek-v4-flash] 13.5インチで、追加指示の「24インチ以上」を満たさない。",
+      "ai_ok": false,
+      "market_info": "メルカリ相場: ¥9155（売れ済み平均）",
+      "detected_at": "2026-06-25T01:09:34.214348"
+    },
+    {
       "id": "mercari_m51000477245",
       "name": "モバイルモニター 14インチ 2K解像度 モバイルディスプレイ",
       "price": 8000,
@@ -829,7 +842,7 @@
     }
   ],
   "last_run": {
-    "started_at": "2026-06-25T01:06:36.313641",
+    "started_at": "2026-06-25T01:08:39.802574",
     "keywords": [
       {
         "keyword": "F48 BMW X1 フロアマット",
@@ -842,8 +855,8 @@
       {
         "keyword": "2K モニター",
         "scraped": 90,
-        "new": 0,
-        "ai_judged": 0,
+        "new": 1,
+        "ai_judged": 1,
         "ai_ok": 0,
         "market_info": "メルカリ相場: ¥9155（売れ済み平均）"
       }
