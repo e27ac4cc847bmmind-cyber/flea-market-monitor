@@ -1,4 +1,0 @@
-# ビルド不要の静的サイト。openrouter-chat/ フォルダをそのまま公開する。
-[build]
-  publish = "."
-  command = ""
