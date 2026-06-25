@@ -290,6 +290,7 @@
   [data-theme="dark"] .shadow-xl { box-shadow:0 20px 25px -5px rgba(0,0,0,.4),0 8px 10px -6px rgba(0,0,0,.4); }
   [data-theme="dark"] .shadow-2xl { box-shadow:0 25px 50px -12px rgba(0,0,0,.7); }
   [data-theme="dark"] .shadow-sm { box-shadow:0 1px 2px 0 rgba(0,0,0,.3); }
+  [data-theme="dark"] #compare-bar { background:rgba(28,28,31,.85) !important; }
 </style>
 </head>
 <body class="overflow-hidden">
@@ -358,6 +359,23 @@
     </div>
   </header>
 
+  <!-- 比較バー（compareモード時のみ表示） -->
+  <div id="compare-bar" class="hidden shrink-0 border-b border-c bg-white/80 backdrop-blur px-4 sm:px-6" style="padding-top:7px;padding-bottom:7px">
+    <div class="max-w-3xl mx-auto flex flex-wrap items-center gap-2">
+      <span class="text-[11px] font-semibold uppercase tracking-wide shrink-0" style="color:var(--muted)">比較</span>
+      <div id="cmp-chips" class="flex flex-wrap gap-1.5 items-center flex-1 min-w-0"></div>
+      <button id="cmp-add-btn" class="hidden shrink-0 btn-press inline-flex items-center gap-1 text-[12px] font-medium rounded-full transition-colors" style="padding:4px 10px;border:1.5px dashed var(--border-2);color:var(--muted)">
+        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>追加
+      </button>
+      <div class="shrink-0 self-stretch" style="width:1px;background:var(--border-2);margin:0 2px"></div>
+      <button id="judge-bar-btn" class="shrink-0 btn-press inline-flex items-center gap-1.5 text-[12px] rounded-full transition-colors" style="padding:4px 10px;border:1px solid var(--border-2);background:var(--surface);color:var(--text-2)">
+        <span style="font-size:11px">⚖️</span>
+        <span id="judge-bar-label" class="truncate" style="max-width:110px">審査員なし</span>
+        <svg class="shrink-0" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
+      </button>
+    </div>
+  </div>
+
   <!-- モデルピッカー -->
   <div id="model-backdrop" class="hidden fixed inset-0 z-40"></div>
   <div id="model-menu" class="hidden fixed z-50 bg-white flex flex-col" style="top:58px;left:50%;transform:translateX(-50%);width:min(93vw,440px);max-height:72vh;border:1px solid var(--border);border-radius:18px;box-shadow:0 25px 50px -12px rgba(0,0,0,.25)">
@@ -371,14 +389,7 @@
         <span id="model-count" class="text-[11px]" style="color:var(--muted);margin-left:auto"></span>
       </div>
       <p id="cmp-hint" class="hidden hint" style="margin-top:8px">比較するモデルをタップで選択（最大3）。もう一度タップで解除。</p>
-      <div id="judge-row" class="hidden" style="margin-top:8px;display:flex;align-items:center;gap:8px">
-        <span class="hint" style="white-space:nowrap">⚖️ 審査員</span>
-        <button id="judge-btn" class="btn-press" style="flex:1 1 auto;min-width:0;display:flex;align-items:center;justify-content:space-between;gap:6px;background:#fff;border:1px solid var(--border-2);border-radius:10px;padding:9px 12px;font-size:13.5px;color:var(--text);cursor:pointer">
-          <span id="judge-label" class="truncate">なし（並列表示のみ）</span>
-          <svg class="shrink-0" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round" style="color:var(--text-2)"><path d="M6 9l6 6 6-6"/></svg>
-        </button>
-      </div>
-      <p id="judge-pick-hint" class="hidden hint" style="margin-top:8px">採点する審査員モデルを選択（先頭の「採点しない」で並列表示のみ）。</p>
+      <p id="menu-ctx-hint" class="hidden hint" style="margin-top:8px"></p>
     </div>
     <div id="model-list" class="overflow-y-auto scroll-thin" style="padding:6px"></div>
     <div class="flex items-center justify-between gap-2" style="padding:9px 12px;border-top:1px solid var(--border)">
@@ -783,7 +794,7 @@ function selectModel(id) {
     const i = compareModels.indexOf(id);
     if (i >= 0) compareModels.splice(i, 1);
     else { if (compareModels.length >= 3) { alert("比較は最大3モデルまでです。"); return; } compareModels.push(id); }
-    saveCompare(); updateModelLabel(); renderModelList();
+    saveCompare(); updateModelLabel(); renderCmpChips(); renderModelList();
     return;
   }
   selectedModelId = id;
@@ -797,12 +808,39 @@ function updateModelLabel() {
   $("model-btn-label").textContent = m ? ((m.free?"🆓 ":"") + m.name) : "モデルを選択";
 }
 function updateJudgeLabel() {
-  const el = $("judge-label"); if (!el) return;
   const m = judgeModelId ? MODELS.find((x)=>x.id===judgeModelId) : null;
-  el.textContent = m ? m.name : "なし（並列表示のみ）";
+  const barEl = $("judge-bar-label");
+  if (barEl) barEl.textContent = m ? m.name : "審査員なし";
 }
 function saveCompare() { localStorage.setItem(LS.cmpmode, compareMode?"1":""); localStorage.setItem(LS.cmpmodels, JSON.stringify(compareModels)); localStorage.setItem(LS.judge, judgeModelId); }
-function toggleCompareUI() { const on = compareMode; $("cmp-hint").classList.toggle("hidden", !on); $("judge-row").classList.toggle("hidden", !on); }
+function renderCmpChips() {
+  const box = $("cmp-chips"); if (!box) return;
+  box.innerHTML = "";
+  compareModels.forEach((id) => {
+    const m = MODELS.find((x)=>x.id===id);
+    if (!m) return;
+    const chip = document.createElement("div");
+    chip.className = "flex items-center gap-1 text-[12px] font-medium rounded-full shrink-0";
+    chip.style.cssText = "padding:3px 4px 3px 10px;background:var(--surface-2);border:1px solid var(--border-2);color:var(--text)";
+    chip.innerHTML = `<span class="truncate" style="max-width:120px">${escapeHtml(m.name)}</span>`+
+      `<button data-id="${id}" class="cmp-chip-del shrink-0 inline-flex items-center justify-center rounded-full w-5 h-5 transition-colors hover:bg-rose-500 hover:text-white" style="color:var(--muted);font-size:13px;line-height:1">×</button>`;
+    box.appendChild(chip);
+  });
+  const addBtn = $("cmp-add-btn");
+  if (addBtn) addBtn.classList.toggle("hidden", compareModels.length >= 3);
+  box.querySelectorAll(".cmp-chip-del").forEach((b) => {
+    b.addEventListener("click", () => {
+      compareModels = compareModels.filter((id)=>id!==b.dataset.id);
+      saveCompare(); renderCmpChips(); renderModelList(); updateModelLabel();
+    });
+  });
+}
+function toggleCompareUI() {
+  const on = compareMode;
+  $("cmp-hint").classList.toggle("hidden", !on);
+  $("compare-bar").classList.toggle("hidden", !on);
+  if (on) renderCmpChips();
+}
 function loadCompare() {
   compareMode = localStorage.getItem(LS.cmpmode) === "1";
   try { compareModels = JSON.parse(localStorage.getItem(LS.cmpmodels)) || []; } catch { compareModels = []; }
@@ -816,7 +854,8 @@ $("cmp-toggle").addEventListener("change", () => {
   toggleCompareUI();
   saveCompare(); updateModelLabel(); renderModelList();
 });
-$("judge-btn").addEventListener("click", () => openModelMenu("judge"));
+$("judge-bar-btn").addEventListener("click", () => openModelMenu("judge"));
+$("cmp-add-btn").addEventListener("click", () => openModelMenu("model"));
 function onModelChange() {
   const m = currentModel();
   if (!m) { $("model-info").textContent=""; return; }
@@ -832,8 +871,11 @@ function openModelMenu(mode) {
   const judgeMode = menuMode === "judge";
   $("cmp-chip").classList.toggle("hidden", judgeMode);
   $("cmp-hint").classList.toggle("hidden", judgeMode || !compareMode);
-  $("judge-row").classList.toggle("hidden", judgeMode || !compareMode);
-  $("judge-pick-hint").classList.toggle("hidden", !judgeMode);
+  const ctxHint = $("menu-ctx-hint");
+  if (ctxHint) {
+    ctxHint.classList.toggle("hidden", !judgeMode);
+    if (judgeMode) ctxHint.textContent = "⚖️ 採点する審査員を選択（「採点しない」で並列表示のみ）";
+  }
   renderModelList();
   $("model-backdrop").classList.remove("hidden"); $("model-menu").classList.remove("hidden");
   setTimeout(()=>$("model-search").focus(), 50);
