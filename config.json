@@ -48,6 +48,19 @@
   ],
   "history": [
     {
+      "id": "mercari_m84715361715",
+      "name": "モバイルモニター 144Hz 2K 18インチ",
+      "price": 17800,
+      "platform": "メルカリ",
+      "url": "https://jp.mercari.com/item/m84715361715",
+      "image_url": "https://static.mercdn.net/thumb/item/webp/m84715361715_1.jpg?1782041489",
+      "keyword": "2K モニター",
+      "ai_comment": "[gpt-4o-mini] 18インチは要件を満たさず、相場も高すぎるため。",
+      "ai_ok": false,
+      "market_info": "メルカリ相場: ¥10584（売れ済み平均）",
+      "detected_at": "2026-06-26T09:55:20.506656"
+    },
+    {
       "id": "mercari_m93009645003",
       "name": "W568 【新品未開封】 KEEPTIME モバ イルモニター 14インチ 2K",
       "price": 8000,
@@ -907,7 +920,7 @@
     }
   ],
   "last_run": {
-    "started_at": "2026-06-26T09:52:34.208523",
+    "started_at": "2026-06-26T09:54:30.534389",
     "keywords": [
       {
         "keyword": "F48 BMW X1 フロアマット",
@@ -915,15 +928,15 @@
         "new": 0,
         "ai_judged": 0,
         "ai_ok": 0,
-        "market_info": "メルカリ相場: ¥20829（売れ済み平均）"
+        "market_info": "メルカリ相場: ¥10059（売れ済み平均）"
       },
       {
         "keyword": "2K モニター",
         "scraped": 90,
-        "new": 0,
-        "ai_judged": 0,
+        "new": 1,
+        "ai_judged": 1,
         "ai_ok": 0,
-        "market_info": "メルカリ相場: ¥10673（売れ済み平均）"
+        "market_info": "メルカリ相場: ¥10584（売れ済み平均）"
       }
     ]
   }
