@@ -48,6 +48,19 @@
   ],
   "history": [
     {
+      "id": "mercari_m93009645003",
+      "name": "W568 【新品未開封】 KEEPTIME モバ イルモニター 14インチ 2K",
+      "price": 8000,
+      "platform": "メルカリ",
+      "url": "https://jp.mercari.com/item/m93009645003",
+      "image_url": "https://static.mercdn.net/thumb/item/webp/m93009645003_1.jpg?1782447433",
+      "keyword": "2K モニター",
+      "ai_comment": "[deepseek-v4-flash] 14インチで24インチ以上条件を満たさず、サイズ不適合のため。",
+      "ai_ok": false,
+      "market_info": "メルカリ相場: ¥10316（売れ済み平均）",
+      "detected_at": "2026-06-26T04:21:53.889269"
+    },
+    {
       "id": "mercari_m33548048421",
       "name": "BMW X1 F48 純正フロアマット",
       "price": 7900,
@@ -894,11 +907,11 @@
     }
   ],
   "last_run": {
-    "started_at": "2026-06-26T04:19:14.853633",
+    "started_at": "2026-06-26T04:21:09.313871",
     "keywords": [
       {
         "keyword": "F48 BMW X1 フロアマット",
-        "scraped": 58,
+        "scraped": 60,
         "new": 0,
         "ai_judged": 0,
         "ai_ok": 0,
@@ -907,10 +920,10 @@
       {
         "keyword": "2K モニター",
         "scraped": 90,
-        "new": 0,
-        "ai_judged": 0,
+        "new": 1,
+        "ai_judged": 1,
         "ai_ok": 0,
-        "market_info": "メルカリ相場: ¥10390（売れ済み平均）"
+        "market_info": "メルカリ相場: ¥10316（売れ済み平均）"
       }
     ]
   }
