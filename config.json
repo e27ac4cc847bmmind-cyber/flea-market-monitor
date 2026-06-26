@@ -48,6 +48,19 @@
   ],
   "history": [
     {
+      "id": "paypay_z239406754",
+      "name": "ARZOPA WQHD 2k 13.3インチモバイルモニタ　a1 gamut mini 2k プライバシーフィルタ",
+      "price": 13000,
+      "platform": "PayPayフリマ",
+      "url": "https://paypayfleamarket.yahoo.co.jp/item/z239406754",
+      "image_url": "https://auc-pctr.c.yimg.jp/i/auctions.c.yimg.jp/images.auctions.yahoo.co.jp/image/dr000/auc0410/users/c36ee0d590e6ce921aa4d430325ea5b9bd4d0614/i-img675x1200-169733333393686qxe4.jpg?pri=s&w=298&h=298&ccw=298&cch=298&fill=1&fw=298&fh=298&up=0&nf_src=sy&nf_path=images/auc/pc/top/image/1.0.3/na_170x170.png&nf_st=200",
+      "keyword": "2K モニター",
+      "ai_comment": "[deepseek-v4-flash] 13.3インチと小さく、24インチ以上の条件を満たさないため。",
+      "ai_ok": false,
+      "market_info": "メルカリ相場: ¥10788（売れ済み平均）",
+      "detected_at": "2026-06-26T10:49:23.142620"
+    },
+    {
       "id": "mercari_m84715361715",
       "name": "モバイルモニター 144Hz 2K 18インチ",
       "price": 17800,
@@ -920,7 +933,7 @@
     }
   ],
   "last_run": {
-    "started_at": "2026-06-26T10:46:40.044956",
+    "started_at": "2026-06-26T10:48:38.008733",
     "keywords": [
       {
         "keyword": "F48 BMW X1 フロアマット",
@@ -928,15 +941,15 @@
         "new": 0,
         "ai_judged": 0,
         "ai_ok": 0,
-        "market_info": "メルカリ相場: ¥9890（売れ済み平均）"
+        "market_info": "メルカリ相場: ¥10239（売れ済み平均）"
       },
       {
         "keyword": "2K モニター",
         "scraped": 90,
-        "new": 0,
-        "ai_judged": 0,
+        "new": 1,
+        "ai_judged": 1,
         "ai_ok": 0,
-        "market_info": "メルカリ相場: ¥10527（売れ済み平均）"
+        "market_info": "メルカリ相場: ¥10788（売れ済み平均）"
       }
     ]
   }
