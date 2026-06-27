@@ -972,23 +972,23 @@
     }
   ],
   "last_run": {
-    "started_at": "2026-06-27T18:13:53.861320",
+    "started_at": "2026-06-27T18:15:57.761157",
     "keywords": [
       {
         "keyword": "F48 BMW X1 フロアマット",
-        "scraped": 28,
+        "scraped": 57,
         "new": 0,
         "ai_judged": 0,
         "ai_ok": 0,
-        "market_info": "メルカリ相場: ¥9379（売れ済み平均）"
+        "market_info": "相場情報なし"
       },
       {
         "keyword": "2K モニター",
-        "scraped": 60,
+        "scraped": 90,
         "new": 0,
         "ai_judged": 0,
         "ai_ok": 0,
-        "market_info": "メルカリ相場: ¥10472（売れ済み平均）"
+        "market_info": "メルカリ相場: ¥10317（売れ済み平均）"
       }
     ]
   }
