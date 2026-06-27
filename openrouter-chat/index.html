@@ -1,0 +1,1551 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover" />
+<title>OpenRouter Chat</title>
+<meta name="theme-color" content="#fafafa" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="default" />
+<meta name="apple-mobile-web-app-title" content="OR Chat" />
+<link rel="manifest" href="manifest.webmanifest" />
+<link rel="icon" href="icon.svg" type="image/svg+xml" />
+<link rel="apple-touch-icon" href="icon.svg" />
+<style>
+  :root {
+    --bg: #fafafa;           /* キャンバス（ニュートラル） */
+    --surface: #ffffff;      /* カード・吹き出し */
+    --surface-2: #f4f4f5;    /* 入力の塗り・ホバー */
+    --border: #e8e8ea;       /* 通常の境界 */
+    --border-2: #d6d6da;     /* 入力欄の境界（やや濃い） */
+    --text: #18181b;         /* 本文（ニアブラック） */
+    --text-2: #52525b;       /* 副次テキスト */
+    --muted: #a1a1aa;        /* 補助・プレースホルダ寄り */
+    --accent: #18181b;       /* アクセント＝ニアブラック（Vercel調） */
+    --accent-soft: #f4f4f5;  /* アクセントの淡い面 */
+    --ring: rgba(24,24,27,.13);
+  }
+  * { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Inter", Roboto, "Hiragino Sans", "Noto Sans JP", sans-serif; }
+  html, body { height: 100%; }
+  body { background: var(--bg); color: var(--text); letter-spacing: -0.011em; -webkit-font-smoothing: antialiased; }
+
+  .border-c { border-color: var(--border); }
+
+  /* スクロールバー */
+  .scroll-thin::-webkit-scrollbar { width: 10px; }
+  .scroll-thin::-webkit-scrollbar-thumb { background: #d6dae1; border-radius: 10px; border: 3px solid var(--bg); }
+  .scroll-thin::-webkit-scrollbar-thumb:hover { background: #c3c8d2; }
+  .scroll-thin::-webkit-scrollbar-track { background: transparent; }
+
+  /* 入力フィールド共通：はっきり「入力できる場所」と分かる形 */
+  .field {
+    width: 100%; background: var(--surface); border: 1px solid var(--border-2);
+    border-radius: 10px; padding: 11px 13px; font-size: 14px; color: var(--text);
+    transition: border-color .15s, box-shadow .15s; outline: none;
+  }
+  .field::placeholder { color: var(--muted); }
+  .field:focus { border-color: var(--accent); box-shadow: 0 0 0 4px var(--ring); }
+
+  .label { font-size: 13px; font-weight: 600; color: var(--text); }
+  .hint  { font-size: 11.5px; color: var(--muted); line-height: 1.45; }
+
+  /* アイコンボタン */
+  .icon-btn { color: var(--text-2); border-radius: 10px; padding: 8px; transition: background .15s, color .15s; display:inline-flex; align-items:center; justify-content:center; }
+  .icon-btn:hover { background: var(--surface-2); color: var(--text); }
+
+  /* トグルスイッチ */
+  .switch { display:inline-block; width: 38px; height: 22px; border-radius: 999px; background: #cdd2db; position: relative; transition: background .2s; flex: 0 0 auto; }
+  .switch::after { content:""; position:absolute; top:2px; left:2px; width:18px; height:18px; border-radius:50%; background:#fff; box-shadow:0 1px 2px rgba(0,0,0,.18); transition: transform .2s; }
+  input:checked + .switch { background: var(--accent); }
+  input:checked + .switch::after { transform: translateX(16px); }
+
+  /* select カスタム矢印 */
+  .select-wrap { position: relative; display: inline-flex; }
+  .select-wrap select { appearance: none; -webkit-appearance: none; }
+  .select-wrap .chev { position:absolute; right:12px; top:50%; transform:translateY(-50%); pointer-events:none; color: var(--text-2); }
+
+  /* メッセージ本文 */
+  .msg-body { white-space: normal; word-break: break-word; line-height: 1.75; font-size: 15.5px; color: var(--text); }
+  .msg-body pre { white-space: pre; overflow-x:auto; background:#f4f5f8; border:1px solid var(--border); color:#1f2430; padding:.85rem 1rem; border-radius:12px; margin:.65rem 0; font-size:13px; line-height:1.6; }
+  .msg-body pre code { font-family: ui-monospace, "SF Mono", SFMono-Regular, Menlo, monospace; }
+  .msg-body p { margin:.55em 0; }
+  .msg-body p:first-child { margin-top:0; } .msg-body p:last-child { margin-bottom:0; }
+  .msg-body .md-h { font-weight:700; line-height:1.3; margin:.85em 0 .4em; }
+  .msg-body h1.md-h { font-size:1.4em; } .msg-body h2.md-h { font-size:1.25em; } .msg-body h3.md-h { font-size:1.1em; }
+  .msg-body h4.md-h, .msg-body h5.md-h, .msg-body h6.md-h { font-size:1em; }
+  .msg-body ul, .msg-body ol { margin:.5em 0; padding-left:1.5em; }
+  .msg-body li { margin:.2em 0; }
+  .msg-body a { color:var(--accent); text-decoration:underline; }
+  .msg-body .md-q { border-left:3px solid var(--border-2); margin:.6em 0; padding:.15em .9em; color:var(--text-2); }
+  .msg-body .md-hr { border:0; border-top:1px solid var(--border); margin:1em 0; }
+  .inline-code { background:var(--surface-2); border:1px solid var(--border); border-radius:6px; padding:1px 5px; font-family:ui-monospace,Menlo,monospace; font-size:.88em; }
+  .md-table-wrap { overflow-x:auto; margin:.6em 0; }
+  .md-table { border-collapse:collapse; width:100%; font-size:13px; }
+  .md-table th, .md-table td { border:1px solid var(--border); padding:6px 10px; text-align:left; }
+  .md-table th { background:var(--surface-2); font-weight:600; }
+  .code-wrap { margin:.65rem 0; border:1px solid var(--border); border-radius:12px; overflow:hidden; }
+  .code-head { display:flex; align-items:center; justify-content:space-between; padding:5px 10px; background:var(--surface-2); border-bottom:1px solid var(--border); }
+  .code-lang { font-size:11px; color:var(--muted); font-family:ui-monospace,Menlo,monospace; }
+  .code-copy { font-size:11px; color:var(--text-2); border:1px solid var(--border-2); border-radius:6px; padding:2px 8px; background:#fff; cursor:pointer; }
+  .code-copy:hover { background:#ececef; }
+  .msg-body .code-wrap pre { margin:0; border:0; border-radius:0; }
+  .typing::after { content:"▋"; margin-left:1px; animation: blink 1.1s steps(1) infinite; color: var(--muted); }
+  @keyframes blink { 50% { opacity:0; } }
+
+  .fade-in { animation: fadeIn .3s cubic-bezier(.2,.7,.3,1); }
+  @keyframes fadeIn { from { opacity:0; transform: translateY(7px); } to { opacity:1; transform:none; } }
+
+  .btn-press { transition: transform .08s ease, background .15s, filter .15s, opacity .15s, box-shadow .15s; }
+  .btn-press:active { transform: scale(.97); }
+
+  /* サジェスト */
+  .chip { border: 1px solid var(--border-2); background: var(--surface); border-radius: 12px; padding: 13px 15px; text-align:left; font-size: 14px; color: var(--text-2); transition: border-color .15s, box-shadow .15s, transform .12s; cursor: pointer; }
+  .chip:hover { border-color: var(--text); color: var(--text); box-shadow: 0 6px 18px -12px rgba(0,0,0,.3); transform: translateY(-1px); }
+
+  /* コンポーザー：フォーカス時に枠を締める（Vercel調） */
+  #composer:focus-within { border-color: var(--text) !important; }
+
+  /* 設定パネル */
+  #settings-panel { transform: translateX(100%); transition: transform .28s cubic-bezier(.2,.7,.3,1); }
+  #settings-panel.open { transform: translateX(0); }
+  #settings-backdrop { transition: opacity .25s; }
+  #convos-panel { transform: translateX(-100%); transition: transform .28s cubic-bezier(.2,.7,.3,1); box-shadow: 0 25px 50px -12px rgba(0,0,0,.25); }
+  #convos-panel.open { transform: translateX(0); }
+  #convos-backdrop { transition: opacity .25s; }
+
+  /* 会話行 */
+  .convo-row { display:flex; align-items:center; gap:2px; border-radius:10px; padding:2px; }
+  .convo-row:hover { background:var(--surface-2); }
+  .convo-row.active { background:var(--accent-soft); }
+  .convo-open { flex:1 1 auto; min-width:0; text-align:left; padding:8px 10px; font-size:13.5px; color:var(--text); background:transparent; border:0; cursor:pointer; }
+  .convo-row.active .convo-open { font-weight:600; }
+  .convo-ico { flex:0 0 auto; width:30px; height:30px; border-radius:8px; background:transparent; border:0; cursor:pointer; color:var(--muted); font-size:13px; opacity:0; transition:opacity .15s,background .15s; }
+  .convo-row:hover .convo-ico { opacity:1; }
+  .convo-ico:hover { background:#ececef; color:var(--text); }
+
+  /* メッセージ操作 */
+  .msg-actions { display:flex; gap:4px; margin-top:6px; opacity:0; transition:opacity .15s; }
+  .msg-row:hover .msg-actions { opacity:1; }
+  .msg-act { font-size:11.5px; color:var(--text-2); border:1px solid var(--border); border-radius:8px; padding:3px 9px; background:#fff; cursor:pointer; transition:background .15s,border-color .15s; }
+  .msg-act:hover { background:var(--surface-2); border-color:var(--border-2); }
+  .msg-act.speaking { background:var(--accent-soft); border-color:var(--accent); color:var(--accent); }
+  #mic-btn.mic-on { color:#fff; background:var(--accent); animation:micpulse 1.2s ease-in-out infinite; }
+  @keyframes micpulse { 0%,100%{ box-shadow:0 0 0 0 rgba(24,24,27,.25); } 50%{ box-shadow:0 0 0 5px rgba(24,24,27,0); } }
+  @media (hover:none) { .msg-actions, .convo-ico { opacity:1; } }
+
+  /* ===== ダークモード ===== */
+  :root[data-theme="dark"] {
+    --bg: #111113;
+    --surface: #1c1c1f;
+    --surface-2: #26262a;
+    --border: #2d2d32;
+    --border-2: #3a3a40;
+    --text: #ededf0;
+    --text-2: #9898a6;
+    --muted: #5c5c68;
+    --accent: #d4d4dc;
+    --accent-soft: #26262a;
+    --ring: rgba(255,255,255,.07);
+  }
+  [data-theme="dark"] body { color-scheme: dark; }
+  [data-theme="dark"] .msg-body pre { background:#1e1e22; color:#d4d4dc; border-color:var(--border); }
+  [data-theme="dark"] .msg-act { background:var(--surface-2); }
+  [data-theme="dark"] .msg-act:hover { background:var(--border-2); }
+  [data-theme="dark"] .code-copy { background:var(--surface-2); }
+  [data-theme="dark"] .code-copy:hover { background:var(--border); }
+  [data-theme="dark"] .model-sep { background:var(--surface); }
+  [data-theme="dark"] #gate > div { background:var(--surface) !important; }
+
+  /* モデルピッカー */
+  .chip-toggle { cursor:pointer; }
+  .chip-pill { display:inline-block; padding:5px 11px; border-radius:999px; font-size:12px; border:1px solid var(--border-2); color:var(--text-2); background:#fff; transition:background .15s,color .15s,border-color .15s; user-select:none; }
+  .chip-toggle input:checked + .chip-pill { background:var(--accent); color:#fff; border-color:var(--accent); }
+  .model-row { display:flex; align-items:center; gap:8px; width:100%; text-align:left; padding:10px 11px; border-radius:10px; cursor:pointer; background:transparent; border:0; color:var(--text); font-size:13.5px; }
+  .model-row:hover { background:var(--surface-2); }
+  .model-row.active { background:var(--accent-soft); font-weight:600; }
+  .cmp-check { font-size:14px; color:var(--accent); }
+  .model-sep { font-size:11px; font-weight:600; letter-spacing:.04em; color:var(--muted); padding:8px 10px 4px; position:sticky; top:0; background:#fff; }
+
+  /* ===== 洗練されたピッカー（ヘッダー / セグメント / 比較コンテキスト） ===== */
+  .pk-head { display:flex; align-items:center; gap:6px; padding:11px 12px 11px 14px; border-bottom:1px solid var(--border); }
+  .pk-title { font-size:14.5px; font-weight:600; flex:1 1 auto; min-width:0; }
+  .pk-head .icon-btn { padding:6px; }
+
+  /* セグメント切替（単一 / 比較） */
+  .seg { display:flex; background:var(--surface-2); border:1px solid var(--border); border-radius:11px; padding:3px; gap:3px; }
+  .seg-btn { flex:1 1 0; display:inline-flex; align-items:center; justify-content:center; gap:5px; font-size:13px; font-weight:600; color:var(--text-2); background:transparent; border:0; border-radius:8px; padding:8px 6px; cursor:pointer; transition:background .18s,color .18s,box-shadow .18s; }
+  .seg-btn.active { background:var(--surface); color:var(--text); box-shadow:0 1px 2px rgba(0,0,0,.08); }
+  [data-theme="dark"] .seg-btn.active { background:var(--border-2); box-shadow:0 1px 2px rgba(0,0,0,.3); }
+  .seg-btn:not(.active):hover { color:var(--text); }
+
+  /* 比較コンテキスト（選択中チップ + 審査員行） */
+  .cmp-ctx { margin-top:11px; background:var(--surface-2); border:1px solid var(--border); border-radius:12px; padding:10px; }
+  .cmp-ctx-top { display:flex; align-items:center; justify-content:space-between; margin-bottom:8px; }
+  .cmp-ctx-label { font-size:11px; font-weight:600; letter-spacing:.03em; text-transform:uppercase; color:var(--muted); }
+  .cmp-ctx-count { font-size:11.5px; font-weight:600; color:var(--text-2); font-variant-numeric:tabular-nums; }
+  .cmp-ctx-chips { display:flex; flex-wrap:wrap; gap:6px; }
+  .cmp-ctx-empty { font-size:12px; color:var(--muted); padding:2px 0; }
+  .sel-chip { display:inline-flex; align-items:center; gap:2px; font-size:12px; font-weight:500; padding:4px 4px 4px 10px; border-radius:999px; background:var(--surface); border:1px solid var(--border-2); color:var(--text); max-width:100%; }
+  .sel-chip > span { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:150px; }
+  .sel-chip-del { flex:0 0 auto; display:inline-flex; align-items:center; justify-content:center; width:18px; height:18px; border-radius:50%; color:var(--muted); font-size:13px; line-height:1; transition:background .15s,color .15s; }
+  .sel-chip-del:hover { background:#f43f5e; color:#fff; }
+  .judge-sel { display:flex; align-items:center; gap:8px; width:100%; margin-top:10px; padding:9px 11px; background:var(--surface); border:1px solid var(--border-2); border-radius:10px; cursor:pointer; transition:border-color .15s,box-shadow .15s; }
+  .judge-sel:hover { border-color:var(--text); }
+  .judge-sel .jl { font-size:13px; font-weight:600; color:var(--text); flex:0 0 auto; }
+  .judge-sel .jv { font-size:13px; color:var(--text-2); flex:1 1 auto; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; text-align:right; }
+
+  /* リスト行：比較時の右端チェック */
+  .row-check { flex:0 0 auto; width:20px; height:20px; border-radius:50%; border:1.6px solid var(--border-2); display:inline-flex; align-items:center; justify-content:center; color:#fff; transition:background .15s,border-color .15s; }
+  .model-row.active .row-check { background:var(--accent); border-color:var(--accent); }
+  .model-row.active .row-check svg { display:block; }
+  .row-check svg { display:none; }
+
+  /* ピッカー フッターの完了ボタン（ダークでも文字が読めるよう on-accent 色を使用） */
+  .pk-done { flex:0 0 auto; font-size:13px; font-weight:600; color:#fff; background:var(--accent); border:0; border-radius:999px; padding:7px 16px; cursor:pointer; transition:filter .15s; }
+  [data-theme="dark"] .pk-done { color:#18181b; }
+  .pk-done:hover { filter:brightness(.95); }
+
+  /* マルチモデル比較 */
+  .cmp-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(240px,1fr)); gap:12px; }
+  .cmp-card { border:1px solid var(--border); border-radius:14px; overflow:hidden; background:#fff; display:flex; flex-direction:column; }
+  .cmp-head { font-size:12px; font-weight:600; color:var(--text-2); padding:8px 12px; background:var(--surface-2); border-bottom:1px solid var(--border); position:sticky; top:0; }
+  .cmp-card .msg-body { padding:12px; font-size:14px; }
+  .judge-bar { display:flex; justify-content:center; }
+  .judge-btn { font-size:13px; font-weight:600; color:#fff; background:var(--accent); border:0; border-radius:999px; padding:9px 18px; cursor:pointer; box-shadow:0 1px 2px rgba(0,0,0,.05); }
+  .judge-btn:hover { filter:brightness(.95); }
+</style>
+
+<!-- ====== 自己完結ユーティリティCSS（Tailwind CDN非依存） ====== -->
+<style>
+  /* preflight-lite */
+  *,*::before,*::after{ box-sizing:border-box; border-width:0; border-style:solid; border-color:var(--border); }
+  body{ margin:0; }
+  h1,h2,h3,h4,p,figure{ margin:0; }
+  button{ background:transparent; padding:0; cursor:pointer; }
+  button,input,select,textarea{ font:inherit; color:inherit; }
+
+  /* display */
+  .flex{display:flex} .inline-flex{display:inline-flex} .grid{display:grid} .block{display:block}
+  .hidden{display:none!important}
+  .flex-col{flex-direction:column} .flex-wrap{flex-wrap:wrap} .flex-1{flex:1 1 0%} .shrink-0{flex-shrink:0}
+  .grid-cols-3{grid-template-columns:repeat(3,minmax(0,1fr))}
+  .items-center{align-items:center} .items-end{align-items:flex-end}
+  .justify-between{justify-content:space-between} .justify-center{justify-content:center}
+  .justify-self-start{justify-self:start} .justify-self-center{justify-self:center} .justify-self-end{justify-self:end}
+  .m-auto{margin:auto} .mx-auto{margin-left:auto;margin-right:auto}
+
+  /* position */
+  .relative{position:relative} .absolute{position:absolute} .fixed{position:fixed}
+  .inset-0{top:0;right:0;bottom:0;left:0} .top-0{top:0} .right-0{right:0} .bottom-0{bottom:0}
+  .-top-1\.5{top:-6px} .-right-1\.5{right:-6px}
+  .z-20{z-index:20} .z-40{z-index:40} .z-50{z-index:50}
+
+  /* sizing */
+  .h-screen{height:100vh;height:100dvh} .h-full{height:100%}
+  .h-4{height:16px} .h-5{height:20px} .h-9{height:36px} .h-10{height:40px} .h-12{height:48px} .h-14{height:56px} .h-16{height:64px} .h-28{height:112px}
+  .w-full{width:100%} .w-5{width:20px} .w-9{width:36px} .w-10{width:40px} .w-12{width:48px} .w-16{width:64px} .w-\[380px\]{width:380px}
+  .min-w-0{min-width:0} .min-h-\[14px\]{min-height:14px}
+  .max-w-full{max-width:100%} .max-w-sm{max-width:24rem} .max-w-lg{max-width:32rem} .max-w-3xl{max-width:48rem}
+  .max-w-\[85\%\]{max-width:85%} .max-w-\[90vw\]{max-width:90vw}
+
+  /* overflow */
+  .overflow-hidden{overflow:hidden} .overflow-y-auto{overflow-y:auto}
+
+  /* padding */
+  .p-3{padding:12px} .p-4{padding:16px} .p-6{padding:24px} .p-7{padding:28px}
+  .px-1{padding-left:4px;padding-right:4px} .px-2{padding-left:8px;padding-right:8px} .px-3{padding-left:12px;padding-right:12px} .px-4{padding-left:16px;padding-right:16px} .px-5{padding-left:20px;padding-right:20px}
+  .py-2{padding-top:8px;padding-bottom:8px} .py-2\.5{padding-top:10px;padding-bottom:10px} .py-3{padding-top:12px;padding-bottom:12px} .py-6{padding-top:24px;padding-bottom:24px}
+  .pt-0\.5{padding-top:2px} .pt-1{padding-top:4px} .pt-1\.5{padding-top:6px} .pt-2{padding-top:8px}
+  .pb-5{padding-bottom:20px}
+  .pl-3{padding-left:12px} .pl-4{padding-left:16px} .pr-3\.5{padding-right:14px} .pr-9{padding-right:36px}
+
+  /* margin */
+  .mb-1{margin-bottom:4px} .mb-1\.5{margin-bottom:6px} .mb-2{margin-bottom:8px} .mb-4{margin-bottom:16px} .mb-5{margin-bottom:20px} .mb-6{margin-bottom:24px} .mb-7{margin-bottom:28px}
+  .mt-0\.5{margin-top:2px} .mt-1{margin-top:4px} .mt-2{margin-top:8px} .mt-3{margin-top:12px}
+  .ml-0\.5{margin-left:2px}
+
+  /* space-y */
+  .space-y-1\.5>*+*{margin-top:6px} .space-y-2>*+*{margin-top:8px} .space-y-2\.5>*+*{margin-top:10px} .space-y-3>*+*{margin-top:12px} .space-y-8>*+*{margin-top:32px}
+
+  /* gap */
+  .gap-1\.5{gap:6px} .gap-2{gap:8px} .gap-2\.5{gap:10px} .gap-3{gap:12px}
+
+  /* radius / border */
+  .rounded-xl{border-radius:12px} .rounded-2xl{border-radius:16px} .rounded-3xl{border-radius:24px} .rounded-full{border-radius:9999px} .rounded-br-md{border-bottom-right-radius:6px}
+  .border-b{border-bottom-width:1px} .border-t{border-top-width:1px} .border-2{border-width:2px} .border-dashed{border-style:dashed}
+
+  /* background */
+  .bg-white{background:#fff} .bg-white\/80{background:rgba(255,255,255,.8)} .bg-transparent{background:transparent}
+  .bg-slate-900\/30{background:rgba(15,23,42,.30)} .bg-slate-900\/25{background:rgba(15,23,42,.25)}
+
+  /* typography */
+  .text-white{color:#fff} .text-rose-500{color:#f43f5e}
+  .text-center{text-align:center} .text-left{text-align:left}
+  .text-xs{font-size:12px;line-height:16px} .text-sm{font-size:14px;line-height:20px} .text-xl{font-size:20px;line-height:28px}
+  .text-\[11px\]{font-size:11px} .text-\[12px\]{font-size:12px} .text-\[12\.5px\]{font-size:12.5px} .text-\[13px\]{font-size:13px} .text-\[13\.5px\]{font-size:13.5px} .text-\[15px\]{font-size:15px} .text-\[16px\]{font-size:16px}
+  .font-normal{font-weight:400} .font-medium{font-weight:500} .font-semibold{font-weight:600} .font-bold{font-weight:700}
+  .leading-tight{line-height:1.25} .leading-relaxed{line-height:1.625} .leading-none{line-height:1}
+  .tracking-tight{letter-spacing:-.015em} .tracking-wide{letter-spacing:.025em}
+  .uppercase{text-transform:uppercase}
+  .truncate{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .tabular-nums{font-variant-numeric:tabular-nums}
+  .object-cover{object-fit:cover}
+
+  /* misc */
+  .cursor-pointer{cursor:pointer} .select-none{user-select:none} .pointer-events-none{pointer-events:none}
+  .outline-none{outline:none} .resize-none{resize:none} .resize-y{resize:vertical}
+  .opacity-0{opacity:0} .opacity-100{opacity:1}
+  .transition{transition:color .15s,background-color .15s,border-color .15s,opacity .15s,box-shadow .15s,transform .15s,filter .15s}
+  .transition-colors{transition:color .15s,background-color .15s,border-color .15s}
+  .transition-shadow{transition:box-shadow .15s}
+  .backdrop-blur{backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)}
+  .backdrop-blur-md{backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px)}
+  .shadow-sm{box-shadow:0 1px 2px 0 rgba(0,0,0,.05)}
+  .shadow-xl{box-shadow:0 20px 25px -5px rgba(0,0,0,.10),0 8px 10px -6px rgba(0,0,0,.10)}
+  .shadow-2xl{box-shadow:0 25px 50px -12px rgba(0,0,0,.25)}
+  .sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+
+  /* state variants */
+  .disabled\:opacity-30:disabled{opacity:.3}
+  .hover\:bg-slate-50:hover{background:#f8fafc}
+  .hover\:bg-rose-500:hover{background:#f43f5e}
+  .hover\:brightness-95:hover{filter:brightness(.95)}
+  .hover\:brightness-90:hover{filter:brightness(.90)}
+  .hover\:shadow-md:hover{box-shadow:0 4px 6px -1px rgba(0,0,0,.10),0 2px 4px -2px rgba(0,0,0,.10)}
+  .hover\:text-rose-500:hover{color:#f43f5e}
+  .focus-within\:shadow-md:focus-within{box-shadow:0 4px 6px -1px rgba(0,0,0,.10),0 2px 4px -2px rgba(0,0,0,.10)}
+  #attachments:empty{display:none}
+
+  /* responsive (sm: >=640px) */
+  @media (min-width:640px){
+    .sm\:grid-cols-2{grid-template-columns:repeat(2,minmax(0,1fr))}
+    .sm\:px-4{padding-left:16px;padding-right:16px}
+    .sm\:px-6{padding-left:24px;padding-right:24px}
+  }
+  /* ダークモード上書き */
+  [data-theme="dark"] .bg-white { background:var(--surface) !important; }
+  [data-theme="dark"] .bg-white\/80 { background:rgba(28,28,31,.85) !important; }
+  [data-theme="dark"] .hover\:bg-slate-50:hover { background:var(--surface-2) !important; }
+  [data-theme="dark"] .shadow-xl { box-shadow:0 20px 25px -5px rgba(0,0,0,.4),0 8px 10px -6px rgba(0,0,0,.4); }
+  [data-theme="dark"] .shadow-2xl { box-shadow:0 25px 50px -12px rgba(0,0,0,.7); }
+  [data-theme="dark"] .shadow-sm { box-shadow:0 1px 2px 0 rgba(0,0,0,.3); }
+  [data-theme="dark"] #compare-bar { background:rgba(28,28,31,.85) !important; }
+</style>
+</head>
+<body class="overflow-hidden">
+
+<!-- ===================== ロック / セットアップ ===================== -->
+<div id="gate" class="fixed inset-0 z-50 bg-slate-900/30 backdrop-blur-md flex items-center justify-center p-4">
+  <div class="w-full max-w-sm rounded-2xl p-7 fade-in bg-white shadow-xl shadow-slate-900/10 ring-1 ring-black/5">
+    <div class="flex items-center gap-3 mb-6">
+      <div class="w-9 h-9 rounded-xl flex items-center justify-center text-white" style="background:var(--accent)">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l1.9 5.8L20 10l-5.1 1.2L12 17l-1.9-5.8L4 10l6.1-1.2z"/></svg>
+      </div>
+      <div>
+        <h1 class="text-[15px] font-semibold leading-tight">OpenRouter Chat</h1>
+        <p class="text-xs leading-tight mt-0.5" style="color:var(--muted)">様々なAIモデルを、ひとつの画面で</p>
+      </div>
+    </div>
+
+    <div id="gate-setup" class="hidden">
+      <p class="text-[13px] mb-5 leading-relaxed" style="color:var(--text-2)">OpenRouter の APIキーと、暗号化用のパスワードを設定してください。キーは<span class="font-semibold" style="color:var(--text)">この端末内で暗号化</span>され外部に送信されません。</p>
+      <label class="label block mb-1.5">OpenRouter API キー</label>
+      <input id="setup-key" type="password" placeholder="sk-or-..." autocomplete="off" class="field mb-4" />
+      <label class="label block mb-1.5">暗号化パスワード</label>
+      <input id="setup-pass" type="password" placeholder="このキーを保護するパスワード" autocomplete="new-password" class="field mb-2" />
+      <input id="setup-pass2" type="password" placeholder="パスワード（確認）" autocomplete="new-password" class="field mb-1.5" />
+      <p id="setup-msg" class="text-xs text-rose-500 mb-2 h-4"></p>
+      <button id="setup-btn" class="btn-press w-full text-white text-sm font-semibold py-3 rounded-xl shadow-sm hover:brightness-95" style="background:var(--accent)">暗号化して保存・開始</button>
+    </div>
+
+    <div id="gate-unlock" class="hidden">
+      <p class="text-[13px] mb-5 leading-relaxed" style="color:var(--text-2)">保存済みのAPIキーを復号します。パスワードを入力してください。</p>
+      <label class="label block mb-1.5">パスワード</label>
+      <input id="unlock-pass" type="password" placeholder="••••••••" autocomplete="current-password" class="field mb-1.5" />
+      <p id="unlock-msg" class="text-xs text-rose-500 mb-2 h-4"></p>
+      <div class="flex items-center gap-2">
+        <button id="unlock-btn" class="btn-press flex-1 text-white text-sm font-semibold py-3 rounded-xl shadow-sm hover:brightness-95" style="background:var(--accent)">アンロック</button>
+        <button id="forget-btn" class="px-3 py-3 text-xs hover:text-rose-500 transition-colors" style="color:var(--muted)">削除</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===================== アプリ本体 ===================== -->
+<div id="drop-zone" class="relative flex flex-col h-screen">
+
+  <!-- 上部バー -->
+  <header class="shrink-0 h-14 px-3 sm:px-4 grid grid-cols-3 items-center border-b border-c bg-white/80 backdrop-blur">
+    <div class="justify-self-start flex items-center gap-0.5">
+      <button id="convos-btn" class="icon-btn" title="会話一覧" aria-label="会話一覧">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
+      </button>
+      <button id="new-chat" class="icon-btn" title="新しい会話" aria-label="新しい会話">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>
+      </button>
+    </div>
+
+    <button id="model-btn" class="btn-press justify-self-center inline-flex items-center gap-1.5 text-[13.5px] font-medium rounded-full pl-4 pr-3 py-2 max-w-full bg-white" style="border:1px solid var(--border-2);color:var(--text)" title="モデルを選択・絞り込み">
+      <span id="model-btn-label" class="truncate">モデルを選択</span>
+      <svg class="shrink-0" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round" style="color:var(--text-2)"><path d="M6 9l6 6 6-6"/></svg>
+    </button>
+
+    <div class="justify-self-end flex items-center gap-0.5">
+      <button id="theme-btn" class="icon-btn" title="ダークモード切替" aria-label="ダークモード切替"></button>
+      <button id="settings-btn" class="icon-btn" title="設定" aria-label="設定">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9c.2.61.74 1.05 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+      </button>
+    </div>
+  </header>
+
+  <!-- 比較バー（compareモード時のみ表示） -->
+  <div id="compare-bar" class="hidden shrink-0 border-b border-c bg-white/80 backdrop-blur px-4 sm:px-6" style="padding-top:7px;padding-bottom:7px">
+    <div class="max-w-3xl mx-auto flex flex-wrap items-center gap-2">
+      <span class="text-[11px] font-semibold uppercase tracking-wide shrink-0" style="color:var(--muted)">比較</span>
+      <div id="cmp-chips" class="flex flex-wrap gap-1.5 items-center flex-1 min-w-0"></div>
+      <button id="cmp-add-btn" class="hidden shrink-0 btn-press inline-flex items-center gap-1 text-[12px] font-medium rounded-full transition-colors" style="padding:4px 10px;border:1.5px dashed var(--border-2);color:var(--muted)">
+        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>追加
+      </button>
+      <div class="shrink-0 self-stretch" style="width:1px;background:var(--border-2);margin:0 2px"></div>
+      <button id="judge-bar-btn" class="shrink-0 btn-press inline-flex items-center gap-1.5 text-[12px] rounded-full transition-colors" style="padding:4px 10px;border:1px solid var(--border-2);background:var(--surface);color:var(--text-2)">
+        <span style="font-size:11px">⚖️</span>
+        <span id="judge-bar-label" class="truncate" style="max-width:110px">審査員なし</span>
+        <svg class="shrink-0" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
+      </button>
+    </div>
+  </div>
+
+  <!-- モデルピッカー -->
+  <div id="model-backdrop" class="hidden fixed inset-0 z-40"></div>
+  <div id="model-menu" class="hidden fixed z-50 bg-white flex flex-col" style="top:58px;left:50%;transform:translateX(-50%);width:min(93vw,440px);max-height:76vh;border:1px solid var(--border);border-radius:18px;box-shadow:0 25px 50px -12px rgba(0,0,0,.25)">
+    <div class="pk-head">
+      <button id="pk-back" class="icon-btn hidden" title="戻る" aria-label="戻る">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
+      </button>
+      <span id="pk-title" class="pk-title">モデルを選択</span>
+      <button id="pk-close" class="icon-btn" title="閉じる" aria-label="閉じる">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg>
+      </button>
+    </div>
+    <div class="p-3" style="border-bottom:1px solid var(--border)">
+      <!-- モード切替（単一 / 比較） -->
+      <div id="pk-seg" class="seg" role="tablist" aria-label="モード">
+        <button id="seg-single" class="seg-btn active" type="button">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l1.9 5.8L20 10l-5.1 1.2L12 17l-1.9-5.8L4 10l6.1-1.2z"/></svg>
+          単一モデル
+        </button>
+        <button id="seg-compare" class="seg-btn" type="button">⚔️ モデル比較</button>
+      </div>
+
+      <input id="model-search" type="text" placeholder="モデルを検索（gpt, claude, gemini…）" class="field" style="margin-top:11px" />
+      <div class="flex flex-wrap items-center gap-1.5" style="margin-top:9px">
+        <label class="chip-toggle"><input id="filter-top" type="checkbox" class="sr-only"><span class="chip-pill">⭐ 人気</span></label>
+        <label class="chip-toggle"><input id="filter-free" type="checkbox" class="sr-only"><span class="chip-pill">🆓 無料</span></label>
+        <label class="chip-toggle"><input id="filter-vision" type="checkbox" class="sr-only"><span class="chip-pill">🖼 画像</span></label>
+        <div class="select-wrap" style="margin-left:auto">
+          <select id="model-sort" class="chip-pill" style="padding-right:24px;cursor:pointer;background:var(--surface);color:var(--text-2)" title="並び替え">
+            <option value="default">⇅ おすすめ順</option>
+            <option value="price-asc">⇅ 安い順</option>
+            <option value="price-desc">⇅ 高い順</option>
+            <option value="name">⇅ 名前順</option>
+          </select>
+          <svg class="chev" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
+        </div>
+        <span id="model-count" class="text-[11px]" style="color:var(--muted)"></span>
+      </div>
+
+      <!-- 比較コンテキスト（選択中チップ + 審査員） -->
+      <div id="pk-compare-ctx" class="cmp-ctx hidden">
+        <div class="cmp-ctx-top">
+          <span class="cmp-ctx-label">比較するモデル</span>
+          <span id="pk-cmp-count" class="cmp-ctx-count">0 / 3</span>
+        </div>
+        <div id="pk-cmp-chips" class="cmp-ctx-chips"></div>
+        <button id="pk-judge-row" class="judge-sel" type="button">
+          <span class="jl">⚖️ 審査員</span>
+          <span id="pk-judge-val" class="jv">なし</span>
+          <svg class="shrink-0" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round" style="color:var(--text-2)"><path d="M9 6l6 6-6 6"/></svg>
+        </button>
+      </div>
+    </div>
+    <div id="model-list" class="overflow-y-auto scroll-thin" style="padding:6px"></div>
+    <div class="flex items-center justify-between gap-2" style="padding:9px 12px;border-top:1px solid var(--border)">
+      <p id="model-info" class="hint truncate"></p>
+      <div class="shrink-0 flex items-center gap-3">
+        <button id="refresh-models" class="text-[12px] font-medium inline-flex items-center gap-1" style="color:var(--accent)">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-2.6-6.4M21 3v6h-6"/></svg>再取得
+        </button>
+        <button id="pk-done" class="pk-done hidden" type="button">完了</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- メッセージスレッド -->
+  <div id="thread" class="flex-1 overflow-y-auto scroll-thin flex flex-col px-4 sm:px-6 py-6">
+    <div id="empty-state" class="m-auto max-w-lg w-full text-center px-2">
+      <div class="w-12 h-12 rounded-2xl mx-auto flex items-center justify-center mb-5 text-white" style="background:var(--accent)">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l1.9 5.8L20 10l-5.1 1.2L12 17l-1.9-5.8L4 10l6.1-1.2z"/></svg>
+      </div>
+      <h2 class="text-xl font-semibold tracking-tight mb-1.5">何でも聞いてください</h2>
+      <p class="text-[13.5px] mb-7" style="color:var(--muted)">下の入力欄にメッセージを入力して送信。画像も添付できます。</p>
+      <div class="grid sm:grid-cols-2 gap-2.5 text-left">
+        <button class="suggest chip" data-text="量子コンピューターの仕組みを、中学生にもわかるように説明して。">むずかしい概念を、やさしく解説</button>
+        <button class="suggest chip" data-text="次のコードをレビューして、改善点を教えて：\n\n">コードをレビューしてもらう</button>
+        <button class="suggest chip" data-text="週末に行ける、東京近郊の日帰り旅行プランを3つ提案して。">アイデアを出してもらう</button>
+        <button class="suggest chip" data-text="この画像に写っているものを説明して。">画像について質問する</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 入力エリア -->
+  <div class="shrink-0 px-4 sm:px-6 pb-5 pt-1">
+    <div class="max-w-3xl mx-auto">
+      <div id="attachments" class="flex flex-wrap gap-2 mb-2 empty:hidden"></div>
+      <div id="composer" class="rounded-2xl bg-white p-3 pl-4 transition-shadow shadow-sm hover:shadow-md focus-within:shadow-md" style="border:1px solid var(--border-2)">
+        <textarea id="input" rows="1" placeholder="メッセージを入力…" class="w-full bg-transparent text-[16px] leading-relaxed resize-none outline-none px-1 pt-2" style="color:var(--text);min-height:64px;max-height:220px"></textarea>
+        <div class="flex items-center justify-between pt-1.5">
+          <div class="flex items-center gap-0.5">
+            <label class="btn-press icon-btn cursor-pointer" title="画像を添付">
+              <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21.44 11.05l-9.19 9.19a5 5 0 0 1-7.07-7.07l9.19-9.19a3.5 3.5 0 0 1 4.95 4.95l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>
+              <input id="file-input" type="file" accept="image/*" multiple class="hidden" />
+            </label>
+            <button id="mic-btn" class="btn-press icon-btn hidden" title="音声入力" aria-label="音声入力">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg>
+            </button>
+          </div>
+          <div class="flex items-center gap-2">
+            <button id="stop-btn" class="hidden btn-press text-[13px] font-medium rounded-full pl-3 pr-3.5 h-10 inline-flex items-center gap-1.5 bg-white hover:bg-slate-50" style="border:1px solid var(--border-2);color:var(--text)">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="6" width="12" height="12" rx="2.5"/></svg>停止
+            </button>
+            <button id="send-btn" class="btn-press text-white disabled:opacity-30 rounded-full w-10 h-10 flex items-center justify-center shadow-sm hover:brightness-95" style="background:var(--accent)" title="送信">
+              <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5M5 12l7-7 7 7"/></svg>
+            </button>
+          </div>
+        </div>
+      </div>
+      <p class="text-center text-[11px] mt-2" style="color:var(--muted)">Enterで送信・Shift+Enterで改行 / APIキーは暗号化して保存されます</p>
+    </div>
+  </div>
+
+  <!-- ドロップオーバーレイ -->
+  <div id="drop-overlay" class="hidden absolute inset-0 z-20 flex items-center justify-center pointer-events-none p-6" style="background:rgba(247,248,250,.7);backdrop-filter:blur(2px)">
+    <div class="border-2 border-dashed rounded-3xl w-full h-full flex flex-col items-center justify-center gap-2" style="border-color:var(--accent);color:var(--accent)">
+      <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v13"/></svg>
+      <span class="font-medium text-sm">画像をここにドロップ</span>
+    </div>
+  </div>
+</div>
+
+<!-- ===================== 設定パネル ===================== -->
+<!-- ===================== 会話一覧ドロワー ===================== -->
+<div id="convos-backdrop" class="hidden fixed inset-0 bg-slate-900/25 z-40 opacity-0"></div>
+<aside id="convos-panel" class="fixed top-0 left-0 bottom-0 z-50 w-[300px] max-w-[88vw] flex flex-col bg-white" style="border-right:1px solid var(--border)">
+  <div class="h-14 shrink-0 px-4 flex items-center justify-between border-b border-c">
+    <h2 class="font-semibold text-[15px]">会話</h2>
+    <div class="flex items-center gap-1">
+      <button id="convos-new" class="icon-btn" title="新しい会話" aria-label="新しい会話">
+        <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>
+      </button>
+      <button id="convos-close" class="icon-btn" aria-label="閉じる">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg>
+      </button>
+    </div>
+  </div>
+  <div class="p-3 shrink-0"><input id="convos-search" type="text" placeholder="会話を検索…" class="field" /></div>
+  <div id="convos-list" class="flex-1 overflow-y-auto scroll-thin px-2 pb-3"></div>
+</aside>
+
+<div id="settings-backdrop" class="hidden fixed inset-0 bg-slate-900/25 z-40 opacity-0"></div>
+<aside id="settings-panel" class="fixed top-0 right-0 bottom-0 z-50 w-[380px] max-w-[90vw] flex flex-col bg-white shadow-2xl shadow-slate-900/15" style="border-left:1px solid var(--border)">
+  <div class="h-14 shrink-0 px-5 flex items-center justify-between border-b border-c">
+    <h2 class="font-semibold text-[15px]">設定</h2>
+    <button id="settings-close" class="icon-btn" aria-label="閉じる">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg>
+    </button>
+  </div>
+
+  <div class="flex-1 overflow-y-auto scroll-thin px-5 py-6 space-y-8">
+    <!-- システムプロンプト -->
+    <section class="space-y-2">
+      <div>
+        <h3 class="label">システムプロンプト</h3>
+        <p class="hint mt-0.5">AIへの前提・口調・役割の指示。全ての会話に適用されます。</p>
+      </div>
+      <textarea id="system-prompt" rows="5" placeholder="例: あなたは親切で簡潔な日本語アシスタントです。" class="field resize-y leading-relaxed mt-1"></textarea>
+    </section>
+
+    <div class="border-t border-c"></div>
+
+    <!-- コスト -->
+    <section class="space-y-2.5">
+      <div class="flex items-center justify-between">
+        <h3 class="label">累計コスト</h3>
+        <button id="reset-cost" class="text-[12px] hover:text-rose-500 font-medium transition-colors" style="color:var(--muted)">リセット</button>
+      </div>
+      <div class="rounded-2xl p-4" style="background:var(--surface-2);border:1px solid var(--border)">
+        <div class="flex items-end justify-between">
+          <span class="text-[11px] uppercase tracking-wide" style="color:var(--muted)">Total</span>
+          <span id="cost-total" class="text-xl font-bold tracking-tight tabular-nums" style="color:var(--accent)">$0.000000</span>
+        </div>
+        <div id="cost-by-model" class="mt-3 space-y-1.5 text-[12px]" style="color:var(--text-2)"></div>
+      </div>
+    </section>
+
+    <div class="border-t border-c"></div>
+
+    <!-- 操作 -->
+    <section class="space-y-2">
+      <h3 class="label mb-1">操作</h3>
+      <button id="clear-chat" class="btn-press w-full text-[13.5px] rounded-xl py-2.5 font-medium inline-flex items-center justify-center gap-2 transition-colors bg-white hover:bg-slate-50" style="border:1px solid var(--border-2);color:var(--text-2)">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6"/></svg>
+        会話をクリア
+      </button>
+      <button id="lock-btn" class="btn-press w-full text-[13.5px] rounded-xl py-2.5 font-medium inline-flex items-center justify-center gap-2 transition-colors bg-white hover:bg-slate-50" style="border:1px solid var(--border-2);color:var(--text-2)">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>
+        ロックする
+      </button>
+      <button id="forget-btn2" class="btn-press w-full text-[12.5px] rounded-xl py-2 font-medium hover:text-rose-500 transition-colors" style="color:var(--muted)">APIキーを削除</button>
+    </section>
+
+    <div class="border-t border-c"></div>
+
+    <!-- 生成パラメータ -->
+    <section class="space-y-3">
+      <div>
+        <h3 class="label">生成パラメータ</h3>
+        <p class="hint mt-0.5">送信ごとにAPIへ渡されます。スライダーを左端（0.0）にすると決定論的な出力に。</p>
+      </div>
+      <div>
+        <div class="flex justify-between mb-1.5">
+          <label class="label" style="font-weight:500">Temperature</label>
+          <span id="temp-value" class="text-sm tabular-nums" style="color:var(--text-2)">1.0</span>
+        </div>
+        <input id="temp-slider" type="range" min="0" max="2" step="0.1" value="1" class="w-full" style="accent-color:var(--accent)" />
+        <p class="hint mt-1">0（決定論的）→ 2（ランダム）</p>
+      </div>
+      <div>
+        <label class="label block mb-1.5" style="font-weight:500">Max Tokens</label>
+        <input id="max-tokens-input" type="number" min="1" max="32768" placeholder="モデルのデフォルト（制限なし）" class="field" />
+        <p class="hint mt-1">1回の返答の最大トークン数</p>
+      </div>
+    </section>
+
+    <div class="border-t border-c"></div>
+
+    <!-- エクスポート -->
+    <section class="space-y-2">
+      <h3 class="label mb-1">エクスポート</h3>
+      <button id="export-md" class="btn-press w-full text-[13.5px] rounded-xl py-2.5 font-medium inline-flex items-center justify-center gap-2 transition-colors bg-white hover:bg-slate-50" style="border:1px solid var(--border-2);color:var(--text-2)">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
+        Markdown でダウンロード
+      </button>
+    </section>
+  </div>
+</aside>
+
+<script>
+"use strict";
+
+/* ============================================================ 定数 / LSキー */
+const LS = {
+  enc:"or_chat_apikey_enc", models:"or_chat_models", model:"or_chat_model",
+  system:"or_chat_system", history:"or_chat_history", costs:"or_chat_costs", filters:"or_chat_filters",
+  convos:"or_chat_convos", cur:"or_chat_cur", cmpmode:"or_chat_cmpmode", cmpmodels:"or_chat_cmpmodels", judge:"or_chat_judge",
+  theme:"or_chat_theme", temperature:"or_chat_temperature", maxTokens:"or_chat_max_tokens",
+};
+const API_BASE = "https://openrouter.ai/api/v1";
+const APP_TITLE = "OpenRouter Chat UI";
+
+/* ============================================================ 状態 */
+let API_KEY = null, MODELS = [], messages = [], pendingImages = [], abortCtrl = null;
+let selectedModelId = localStorage.getItem(LS.model) || "";
+let compareMode = false;
+let compareModels = [];  // 比較モードで選んだモデルID（最大3）
+let pendingJudge = null;  // 直近の比較結果（ジャッジ採点用）
+let judgeModelId = "";    // 比較後に採点する審査員モデル（"" = 採点しない）
+let menuMode = "model";   // モデルメニューの用途: "model" | "judge"
+/* 「人気/主要モデル」フィルタ用：主要フラッグシップの id パターン（OpenRouter APIに人気順は無いため厳選） */
+const POPULAR_PATTERNS = ["openai/gpt-4o","openai/gpt-4.1","openai/o1","openai/o3","openai/o4","anthropic/claude-3.5-sonnet","anthropic/claude-3.7-sonnet","anthropic/claude-sonnet-4","anthropic/claude-opus-4","google/gemini-2.0-flash","google/gemini-2.5-pro","google/gemini-2.5-flash","meta-llama/llama-3.3-70b","meta-llama/llama-4","deepseek/deepseek-chat","deepseek/deepseek-r1","qwen/qwen-2.5-72b","qwen/qwen3","mistralai/mistral-large","mistralai/mistral-small","x-ai/grok-2","x-ai/grok-3"];
+const isTop = (m) => POPULAR_PATTERNS.some((p) => m.id.includes(p));
+/* 1Mトークンあたりの価格を読みやすく整形 */
+const fmtPM = (v) => { const x = (v||0)*1e6; if (x===0) return "0"; if (x<0.1) return x.toFixed(3); if (x<10) return x.toFixed(2); return x.toFixed(1); };
+
+/* ============================================================ Web Crypto */
+const enc = new TextEncoder(), dec = new TextDecoder();
+const bufToB64 = (buf) => { const b=new Uint8Array(buf); let s=""; for(let i=0;i<b.length;i++)s+=String.fromCharCode(b[i]); return btoa(s); };
+const b64ToBuf = (b64) => { const s=atob(b64); const b=new Uint8Array(s.length); for(let i=0;i<s.length;i++)b[i]=s.charCodeAt(i); return b.buffer; };
+
+async function deriveKey(password, salt) {
+  const baseKey = await crypto.subtle.importKey("raw", enc.encode(password), "PBKDF2", false, ["deriveKey"]);
+  return crypto.subtle.deriveKey({ name:"PBKDF2", salt, iterations:200000, hash:"SHA-256" },
+    baseKey, { name:"AES-GCM", length:256 }, false, ["encrypt","decrypt"]);
+}
+async function encryptKey(apiKey, password) {
+  const salt = crypto.getRandomValues(new Uint8Array(16));
+  const iv = crypto.getRandomValues(new Uint8Array(12));
+  const key = await deriveKey(password, salt);
+  const cipher = await crypto.subtle.encrypt({ name:"AES-GCM", iv }, key, enc.encode(apiKey));
+  return { salt: bufToB64(salt.buffer), iv: bufToB64(iv.buffer), data: bufToB64(cipher) };
+}
+async function decryptKey(password) {
+  const stored = JSON.parse(localStorage.getItem(LS.enc));
+  const salt = new Uint8Array(b64ToBuf(stored.salt)), iv = new Uint8Array(b64ToBuf(stored.iv));
+  const key = await deriveKey(password, salt);
+  const plain = await crypto.subtle.decrypt({ name:"AES-GCM", iv }, key, b64ToBuf(stored.data));
+  return dec.decode(plain);
+}
+
+/* ============================================================ ダークモード */
+const MOON_SVG = `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>`;
+const SUN_SVG = `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>`;
+
+function applyTheme(dark) {
+  document.documentElement.dataset.theme = dark ? "dark" : "";
+  document.querySelector('meta[name="theme-color"]').content = dark ? "#111113" : "#fafafa";
+  const btn = document.getElementById("theme-btn");
+  if (btn) btn.innerHTML = dark ? SUN_SVG : MOON_SVG;
+}
+/* テーマをページ読み込み直後に適用（スクリプトが body 末尾にあるので DOM は既に存在） */
+applyTheme(localStorage.getItem(LS.theme) === "dark");
+
+/* ============================================================ ゲート */
+const $ = (id) => document.getElementById(id);
+function showGate() {
+  $("gate").classList.remove("hidden");
+  closeSettings();
+  if (localStorage.getItem(LS.enc)) {
+    $("gate-setup").classList.add("hidden"); $("gate-unlock").classList.remove("hidden");
+    setTimeout(() => $("unlock-pass").focus(), 50);
+  } else {
+    $("gate-unlock").classList.add("hidden"); $("gate-setup").classList.remove("hidden");
+    setTimeout(() => $("setup-key").focus(), 50);
+  }
+}
+function hideGate() { $("gate").classList.add("hidden"); }
+
+$("setup-btn").addEventListener("click", async () => {
+  const k=$("setup-key").value.trim(), p=$("setup-pass").value, p2=$("setup-pass2").value, msg=$("setup-msg");
+  msg.textContent="";
+  if (!k) { msg.textContent="APIキーを入力してください。"; return; }
+  if (p.length<4) { msg.textContent="パスワードは4文字以上にしてください。"; return; }
+  if (p!==p2) { msg.textContent="パスワード（確認）が一致しません。"; return; }
+  try {
+    localStorage.setItem(LS.enc, JSON.stringify(await encryptKey(k, p)));
+    API_KEY = k; hideGate(); await onUnlocked();
+  } catch (e) { msg.textContent = "保存に失敗しました: " + e.message; }
+});
+$("unlock-btn").addEventListener("click", async () => {
+  const msg=$("unlock-msg"); msg.textContent="";
+  try { API_KEY = await decryptKey($("unlock-pass").value); $("unlock-pass").value=""; hideGate(); await onUnlocked(); }
+  catch { msg.textContent = "パスワードが違います。"; }
+});
+function forgetKey() {
+  if (confirm("保存済みの暗号化APIキーを削除しますか？（会話履歴やコストは残ります）")) {
+    localStorage.removeItem(LS.enc); API_KEY=null; showGate();
+  }
+}
+$("forget-btn").addEventListener("click", forgetKey);
+$("forget-btn2").addEventListener("click", forgetKey);
+$("lock-btn").addEventListener("click", () => { API_KEY=null; showGate(); });
+$("unlock-pass").addEventListener("keydown", (e)=>{ if(e.key==="Enter") $("unlock-btn").click(); });
+$("setup-pass2").addEventListener("keydown", (e)=>{ if(e.key==="Enter") $("setup-btn").click(); });
+$("theme-btn").addEventListener("click", () => {
+  const dark = document.documentElement.dataset.theme !== "dark";
+  localStorage.setItem(LS.theme, dark ? "dark" : "");
+  applyTheme(dark);
+});
+
+/* ============================================================ 設定パネル */
+function openSettings() {
+  const bd=$("settings-backdrop");
+  bd.classList.remove("hidden"); requestAnimationFrame(()=>bd.classList.add("opacity-100"));
+  $("settings-panel").classList.add("open");
+}
+function closeSettings() {
+  const bd=$("settings-backdrop");
+  bd.classList.remove("opacity-100");
+  $("settings-panel").classList.remove("open");
+  setTimeout(()=>bd.classList.add("hidden"), 250);
+}
+$("settings-btn").addEventListener("click", openSettings);
+$("settings-close").addEventListener("click", closeSettings);
+$("settings-backdrop").addEventListener("click", closeSettings);
+document.addEventListener("keydown", (e)=>{ if(e.key==="Escape"){ closeSettings(); closeModelMenu(); closeConvos(); } });
+
+/* ============================================================ アンロック後 */
+async function onUnlocked() {
+  loadSystemPrompt(); loadFilters(); loadCompare(); renderCosts(); loadConversations(); loadHistory(); loadParams(); await loadModels(false);
+}
+
+/* ============================================================ モデル一覧 */
+function normalizeModels(raw) {
+  return raw.map((m) => {
+    const pricing = m.pricing || {};
+    const prompt = parseFloat(pricing.prompt || "0"), completion = parseFloat(pricing.completion || "0");
+    const modalities = (m.architecture && m.architecture.input_modalities) || [];
+    const pp = isNaN(prompt)?0:prompt, pc = isNaN(completion)?0:completion;
+    return { id:m.id, name:m.name||m.id, pricePrompt:pp, priceCompletion:pc,
+      vision: modalities.includes("image"), free: pp===0 && pc===0 };
+  });
+}
+async function loadModels(forceRefresh) {
+  const cached = localStorage.getItem(LS.models);
+  if (cached && !forceRefresh) { try { MODELS=JSON.parse(cached); renderModelList(); populateJudgeSelect(); } catch {} }
+  try {
+    const res = await fetch(`${API_BASE}/models`, { headers:{ Authorization:`Bearer ${API_KEY}` } });
+    if (!res.ok) throw new Error("HTTP "+res.status);
+    const data = await res.json();
+    MODELS = normalizeModels(data.data || []);
+    localStorage.setItem(LS.models, JSON.stringify(MODELS));
+    renderModelList(); populateJudgeSelect();
+  } catch (e) { if (!MODELS.length) $("model-info").textContent = "モデル一覧の取得に失敗: " + e.message; }
+}
+function getFilters() {
+  return { search:$("model-search").value.trim().toLowerCase(), free:$("filter-free").checked, vision:$("filter-vision").checked, top:$("filter-top").checked,
+    sort: $("model-sort") ? $("model-sort").value : "default" };
+}
+/* コスト＝入力＋出力の1トークン単価の合計（無料は0） */
+const modelCost = (m) => (m.pricePrompt || 0) + (m.priceCompletion || 0);
+function sortModels(list, mode) {
+  const arr = list.slice();
+  if (mode === "price-asc") arr.sort((a,b)=>modelCost(a)-modelCost(b));
+  else if (mode === "price-desc") arr.sort((a,b)=>modelCost(b)-modelCost(a));
+  else if (mode === "name") arr.sort((a,b)=>a.name.localeCompare(b.name, "ja"));
+  return arr;
+}
+function filteredModels() {
+  const f = getFilters();
+  const list = MODELS.filter((m) => {
+    if (f.free && !m.free) return false;
+    if (f.vision && !m.vision) return false;
+    if (f.top && !isTop(m)) return false;
+    if (f.search && !(m.id.toLowerCase().includes(f.search) || m.name.toLowerCase().includes(f.search))) return false;
+    return true;
+  });
+  return sortModels(list, f.sort);
+}
+const CHECK_SVG = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>';
+function renderModelList() {
+  const judgeMode = (menuMode === "judge");
+  const filtered = filteredModels();
+  if (!selectedModelId || !MODELS.some((m)=>m.id===selectedModelId)) {
+    selectedModelId = ((filtered[0] || MODELS[0] || {}).id) || "";
+    if (selectedModelId) localStorage.setItem(LS.model, selectedModelId);
+  }
+  const list = $("model-list");
+  list.innerHTML = "";
+  const addRow = (m) => {
+    const row = document.createElement("button");
+    const on = judgeMode ? (m.id===judgeModelId) : (compareMode ? compareModels.includes(m.id) : (m.id===selectedModelId));
+    row.className = "model-row" + (on ? " active" : "");
+    const badges = (isTop(m)?"⭐":"") + (m.free?"🆓":"") + (m.vision?"🖼":"");
+    const checkLeft = (compareMode && !judgeMode) ? `<span class="row-check">${CHECK_SVG}</span>` : "";
+    const checkRight = ((!compareMode || judgeMode) && on) ? `<span class="shrink-0" style="color:var(--accent);align-self:center">${CHECK_SVG}</span>` : "";
+    const price = m.free ? '<span style="color:#16a34a">無料</span>' : `入 $${fmtPM(m.pricePrompt)} / 出 $${fmtPM(m.priceCompletion)} <span style="opacity:.7">/1M</span>`;
+    row.innerHTML = checkLeft +
+      `<span style="flex:1 1 auto;min-width:0">` +
+        `<span class="truncate" style="display:block">${escapeHtml(m.name)}</span>` +
+        `<span style="display:block;font-size:11px;color:var(--muted)">${price}</span>` +
+      `</span>` +
+      `<span class="shrink-0" style="font-size:13px;align-self:flex-start">${badges}</span>` +
+      checkRight;
+    row.addEventListener("click", () => selectModel(m.id));
+    list.appendChild(row);
+  };
+  const sep = (label) => { const d = document.createElement("div"); d.className = "model-sep"; d.textContent = label; list.appendChild(d); };
+
+  if (judgeMode) {
+    const none = document.createElement("button");
+    none.className = "model-row" + (judgeModelId ? "" : " active");
+    none.innerHTML = `<span style="flex:1 1 auto;min-width:0"><span style="display:block">採点しない（並列表示のみ）</span></span>` +
+      (judgeModelId ? "" : `<span class="shrink-0" style="color:var(--accent);align-self:center">${CHECK_SVG}</span>`);
+    none.addEventListener("click", () => selectModel(""));
+    list.appendChild(none);
+    if (!filtered.length) list.insertAdjacentHTML("beforeend", '<p class="hint" style="padding:14px;text-align:center">該当するモデルがありません</p>');
+    filtered.forEach(addRow);
+  } else if (compareMode && compareModels.length) {
+    const selModels = compareModels.map((id)=>MODELS.find((m)=>m.id===id)).filter(Boolean);
+    sep(`選択中（${selModels.length}/3）`);
+    selModels.forEach(addRow);
+    const selSet = new Set(compareModels);
+    const rest = filtered.filter((m)=>!selSet.has(m.id));
+    sep("ほかのモデル");
+    if (!rest.length) list.insertAdjacentHTML("beforeend", '<p class="hint" style="padding:14px;text-align:center">該当なし</p>');
+    rest.forEach(addRow);
+  } else {
+    if (!filtered.length) list.innerHTML = '<p class="hint" style="padding:18px;text-align:center">該当するモデルがありません</p>';
+    filtered.forEach(addRow);
+  }
+  $("model-count").textContent = MODELS.length ? `${filtered.length} / ${MODELS.length}` : "";
+  updateModelLabel(); renderCompareState(); onModelChange();
+}
+function selectModel(id) {
+  if (menuMode === "judge") {
+    judgeModelId = id;
+    saveCompare(); renderCompareState(); gotoMainStep();
+    return;
+  }
+  if (compareMode) {
+    const i = compareModels.indexOf(id);
+    if (i >= 0) compareModels.splice(i, 1);
+    else { if (compareModels.length >= 3) { alert("比較は最大3モデルまでです。先に1つ解除してください。"); return; } compareModels.push(id); }
+    saveCompare(); updateModelLabel(); renderCompareState(); renderModelList();
+    return;
+  }
+  selectedModelId = id;
+  localStorage.setItem(LS.model, id);
+  updateModelLabel(); onModelChange(); closeModelMenu();
+}
+function currentModel() { return MODELS.find((m)=>m.id===selectedModelId) || null; }
+function updateModelLabel() {
+  if (compareMode) { $("model-btn-label").textContent = compareModels.length ? `⚔️ ${compareModels.length}モデルで比較` : "⚔️ 比較するモデルを選択"; return; }
+  const m = currentModel();
+  $("model-btn-label").textContent = m ? ((m.free?"🆓 ":"") + m.name) : "モデルを選択";
+}
+function saveCompare() { localStorage.setItem(LS.cmpmode, compareMode?"1":""); localStorage.setItem(LS.cmpmodels, JSON.stringify(compareModels)); localStorage.setItem(LS.judge, judgeModelId); }
+
+/* 選択中モデル・審査員の状態を、ヘッダー下の比較バーとピッカー内コンテキストの両方へ反映 */
+function renderCompareState() {
+  const mk = (id) => {
+    const m = MODELS.find((x)=>x.id===id);
+    if (!m) return "";
+    return `<span class="sel-chip"><span>${escapeHtml(m.name)}</span>`+
+      `<button class="sel-chip-del" data-id="${id}" aria-label="削除">×</button></span>`;
+  };
+  const html = compareModels.map(mk).join("");
+  const bar = $("cmp-chips"); if (bar) bar.innerHTML = html;
+  const sheet = $("pk-cmp-chips");
+  if (sheet) sheet.innerHTML = html || '<span class="cmp-ctx-empty">下のリストからモデルをタップして追加</span>';
+  const cnt = $("pk-cmp-count"); if (cnt) cnt.textContent = `${compareModels.length} / 3`;
+  const addBtn = $("cmp-add-btn"); if (addBtn) addBtn.classList.toggle("hidden", compareModels.length >= 3);
+  const jm = judgeModelId ? MODELS.find((x)=>x.id===judgeModelId) : null;
+  const jbar = $("judge-bar-label"); if (jbar) jbar.textContent = jm ? jm.name : "審査員なし";
+  const jval = $("pk-judge-val"); if (jval) jval.textContent = jm ? jm.name : "なし";
+  document.querySelectorAll(".sel-chip-del").forEach((b) => {
+    b.onclick = (e) => {
+      e.stopPropagation();
+      compareModels = compareModels.filter((id)=>id!==b.dataset.id);
+      saveCompare(); renderCompareState(); renderModelList(); updateModelLabel();
+    };
+  });
+}
+function updateSegUI() {
+  $("seg-single").classList.toggle("active", !compareMode);
+  $("seg-compare").classList.toggle("active", compareMode);
+}
+function toggleCompareUI() {
+  $("compare-bar").classList.toggle("hidden", !compareMode);
+  updateSegUI();
+  renderCompareState();
+}
+function loadCompare() {
+  compareMode = localStorage.getItem(LS.cmpmode) === "1";
+  try { compareModels = JSON.parse(localStorage.getItem(LS.cmpmodels)) || []; } catch { compareModels = []; }
+  judgeModelId = localStorage.getItem(LS.judge) || "";
+  toggleCompareUI();
+}
+function populateJudgeSelect() { renderCompareState(); }
+/* モードを切り替え（メニュー内のセグメントから） */
+function setMode(compare) {
+  if (compareMode === compare) return;
+  compareMode = compare;
+  saveCompare(); updateModelLabel(); toggleCompareUI(); refreshMenuChrome(); renderModelList();
+}
+$("seg-single").addEventListener("click", () => setMode(false));
+$("seg-compare").addEventListener("click", () => setMode(true));
+$("judge-bar-btn").addEventListener("click", () => openModelMenu("judge"));
+$("cmp-add-btn").addEventListener("click", () => openModelMenu("model"));
+function onModelChange() {
+  const m = currentModel();
+  if (!m) { $("model-info").textContent=""; return; }
+  const tags = [];
+  if (m.free) tags.push("無料");
+  else tags.push("入力 $"+(m.pricePrompt*1e6).toFixed(3)+" / 出力 $"+(m.priceCompletion*1e6).toFixed(3)+" (1M)");
+  if (m.vision) tags.push("画像対応");
+  if (isTop(m)) tags.push("人気");
+  $("model-info").textContent = tags.join(" ・ ");
+}
+/* メニューのヘッダー・セグメント・比較コンテキストの表示を menuMode/compareMode に合わせて更新 */
+function refreshMenuChrome() {
+  const judge = (menuMode === "judge");
+  $("pk-back").classList.toggle("hidden", !judge);
+  $("pk-title").textContent = judge ? "⚖️ 審査員を選択" : (compareMode ? "モデルを比較" : "モデルを選択");
+  $("pk-seg").classList.toggle("hidden", judge);
+  $("pk-compare-ctx").classList.toggle("hidden", judge || !compareMode);
+  $("pk-done").classList.toggle("hidden", judge || !compareMode);
+}
+function gotoMainStep() { menuMode = "model"; refreshMenuChrome(); renderModelList(); }
+function gotoJudgeStep() { menuMode = "judge"; refreshMenuChrome(); renderModelList(); setTimeout(()=>$("model-search").focus(), 30); }
+function openModelMenu(mode) {
+  menuMode = (mode === "judge") ? "judge" : "model";
+  refreshMenuChrome();
+  renderModelList();
+  $("model-backdrop").classList.remove("hidden"); $("model-menu").classList.remove("hidden");
+  setTimeout(()=>$("model-search").focus(), 50);
+}
+function closeModelMenu() { menuMode = "model"; $("model-backdrop").classList.add("hidden"); $("model-menu").classList.add("hidden"); }
+$("model-btn").addEventListener("click", () => openModelMenu("model"));
+$("model-backdrop").addEventListener("click", closeModelMenu);
+$("pk-close").addEventListener("click", closeModelMenu);
+$("pk-done").addEventListener("click", closeModelMenu);
+$("pk-back").addEventListener("click", gotoMainStep);
+$("pk-judge-row").addEventListener("click", gotoJudgeStep);
+$("refresh-models").addEventListener("click", () => loadModels(true));
+["model-search","filter-free","filter-vision","filter-top","model-sort"].forEach((id)=>{ $(id).addEventListener("input", ()=>{ saveFilters(); renderModelList(); }); });
+$("model-sort").addEventListener("change", ()=>{ saveFilters(); renderModelList(); });
+function saveFilters() { localStorage.setItem(LS.filters, JSON.stringify(getFilters())); }
+function loadFilters() {
+  try { const f = JSON.parse(localStorage.getItem(LS.filters)||"{}");
+    if (f.search) $("model-search").value=f.search;
+    $("filter-free").checked=!!f.free; $("filter-vision").checked=!!f.vision; $("filter-top").checked=!!f.top;
+    if (f.sort) $("model-sort").value=f.sort;
+  } catch {}
+}
+
+/* ============================================================ システムプロンプト */
+function loadSystemPrompt() { $("system-prompt").value = localStorage.getItem(LS.system) || ""; }
+$("system-prompt").addEventListener("input", ()=>{ localStorage.setItem(LS.system, $("system-prompt").value); });
+
+/* ============================================================ 生成パラメータ */
+function loadParams() {
+  const t = localStorage.getItem(LS.temperature);
+  const tv = t !== null ? parseFloat(t) : 1.0;
+  $("temp-slider").value = tv;
+  $("temp-value").textContent = tv.toFixed(1);
+  const mt = localStorage.getItem(LS.maxTokens);
+  $("max-tokens-input").value = mt !== null ? mt : "";
+}
+$("temp-slider").addEventListener("input", () => {
+  const v = parseFloat($("temp-slider").value);
+  $("temp-value").textContent = v.toFixed(1);
+  localStorage.setItem(LS.temperature, String(v));
+});
+$("max-tokens-input").addEventListener("input", () => {
+  const v = $("max-tokens-input").value.trim();
+  if (v) localStorage.setItem(LS.maxTokens, v);
+  else localStorage.removeItem(LS.maxTokens);
+});
+function buildReqBody(modelId, msgs) {
+  const obj = { model:modelId, messages:msgs, stream:true, usage:{ include:true } };
+  const t = localStorage.getItem(LS.temperature);
+  if (t !== null) { const tv = parseFloat(t); if (!isNaN(tv)) obj.temperature = tv; }
+  const mt = localStorage.getItem(LS.maxTokens);
+  if (mt) { const mv = parseInt(mt,10); if (!isNaN(mv) && mv > 0) obj.max_tokens = mv; }
+  return obj;
+}
+
+/* ============================================================ コスト */
+function loadCosts() { try { return JSON.parse(localStorage.getItem(LS.costs)) || {total:0,models:{}}; } catch { return {total:0,models:{}}; } }
+function addCost(modelId, cost, pt, ct) {
+  const c = loadCosts(); c.total += cost;
+  if (!c.models[modelId]) c.models[modelId] = {cost:0,prompt:0,completion:0,calls:0};
+  const mc = c.models[modelId]; mc.cost+=cost; mc.prompt+=pt||0; mc.completion+=ct||0; mc.calls+=1;
+  localStorage.setItem(LS.costs, JSON.stringify(c)); renderCosts();
+}
+function renderCosts() {
+  const c = loadCosts();
+  $("cost-total").textContent = "$"+c.total.toFixed(6);
+  const box = $("cost-by-model"); box.innerHTML = "";
+  const entries = Object.entries(c.models).sort((a,b)=>b[1].cost-a[1].cost);
+  if (!entries.length) { box.innerHTML = '<span style="color:var(--muted)">まだ利用がありません</span>'; return; }
+  for (const [id, mc] of entries) {
+    const row = document.createElement("div");
+    row.className = "flex justify-between gap-2 items-center";
+    row.innerHTML = `<span class="truncate" style="color:var(--text-2)" title="${id}">${id.split("/").pop()}</span>`+
+      `<span class="shrink-0 font-semibold tabular-nums" style="color:var(--text)">$${mc.cost.toFixed(6)}</span>`;
+    box.appendChild(row);
+  }
+}
+$("reset-cost").addEventListener("click", () => { if (confirm("累計コストをリセットしますか？")) { localStorage.removeItem(LS.costs); renderCosts(); } });
+
+/* ============================================================ 会話（複数スレッド） */
+let conversations = [];
+let currentConvId = null;
+const makeConv = (msgs) => ({ id: "c"+Date.now().toString(36)+Math.random().toString(36).slice(2,6), title:"", messages: msgs||[], updatedAt: Date.now() });
+const currentConv = () => conversations.find(c=>c.id===currentConvId) || conversations[0];
+function convTitle(c) {
+  if (c.title) return c.title;
+  const fu = c.messages.find(m=>m.role==="user");
+  if (fu) { const { text } = extractParts(fu.content); if (text) return text.slice(0,40); }
+  return "新しい会話";
+}
+function saveConversations() { localStorage.setItem(LS.convos, JSON.stringify(conversations)); localStorage.setItem(LS.cur, currentConvId||""); }
+function loadConversations() {
+  try { conversations = JSON.parse(localStorage.getItem(LS.convos)) || []; } catch { conversations = []; }
+  currentConvId = localStorage.getItem(LS.cur) || null;
+  if (!conversations.length) {
+    let old = []; try { old = JSON.parse(localStorage.getItem(LS.history)) || []; } catch {}
+    const c = makeConv(old); conversations = [c]; currentConvId = c.id; saveConversations();
+  }
+  if (!conversations.some(c=>c.id===currentConvId)) currentConvId = conversations[0].id;
+}
+function updateEmptyState() { $("empty-state").classList.toggle("hidden", messages.length>0); }
+function renderThread() {
+  document.querySelectorAll(".msg-row, .judge-bar").forEach((el)=>el.remove());
+  messages.forEach((m, i)=>renderMessage(m.role, m.content, i));
+  updateEmptyState(); scrollBottom();
+}
+function saveHistory() { const c = currentConv(); if (!c) return; c.messages = messages; c.updatedAt = Date.now(); saveConversations(); renderConvosList(); }
+function loadHistory() { const c = currentConv(); messages = c ? c.messages : []; renderThread(); }
+
+function newConversation() { const c = makeConv([]); conversations.unshift(c); currentConvId = c.id; messages = []; saveConversations(); renderThread(); renderConvosList(); closeConvos(); inputEl.focus(); }
+function switchConversation(id) { currentConvId = id; loadHistory(); saveConversations(); renderConvosList(); closeConvos(); }
+function deleteConversation(id) {
+  if (!confirm("この会話を削除しますか？")) return;
+  conversations = conversations.filter(c=>c.id!==id);
+  if (!conversations.length) conversations = [makeConv([])];
+  if (id===currentConvId) currentConvId = conversations[0].id;
+  saveConversations(); loadHistory(); renderConvosList();
+}
+function renameConversation(id) {
+  const c = conversations.find(x=>x.id===id); if (!c) return;
+  const t = prompt("会話のタイトル", convTitle(c)); if (t===null) return;
+  c.title = t.trim(); saveConversations(); renderConvosList();
+}
+function clearChat() { if (!confirm("この会話の内容を消去しますか？")) return; messages = []; saveHistory(); renderThread(); }
+function exportMarkdown() {
+  const c = currentConv();
+  if (!c || !c.messages.length) { alert("エクスポートする会話がありません。"); return; }
+  const title = convTitle(c);
+  let md = `# ${title}\n\n`;
+  for (const m of c.messages) {
+    const { text, images } = extractParts(m.content);
+    md += m.role === "user" ? "**You:**\n\n" : "**Assistant:**\n\n";
+    if (text) md += text + "\n\n";
+    if (images.length) md += `_(${images.length}枚の画像)_\n\n`;
+    md += "---\n\n";
+  }
+  const blob = new Blob([md], { type:"text/markdown;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a"); a.href=url; a.download=title.slice(0,40)+".md";
+  document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url);
+}
+$("export-md").addEventListener("click", exportMarkdown);
+function renderConvosList() {
+  const box = $("convos-list"); if (!box) return;
+  const q = ($("convos-search").value||"").toLowerCase();
+  box.innerHTML = "";
+  conversations.slice().sort((a,b)=>b.updatedAt-a.updatedAt)
+    .filter(c=>!q || convTitle(c).toLowerCase().includes(q))
+    .forEach(c=>{
+      const row = document.createElement("div");
+      row.className = "convo-row" + (c.id===currentConvId ? " active" : "");
+      row.innerHTML = `<button class="convo-open" data-id="${c.id}"><span class="truncate">${escapeHtml(convTitle(c))}</span></button>`+
+        `<button class="convo-ico convo-rename" data-id="${c.id}" title="名前を変更">✎</button>`+
+        `<button class="convo-ico convo-del" data-id="${c.id}" title="削除">🗑</button>`;
+      box.appendChild(row);
+    });
+}
+function openConvos() { renderConvosList(); const bd=$("convos-backdrop"); bd.classList.remove("hidden"); requestAnimationFrame(()=>bd.classList.add("opacity-100")); $("convos-panel").classList.add("open"); }
+function closeConvos() { const bd=$("convos-backdrop"); bd.classList.remove("opacity-100"); $("convos-panel").classList.remove("open"); setTimeout(()=>bd.classList.add("hidden"),250); }
+$("convos-btn").addEventListener("click", openConvos);
+$("convos-close").addEventListener("click", closeConvos);
+$("convos-backdrop").addEventListener("click", closeConvos);
+$("convos-new").addEventListener("click", newConversation);
+$("new-chat").addEventListener("click", newConversation);
+$("convos-search").addEventListener("input", renderConvosList);
+$("convos-list").addEventListener("click", (e)=>{
+  const open=e.target.closest(".convo-open"), ren=e.target.closest(".convo-rename"), del=e.target.closest(".convo-del");
+  if (del) deleteConversation(del.dataset.id);
+  else if (ren) renameConversation(ren.dataset.id);
+  else if (open) switchConversation(open.dataset.id);
+});
+$("clear-chat").addEventListener("click", clearChat);
+
+function extractParts(content) {
+  if (typeof content === "string") return { text:content, images:[] };
+  const text = content.filter((p)=>p.type==="text").map((p)=>p.text).join("\n");
+  const images = content.filter((p)=>p.type==="image_url").map((p)=>p.image_url.url);
+  return { text, images };
+}
+function escapeHtml(s) { return s.replace(/[&<>"']/g, (c)=>({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[c])); }
+
+/* 自己完結のMarkdownレンダラー（見出し/太字/斜体/打消/リンク/箇条書き/引用/表/区切り/コード） */
+function mdInline(s) {
+  s = s.replace(/\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g, '<a href="$2" target="_blank" rel="noopener">$1</a>');
+  s = s.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
+  s = s.replace(/__([^_]+)__/g, '<strong>$1</strong>');
+  s = s.replace(/(^|[^*])\*(?!\s)([^*\n]+?)\*/g, '$1<em>$2</em>');
+  s = s.replace(/~~([^~]+)~~/g, '<del>$1</del>');
+  return s;
+}
+function codeBlockHtml(b) {
+  const lang = b.lang ? escapeHtml(b.lang) : "text";
+  const code = escapeHtml(b.code.replace(/\n+$/, ""));
+  return `<div class="code-wrap"><div class="code-head"><span class="code-lang">${lang}</span>` +
+    `<button class="code-copy" type="button">コピー</button></div><pre><code>${code}</code></pre></div>`;
+}
+function formatBody(src) {
+  if (!src) return "";
+  const blocks = [];
+  src = String(src).replace(/```([^\n`]*)\n?([\s\S]*?)```/g, (m, lang, code) => { blocks.push({ lang:(lang||"").trim(), code }); return "[[[CB" + (blocks.length-1) + "]]]"; });
+  let text = escapeHtml(src);
+  const inlines = [];
+  text = text.replace(/`([^`\n]+)`/g, (m, c) => { inlines.push(c); return "[[[IC" + (inlines.length-1) + "]]]"; });
+
+  const lines = text.split("\n");
+  let html = "", i = 0, listType = null, listBuf = [], para = [];
+  const flushList = () => { if (listType) { html += "<" + listType + ">" + listBuf.map(li=>"<li>"+mdInline(li)+"</li>").join("") + "</" + listType + ">"; listType=null; listBuf=[]; } };
+  const flushP = () => { if (para.length) { html += "<p>" + para.map(mdInline).join("<br>") + "</p>"; para=[]; } };
+
+  while (i < lines.length) {
+    const t = lines[i].trim();
+    if (/^\[\[\[CB\d+\]\]\]$/.test(t)) { flushP(); flushList(); html += t; i++; continue; }
+    if (t === "") { flushP(); flushList(); i++; continue; }
+    const h = t.match(/^(#{1,6})\s+(.*)$/);
+    if (h) { flushP(); flushList(); html += "<h"+h[1].length+" class=\"md-h\">"+mdInline(h[2])+"</h"+h[1].length+">"; i++; continue; }
+    if (/^[-*_\s]+$/.test(t) && t.replace(/\s/g,"").length>=3) { flushP(); flushList(); html += "<hr class=\"md-hr\">"; i++; continue; }
+    if (/^&gt;\s?/.test(t)) { flushP(); flushList(); const q=[]; while (i<lines.length && /^&gt;\s?/.test(lines[i].trim())) { q.push(lines[i].trim().replace(/^&gt;\s?/,"")); i++; } html += "<blockquote class=\"md-q\">"+q.map(mdInline).join("<br>")+"</blockquote>"; continue; }
+    if (/^\|.*\|/.test(t) && i+1<lines.length && /^\|?[\s:|-]+\|?$/.test(lines[i+1].trim()) && lines[i+1].includes("-")) {
+      flushP(); flushList();
+      const header = t.replace(/^\||\|$/g,"").split("|").map(s=>s.trim());
+      i += 2; const rows=[];
+      while (i<lines.length && /^\|.*\|/.test(lines[i].trim())) { rows.push(lines[i].trim().replace(/^\||\|$/g,"").split("|").map(s=>s.trim())); i++; }
+      html += "<div class=\"md-table-wrap\"><table class=\"md-table\"><thead><tr>" + header.map(c=>"<th>"+mdInline(c)+"</th>").join("") + "</tr></thead><tbody>" + rows.map(r=>"<tr>"+r.map(c=>"<td>"+mdInline(c)+"</td>").join("")+"</tr>").join("") + "</tbody></table></div>";
+      continue;
+    }
+    const ul = t.match(/^[-*+]\s+(.*)$/);
+    if (ul) { flushP(); if (listType && listType!=="ul") flushList(); listType="ul"; listBuf.push(ul[1]); i++; continue; }
+    const ol = t.match(/^\d+\.\s+(.*)$/);
+    if (ol) { flushP(); if (listType && listType!=="ol") flushList(); listType="ol"; listBuf.push(ol[1]); i++; continue; }
+    flushList(); para.push(t); i++;
+  }
+  flushP(); flushList();
+  html = html.replace(/\[\[\[CB(\d+)\]\]\]/g, (m,n)=>codeBlockHtml(blocks[+n]));
+  html = html.replace(/\[\[\[IC(\d+)\]\]\]/g, (m,n)=>"<code class=\"inline-code\">"+inlines[+n]+"</code>");
+  return html;
+}
+
+function renderMessage(role, content, index) {
+  const { text, images } = extractParts(content);
+  const isUser = role === "user";
+  const row = document.createElement("div");
+  row.className = "msg-row fade-in w-full max-w-3xl mx-auto mb-7 flex flex-col " + (isUser ? "items-end" : "items-start");
+
+  const block = document.createElement("div");
+  if (isUser) {
+    block.className = "max-w-[85%] rounded-2xl rounded-br-md px-4 py-2.5";
+    block.style.background = "var(--surface-2)";
+    block.style.border = "1px solid var(--border)";
+  } else {
+    block.className = "w-full";
+  }
+
+  let inner = "";
+  if (images.length) {
+    inner += '<div class="flex flex-wrap gap-2 ' + (text ? "mb-2.5" : "") + '">' +
+      images.map((u)=>`<img src="${u}" class="h-28 rounded-xl object-cover" style="border:1px solid var(--border-2)" />`).join("") + "</div>";
+  }
+  inner += `<div class="msg-body">${formatBody(text)}</div>`;
+  block.innerHTML = inner;
+  row.appendChild(block);
+
+  if (typeof index === "number") {
+    const actions = document.createElement("div");
+    actions.className = "msg-actions";
+    actions.innerHTML = isUser
+      ? `<button class="msg-act" data-act="edit" data-i="${index}">✏️ 編集</button>`
+      : `<button class="msg-act" data-act="regen" data-i="${index}">↻ 再生成</button><button class="msg-act" data-act="speak" data-i="${index}">🔊 読み上げ</button><button class="msg-act" data-act="copy" data-i="${index}">📋 コピー</button>`;
+    row.appendChild(actions);
+  }
+  $("thread").appendChild(row);
+  return block;
+}
+function scrollBottom() { const t = $("thread"); t.scrollTop = t.scrollHeight; }
+/* 自動追従：ユーザーが上にスクロールしたら追従を止め、自由に読めるようにする */
+let stickToBottom = true;
+function isNearBottom() { const t = $("thread"); return t.scrollHeight - t.scrollTop - t.clientHeight < 96; }
+$("thread").addEventListener("scroll", () => { stickToBottom = isNearBottom(); });
+function followBottom() { if (stickToBottom) scrollBottom(); }
+/* コードブロックのコピー */
+$("thread").addEventListener("click", (e) => {
+  const btn = e.target.closest(".code-copy"); if (!btn) return;
+  const code = btn.closest(".code-wrap").querySelector("pre code");
+  navigator.clipboard.writeText(code.textContent).then(() => { const o = btn.textContent; btn.textContent = "コピー済み"; setTimeout(() => { btn.textContent = o; }, 1200); });
+});
+/* メッセージ操作（再生成 / 編集 / コピー） */
+$("thread").addEventListener("click", (e) => {
+  const a = e.target.closest(".msg-act"); if (!a) return;
+  const i = +a.dataset.i, act = a.dataset.act;
+  if (act === "edit") editMessage(i);
+  else if (act === "regen") regenerateAt(i);
+  else if (act === "speak") speakText(extractParts(messages[i].content).text, a);
+  else if (act === "copy") { const { text } = extractParts(messages[i].content); navigator.clipboard.writeText(text).then(() => { const o=a.textContent; a.textContent="コピー済み"; setTimeout(()=>{ a.textContent=o; },1200); }); }
+});
+
+/* 読み上げ（Web Speech Synthesis） */
+function speakText(text, btn) {
+  if (!("speechSynthesis" in window)) { alert("このブラウザは読み上げに対応していません。"); return; }
+  if (speechSynthesis.speaking) { speechSynthesis.cancel(); document.querySelectorAll(".msg-act.speaking").forEach(b=>{ b.classList.remove("speaking"); b.textContent="🔊 読み上げ"; }); return; }
+  const clean = String(text).replace(/```[\s\S]*?```/g, " コードブロック ").replace(/[#*_`>|]/g, "");
+  const u = new SpeechSynthesisUtterance(clean);
+  u.lang = /[ぁ-んァ-ン一-龯]/.test(clean) ? "ja-JP" : "en-US";
+  if (btn) { btn.classList.add("speaking"); btn.textContent = "⏹ 停止"; u.onend = u.onerror = () => { btn.classList.remove("speaking"); btn.textContent = "🔊 読み上げ"; }; }
+  speechSynthesis.speak(u);
+}
+function editMessage(i) {
+  const { text } = extractParts(messages[i].content);
+  messages = messages.slice(0, i); saveHistory(); renderThread();
+  inputEl.value = text; inputEl.dispatchEvent(new Event("input")); inputEl.focus();
+}
+async function regenerateAt(i) {
+  if (!API_KEY) { showGate(); return; }
+  if (!currentModel()) { alert("モデルを選択してください。"); return; }
+  messages = messages.slice(0, i); saveHistory(); renderThread();
+  stickToBottom = true; await streamAssistant();
+}
+
+/* APIエラーを読みやすい日本語に整形 */
+function friendlyError(status, body) {
+  let msg = (body || "").slice(0, 400);
+  try { const j = JSON.parse(body); msg = (j.error && j.error.message) || msg; } catch {}
+  if (status === 429) return `⚠️ レート制限（429）\n${msg}\n\n対処: 数十秒待ってから再送信 / 上部メニューで別の無料モデルに切り替え / 自分のOpenRouterキーで上限を緩和（設定→Integrations）。`;
+  if (status === 401 || status === 403) return `⚠️ 認証エラー（${status}）\nAPIキーが無効か権限がありません。設定からキーを再設定してください。`;
+  if (status === 402) return `⚠️ クレジット不足（402）\n残高が不足しています。無料モデルを選ぶか、OpenRouterでクレジットを追加してください。`;
+  if (status >= 500) return `⚠️ サーバー側エラー（${status}）\n${msg}\n\nしばらく待って再送信してください。`;
+  return `⚠️ エラー ${status}\n${msg}`;
+}
+
+/* ============================================================ 画像添付 */
+function fileToDataURL(file) {
+  return new Promise((resolve, reject) => { const r=new FileReader(); r.onload=()=>resolve(r.result); r.onerror=reject; r.readAsDataURL(file); });
+}
+async function addImageFiles(files) {
+  for (const file of files) { if (!file.type.startsWith("image/")) continue; pendingImages.push(await fileToDataURL(file)); }
+  renderAttachments();
+}
+function renderAttachments() {
+  const box = $("attachments"); box.innerHTML = "";
+  pendingImages.forEach((url, idx) => {
+    const wrap = document.createElement("div");
+    wrap.className = "relative";
+    wrap.innerHTML =
+      `<img src="${url}" class="h-16 w-16 object-cover rounded-xl" style="border:1px solid var(--border-2)" />`+
+      `<button data-idx="${idx}" class="att-del absolute -top-1.5 -right-1.5 text-white rounded-full w-5 h-5 text-xs leading-none flex items-center justify-center transition-colors hover:bg-rose-500" style="background:#374151">×</button>`;
+    box.appendChild(wrap);
+  });
+  box.querySelectorAll(".att-del").forEach((b)=>{ b.addEventListener("click", ()=>{ pendingImages.splice(parseInt(b.dataset.idx),1); renderAttachments(); }); });
+}
+$("file-input").addEventListener("change", (e)=>{ addImageFiles(Array.from(e.target.files)); e.target.value=""; });
+
+const dz = $("drop-zone"); let dragDepth = 0;
+dz.addEventListener("dragenter", (e)=>{ e.preventDefault(); dragDepth++; $("drop-overlay").classList.remove("hidden"); });
+dz.addEventListener("dragover", (e)=>{ e.preventDefault(); });
+dz.addEventListener("dragleave", ()=>{ dragDepth--; if (dragDepth<=0){ dragDepth=0; $("drop-overlay").classList.add("hidden"); } });
+dz.addEventListener("drop", (e)=>{ e.preventDefault(); dragDepth=0; $("drop-overlay").classList.add("hidden"); if (e.dataTransfer.files.length) addImageFiles(Array.from(e.dataTransfer.files)); });
+
+$("input").addEventListener("paste", (e)=>{
+  const items = e.clipboardData && e.clipboardData.items; if (!items) return;
+  const imgs = [];
+  for (const it of items) { if (it.type.startsWith("image/")) { const f=it.getAsFile(); if (f) imgs.push(f); } }
+  if (imgs.length) { e.preventDefault(); addImageFiles(imgs); }
+});
+
+/* ============================================================ サジェスト */
+document.querySelectorAll(".suggest").forEach((c)=>{
+  c.addEventListener("click", ()=>{
+    inputEl.value = c.dataset.text.replace(/\\n/g, "\n");
+    inputEl.dispatchEvent(new Event("input")); inputEl.focus();
+  });
+});
+
+/* ============================================================ 送信 / ストリーミング */
+const inputEl = $("input");
+inputEl.addEventListener("input", ()=>{ inputEl.style.height="auto"; inputEl.style.height=Math.min(inputEl.scrollHeight,220)+"px"; });
+inputEl.addEventListener("keydown", (e)=>{ if (e.key==="Enter" && !e.shiftKey) { e.preventDefault(); send(); } });
+$("send-btn").addEventListener("click", send);
+$("stop-btn").addEventListener("click", ()=>{ if (abortCtrl) abortCtrl.abort(); });
+function setSending(on) { $("send-btn").classList.toggle("hidden", on); $("stop-btn").classList.toggle("hidden", !on); }
+
+/* 音声入力（Web Speech Recognition） */
+const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+let recog = null, recognizing = false, micBase = "";
+if (SR) {
+  $("mic-btn").classList.remove("hidden");
+  recog = new SR(); recog.lang = "ja-JP"; recog.interimResults = true; recog.continuous = false;
+  recog.onresult = (e) => {
+    let txt = "";
+    for (let i = 0; i < e.results.length; i++) txt += e.results[i][0].transcript;
+    inputEl.value = (micBase ? micBase + " " : "") + txt;
+    inputEl.dispatchEvent(new Event("input"));
+  };
+  recog.onend = () => { recognizing = false; $("mic-btn").classList.remove("mic-on"); };
+  recog.onerror = () => { recognizing = false; $("mic-btn").classList.remove("mic-on"); };
+  $("mic-btn").addEventListener("click", () => {
+    if (recognizing) { recog.stop(); return; }
+    micBase = inputEl.value.trim();
+    try { recog.start(); recognizing = true; $("mic-btn").classList.add("mic-on"); inputEl.focus(); } catch {}
+  });
+}
+
+function buildUserContent(text, images) {
+  if (!images.length) return text;
+  const parts = [];
+  if (text) parts.push({ type:"text", text });
+  images.forEach((url)=>parts.push({ type:"image_url", image_url:{ url } }));
+  return parts;
+}
+
+async function send() {
+  if (!API_KEY) { showGate(); return; }
+  if (compareMode && compareModels.length < 2) { openModelMenu(); alert("比較するモデルを2つ以上選んでください。"); return; }
+  if (!compareMode && !currentModel()) { alert("モデルを選択してください。"); return; }
+  const text = inputEl.value.trim();
+  if (!text && !pendingImages.length) return;
+
+  const images = pendingImages.slice();
+  const userContent = buildUserContent(text, images);
+
+  pendingJudge = null;
+  messages.push({ role:"user", content:userContent });
+  inputEl.value = ""; inputEl.style.height = "auto";
+  pendingImages = []; renderAttachments();
+  updateEmptyState(); saveHistory(); stickToBottom = true; renderThread();
+
+  if (compareMode) await sendCompare(); else await streamAssistant();
+}
+
+/* 1モデル分のSSEストリーミング（リトライ込み）。bodyEl に逐次描画し {answer,usage} を返す */
+async function runStream(model, reqMessages, bodyEl) {
+  let answer = "", usage = null, attempt = 0;
+  const reqInit = {
+    method:"POST",
+    headers:{ Authorization:`Bearer ${API_KEY}`, "Content-Type":"application/json",
+      "HTTP-Referer": location.origin || "https://localhost", "X-Title": APP_TITLE },
+    body: JSON.stringify(buildReqBody(model.id, reqMessages)),
+    signal: abortCtrl.signal,
+  };
+  try {
+    let res;
+    while (true) {
+      res = await fetch(`${API_BASE}/chat/completions`, reqInit);
+      if (res.ok) break;
+      const errText = await res.text().catch(()=> "");
+      if ([429, 502, 503].includes(res.status) && attempt < 2) {
+        attempt++; const wait = attempt * 2;
+        bodyEl.classList.remove("typing");
+        bodyEl.innerHTML = formatBody(`⏳ 混雑のため再試行します… (${attempt}/2 ・ ${wait}秒待機)`);
+        followBottom();
+        await new Promise((r)=>setTimeout(r, wait * 1000));
+        bodyEl.classList.add("typing");
+        continue;
+      }
+      throw new Error(friendlyError(res.status, errText));
+    }
+    const reader = res.body.getReader(), decoder = new TextDecoder();
+    let buffer = "";
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      buffer += decoder.decode(value, { stream:true });
+      const lines = buffer.split("\n"); buffer = lines.pop();
+      for (const line of lines) {
+        const t = line.trim();
+        if (!t.startsWith("data:")) continue;
+        const data = t.slice(5).trim();
+        if (data === "[DONE]") continue;
+        try {
+          const json = JSON.parse(data);
+          const delta = json.choices && json.choices[0] && json.choices[0].delta;
+          if (delta && delta.content) { answer += delta.content; bodyEl.innerHTML = formatBody(answer); followBottom(); }
+          if (json.usage) usage = json.usage;
+        } catch {}
+      }
+    }
+  } catch (e) {
+    if (e.name === "AbortError") answer += (answer?"\n\n":"") + "⏹ 生成を停止しました。";
+    else answer += (answer?"\n\n":"") + (e.message || ("⚠️ エラー: " + e));
+  }
+  return { answer, usage };
+}
+
+async function streamAssistant() {
+  const model = currentModel();
+  const block = renderMessage("assistant", "");
+  const bodyEl = block.querySelector(".msg-body");
+  bodyEl.classList.add("typing"); scrollBottom();
+
+  const sys = $("system-prompt").value.trim();
+  const reqMessages = [];
+  if (sys) reqMessages.push({ role:"system", content:sys });
+  for (const m of messages) reqMessages.push(m);
+
+  setSending(true); abortCtrl = new AbortController();
+  const { answer, usage } = await runStream(model, reqMessages, bodyEl);
+  bodyEl.classList.remove("typing"); bodyEl.innerHTML = formatBody(answer || "(応答なし)");
+  abortCtrl = null; setSending(false);
+  messages.push({ role:"assistant", content:answer }); saveHistory();
+  recordCost(model, usage); renderThread(); followBottom();
+}
+
+/* マルチモデル比較：同じ文脈をN個のモデルに同時送信し、横並びカードで並行ストリーミング */
+async function sendCompare() {
+  const models = compareModels.map(id=>MODELS.find(m=>m.id===id)).filter(Boolean);
+  const lastUser = messages[messages.length-1];
+  const promptText = lastUser ? extractParts(lastUser.content).text : "";
+  const sys = $("system-prompt").value.trim();
+  const base = [];
+  if (sys) base.push({ role:"system", content:sys });
+  for (const m of messages) base.push(m);
+
+  const row = document.createElement("div");
+  row.className = "msg-row fade-in w-full mx-auto mb-7";
+  row.style.maxWidth = "min(100%, 1100px)";
+  const grid = document.createElement("div");
+  grid.className = "cmp-grid";
+  const cards = models.map((m)=>{
+    const card = document.createElement("div");
+    card.className = "cmp-card";
+    card.innerHTML = `<div class="cmp-head">${escapeHtml(m.name)}</div><div class="msg-body typing"></div>`;
+    grid.appendChild(card);
+    return { model:m, bodyEl: card.querySelector(".msg-body") };
+  });
+  row.appendChild(grid); $("thread").appendChild(row); scrollBottom();
+
+  setSending(true); abortCtrl = new AbortController();
+  const answers = await Promise.all(cards.map(async (c)=>{
+    const { answer, usage } = await runStream(c.model, base, c.bodyEl);
+    c.bodyEl.classList.remove("typing"); c.bodyEl.innerHTML = formatBody(answer || "(応答なし)");
+    recordCost(c.model, usage);
+    return answer || "(応答なし)";
+  }));
+  abortCtrl = null; setSending(false);
+
+  const combined = cards.map((c, i)=>`### ${c.model.name}\n\n${answers[i]}`).join("\n\n---\n\n");
+  messages.push({ role:"assistant", content: combined });
+  saveHistory(); renderThread(); followBottom();
+
+  // 審査員が設定されていれば自動で採点
+  const judge = judgeModelId ? MODELS.find((m)=>m.id===judgeModelId) : null;
+  if (judge) await runJudge(judge, { prompt: promptText, entries: cards.map((c, i)=>({ name:c.model.name, answer: answers[i] })) });
+}
+
+async function runJudge(judge, data) {
+  const sys = "あなたは厳格で公平なAI審査員です。各回答を観点（正確さ・有用性・分かりやすさ）ごとに評価し、10点満点で採点してください。Markdownの表で点数をまとめ、各回答の長所と短所を簡潔に述べ、最後に「🏆 勝者」を1つ明記してください。";
+  const body = `# ユーザーの質問\n${data.prompt || "(省略)"}\n\n# 評価対象の回答\n` +
+    data.entries.map((e,i)=>`## ${i+1}. ${e.name}\n${e.answer}`).join("\n\n");
+  const block = renderMessage("assistant", "");
+  const bodyEl = block.querySelector(".msg-body"); bodyEl.classList.add("typing"); scrollBottom();
+  setSending(true); abortCtrl = new AbortController();
+  const { answer, usage } = await runStream(judge, [{ role:"system", content:sys }, { role:"user", content:body }], bodyEl);
+  bodyEl.classList.remove("typing"); bodyEl.innerHTML = formatBody(answer || "(応答なし)");
+  abortCtrl = null; setSending(false);
+  messages.push({ role:"assistant", content: `⚖️ **ジャッジ採点**（審査員: ${judge.name}）\n\n${answer}` });
+  saveHistory(); recordCost(judge, usage); renderThread(); followBottom();
+}
+function recordCost(model, usage) {
+  if (!usage) return;
+  const pt = usage.prompt_tokens||0, ct = usage.completion_tokens||0;
+  const cost = (typeof usage.cost==="number") ? usage.cost : pt*model.pricePrompt + ct*model.priceCompletion;
+  addCost(model.id, cost, pt, ct);
+}
+
+/* ============================================================ 起動 */
+window.addEventListener("DOMContentLoaded", () => {
+  if (!window.crypto || !crypto.subtle) alert("このブラウザは Web Crypto API 非対応のため利用できません。HTTPS か localhost で開いてください。");
+  showGate();
+  if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js").catch(()=>{});
+});
+</script>
+</body>
+</html>
