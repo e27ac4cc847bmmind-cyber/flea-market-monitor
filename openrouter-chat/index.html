@@ -442,7 +442,16 @@
         <label class="chip-toggle"><input id="filter-top" type="checkbox" class="sr-only"><span class="chip-pill">⭐ 人気</span></label>
         <label class="chip-toggle"><input id="filter-free" type="checkbox" class="sr-only"><span class="chip-pill">🆓 無料</span></label>
         <label class="chip-toggle"><input id="filter-vision" type="checkbox" class="sr-only"><span class="chip-pill">🖼 画像</span></label>
-        <span id="model-count" class="text-[11px]" style="color:var(--muted);margin-left:auto"></span>
+        <div class="select-wrap" style="margin-left:auto">
+          <select id="model-sort" class="chip-pill" style="padding-right:24px;cursor:pointer;background:var(--surface);color:var(--text-2)" title="並び替え">
+            <option value="default">⇅ おすすめ順</option>
+            <option value="price-asc">⇅ 安い順</option>
+            <option value="price-desc">⇅ 高い順</option>
+            <option value="name">⇅ 名前順</option>
+          </select>
+          <svg class="chev" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
+        </div>
+        <span id="model-count" class="text-[11px]" style="color:var(--muted)"></span>
       </div>
 
       <!-- 比較コンテキスト（選択中チップ + 審査員） -->
@@ -792,17 +801,28 @@ async function loadModels(forceRefresh) {
   } catch (e) { if (!MODELS.length) $("model-info").textContent = "モデル一覧の取得に失敗: " + e.message; }
 }
 function getFilters() {
-  return { search:$("model-search").value.trim().toLowerCase(), free:$("filter-free").checked, vision:$("filter-vision").checked, top:$("filter-top").checked };
+  return { search:$("model-search").value.trim().toLowerCase(), free:$("filter-free").checked, vision:$("filter-vision").checked, top:$("filter-top").checked,
+    sort: $("model-sort") ? $("model-sort").value : "default" };
+}
+/* コスト＝入力＋出力の1トークン単価の合計（無料は0） */
+const modelCost = (m) => (m.pricePrompt || 0) + (m.priceCompletion || 0);
+function sortModels(list, mode) {
+  const arr = list.slice();
+  if (mode === "price-asc") arr.sort((a,b)=>modelCost(a)-modelCost(b));
+  else if (mode === "price-desc") arr.sort((a,b)=>modelCost(b)-modelCost(a));
+  else if (mode === "name") arr.sort((a,b)=>a.name.localeCompare(b.name, "ja"));
+  return arr;
 }
 function filteredModels() {
   const f = getFilters();
-  return MODELS.filter((m) => {
+  const list = MODELS.filter((m) => {
     if (f.free && !m.free) return false;
     if (f.vision && !m.vision) return false;
     if (f.top && !isTop(m)) return false;
     if (f.search && !(m.id.toLowerCase().includes(f.search) || m.name.toLowerCase().includes(f.search))) return false;
     return true;
   });
+  return sortModels(list, f.sort);
 }
 const CHECK_SVG = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>';
 function renderModelList() {
@@ -971,12 +991,14 @@ $("pk-done").addEventListener("click", closeModelMenu);
 $("pk-back").addEventListener("click", gotoMainStep);
 $("pk-judge-row").addEventListener("click", gotoJudgeStep);
 $("refresh-models").addEventListener("click", () => loadModels(true));
-["model-search","filter-free","filter-vision","filter-top"].forEach((id)=>{ $(id).addEventListener("input", ()=>{ saveFilters(); renderModelList(); }); });
+["model-search","filter-free","filter-vision","filter-top","model-sort"].forEach((id)=>{ $(id).addEventListener("input", ()=>{ saveFilters(); renderModelList(); }); });
+$("model-sort").addEventListener("change", ()=>{ saveFilters(); renderModelList(); });
 function saveFilters() { localStorage.setItem(LS.filters, JSON.stringify(getFilters())); }
 function loadFilters() {
   try { const f = JSON.parse(localStorage.getItem(LS.filters)||"{}");
     if (f.search) $("model-search").value=f.search;
     $("filter-free").checked=!!f.free; $("filter-vision").checked=!!f.vision; $("filter-top").checked=!!f.top;
+    if (f.sort) $("model-sort").value=f.sort;
   } catch {}
 }
 
