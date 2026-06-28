@@ -48,6 +48,19 @@
   ],
   "history": [
     {
+      "id": "mercari_m93225515479",
+      "name": "2Kモバイルモニター（14インチ）ディスプレイ本体",
+      "price": 11000,
+      "platform": "メルカリ",
+      "url": "https://jp.mercari.com/item/m93225515479",
+      "image_url": "https://static.mercdn.net/thumb/item/webp/m93225515479_1.jpg?1778047084",
+      "keyword": "2K モニター",
+      "ai_comment": "[deepseek-v4-flash] 14インチと条件の24インチ以上を満たさず、USB Type-C対応も不明なため。",
+      "ai_ok": false,
+      "market_info": "メルカリ相場: ¥10970（売れ済み平均）",
+      "detected_at": "2026-06-28T00:53:17.337283"
+    },
+    {
       "id": "mercari_m79667232572",
       "name": "新品 WQHD 2K 15.6インチ ポータブル モバイルモニター 本体",
       "price": 12300,
@@ -985,23 +998,23 @@
     }
   ],
   "last_run": {
-    "started_at": "2026-06-28T00:50:26.907706",
+    "started_at": "2026-06-28T00:52:28.540437",
     "keywords": [
       {
         "keyword": "F48 BMW X1 フロアマット",
-        "scraped": 57,
+        "scraped": 56,
         "new": 0,
         "ai_judged": 0,
         "ai_ok": 0,
-        "market_info": "相場情報なし"
+        "market_info": "メルカリ相場: ¥21881（売れ済み平均）"
       },
       {
         "keyword": "2K モニター",
         "scraped": 90,
-        "new": 0,
-        "ai_judged": 0,
+        "new": 1,
+        "ai_judged": 1,
         "ai_ok": 0,
-        "market_info": "メルカリ相場: ¥10801（売れ済み平均）"
+        "market_info": "メルカリ相場: ¥10970（売れ済み平均）"
       }
     ]
   }
