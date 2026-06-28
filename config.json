@@ -48,6 +48,19 @@
   ],
   "history": [
     {
+      "id": "mercari_m79667232572",
+      "name": "新品 WQHD 2K 15.6インチ ポータブル モバイルモニター 本体",
+      "price": 12300,
+      "platform": "メルカリ",
+      "url": "https://jp.mercari.com/item/m79667232572",
+      "image_url": "https://static.mercdn.net/thumb/item/webp/m79667232572_1.jpg?1779768143",
+      "keyword": "2K モニター",
+      "ai_comment": "[gpt-4o-mini] 24インチ以上のモニターではなく、ユーザーの条件を満たさないため。",
+      "ai_ok": false,
+      "market_info": "メルカリ相場: ¥10814（売れ済み平均）",
+      "detected_at": "2026-06-28T00:45:01.521338"
+    },
+    {
       "id": "paypay_z634635314",
       "name": "kksmart NK-135 モバイルモニター 2K 超薄型 13.5インチ",
       "price": 14500,
@@ -972,23 +985,23 @@
     }
   ],
   "last_run": {
-    "started_at": "2026-06-28T00:42:05.415954",
+    "started_at": "2026-06-28T00:44:12.746665",
     "keywords": [
       {
         "keyword": "F48 BMW X1 フロアマット",
-        "scraped": 56,
+        "scraped": 57,
         "new": 0,
         "ai_judged": 0,
         "ai_ok": 0,
-        "market_info": "メルカリ相場: ¥22685（売れ済み平均）"
+        "market_info": "メルカリ相場: ¥21909（売れ済み平均）"
       },
       {
         "keyword": "2K モニター",
-        "scraped": 60,
-        "new": 0,
-        "ai_judged": 0,
+        "scraped": 90,
+        "new": 1,
+        "ai_judged": 1,
         "ai_ok": 0,
-        "market_info": "メルカリ相場: ¥10709（売れ済み平均）"
+        "market_info": "メルカリ相場: ¥10814（売れ済み平均）"
       }
     ]
   }
