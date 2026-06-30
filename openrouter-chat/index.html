@@ -213,6 +213,29 @@
   .judge-bar { display:flex; justify-content:center; }
   .judge-btn { font-size:13px; font-weight:600; color:#fff; background:var(--accent); border:0; border-radius:999px; padding:9px 18px; cursor:pointer; box-shadow:0 1px 2px rgba(0,0,0,.05); }
   .judge-btn:hover { filter:brightness(.95); }
+
+  /* ===== スマート（Fugu-lite）===== */
+  .role-chip { display:inline-flex; align-items:center; gap:5px; min-width:0; font-size:12px; color:var(--text); background:var(--surface); border:1px solid var(--border-2); border-radius:999px; padding:4px 11px; cursor:pointer; transition:border-color .15s,box-shadow .15s; }
+  .role-chip:hover { border-color:var(--text); }
+  .role-chip b { color:var(--muted); font-weight:700; font-size:11px; }
+  .role-chip span { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:128px; }
+  [data-theme="dark"] #smart-bar { background:rgba(28,28,31,.85) !important; }
+  /* パイプライン表示（ステップカード） */
+  .pipe { width:100%; max-width:min(100%,820px); margin:0 auto; }
+  .pipe-step { border:1px solid var(--border); border-radius:14px; overflow:hidden; background:var(--surface); margin-bottom:10px; }
+  .pipe-head { display:flex; align-items:center; gap:8px; font-size:12px; font-weight:600; color:var(--text-2); padding:8px 12px; background:var(--surface-2); border-bottom:1px solid var(--border); }
+  .pipe-badge { flex:0 0 auto; display:inline-flex; align-items:center; justify-content:center; min-width:20px; height:20px; padding:0 5px; border-radius:6px; font-size:11px; background:var(--accent); color:#fff; }
+  [data-theme="dark"] .pipe-badge { color:#18181b; }
+  .pipe-model { color:var(--muted); font-weight:500; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .pipe-tag { flex:0 0 auto; margin-left:auto; font-size:11px; font-weight:600; padding:2px 8px; border-radius:999px; }
+  .pipe-tag.ok { background:rgba(22,163,74,.12); color:#16a34a; }
+  .pipe-tag.revise { background:rgba(234,88,12,.13); color:#ea580c; }
+  .pipe-tag.run { background:var(--accent-soft); color:var(--text-2); }
+  .pipe-step .msg-body { padding:12px; font-size:14.5px; }
+  .pipe-note { padding:10px 12px; font-size:12.5px; color:var(--text-2); line-height:1.6; }
+  .pipe-final { border-color:var(--accent); }
+  .pipe-final .pipe-head { background:var(--accent-soft); color:var(--text); }
+  .pipe-skip { opacity:.62; }
 </style>
 
 <!-- ====== 自己完結ユーティリティCSS（Tailwind CDN非依存） ====== -->
@@ -415,6 +438,23 @@
     </div>
   </div>
 
+  <!-- スマートバー（smartモード時のみ表示）：下書き→検証→強化のパイプライン -->
+  <div id="smart-bar" class="hidden shrink-0 border-b border-c bg-white/80 backdrop-blur px-4 sm:px-6" style="padding-top:7px;padding-bottom:7px">
+    <div class="max-w-3xl mx-auto flex flex-wrap items-center gap-1.5">
+      <span class="text-[11px] font-semibold uppercase tracking-wide shrink-0" style="color:var(--muted)">⚡ スマート</span>
+      <button id="smart-draft-btn" class="role-chip" data-role="draft"><b>①</b><span id="smart-draft-label">下書き</span></button>
+      <svg class="shrink-0" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg>
+      <button id="smart-verify-btn" class="role-chip" data-role="verify"><b>②</b><span id="smart-verify-label">検証</span></button>
+      <svg class="shrink-0" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg>
+      <button id="smart-escalate-btn" class="role-chip" data-role="escalate"><b>③</b><span id="smart-escalate-label">強化</span></button>
+      <span class="shrink-0" style="margin-left:auto"></span>
+      <button id="smart-config-btn" class="shrink-0 btn-press inline-flex items-center gap-1 text-[12px] rounded-full transition-colors" style="padding:4px 10px;border:1px solid var(--border-2);background:var(--surface);color:var(--text-2)" title="スマート設定">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9c.2.61.74 1.05 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+        設定
+      </button>
+    </div>
+  </div>
+
   <!-- モデルピッカー -->
   <div id="model-backdrop" class="hidden fixed inset-0 z-40"></div>
   <div id="model-menu" class="hidden fixed z-50 bg-white flex flex-col" style="top:58px;left:50%;transform:translateX(-50%);width:min(93vw,440px);max-height:76vh;border:1px solid var(--border);border-radius:18px;box-shadow:0 25px 50px -12px rgba(0,0,0,.25)">
@@ -432,13 +472,14 @@
       <div id="pk-seg" class="seg" role="tablist" aria-label="モード">
         <button id="seg-single" class="seg-btn active" type="button">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l1.9 5.8L20 10l-5.1 1.2L12 17l-1.9-5.8L4 10l6.1-1.2z"/></svg>
-          単一モデル
+          単一
         </button>
-        <button id="seg-compare" class="seg-btn" type="button">⚔️ モデル比較</button>
+        <button id="seg-compare" class="seg-btn" type="button">⚔️ 比較</button>
+        <button id="seg-smart" class="seg-btn" type="button">⚡ スマート</button>
       </div>
 
       <input id="model-search" type="text" placeholder="モデルを検索（gpt, claude, gemini…）" class="field" style="margin-top:11px" />
-      <div class="flex flex-wrap items-center gap-1.5" style="margin-top:9px">
+      <div id="pk-filters" class="flex flex-wrap items-center gap-1.5" style="margin-top:9px">
         <label class="chip-toggle"><input id="filter-top" type="checkbox" class="sr-only"><span class="chip-pill">⭐ 人気</span></label>
         <label class="chip-toggle"><input id="filter-free" type="checkbox" class="sr-only"><span class="chip-pill">🆓 無料</span></label>
         <label class="chip-toggle"><input id="filter-vision" type="checkbox" class="sr-only"><span class="chip-pill">🖼 画像</span></label>
@@ -466,6 +507,47 @@
           <span id="pk-judge-val" class="jv">なし</span>
           <svg class="shrink-0" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round" style="color:var(--text-2)"><path d="M9 6l6 6-6 6"/></svg>
         </button>
+      </div>
+
+      <!-- スマート構成（下書き / 検証 / 強化 + ルーター + 上限） -->
+      <div id="pk-smart-ctx" class="cmp-ctx hidden">
+        <div class="cmp-ctx-top">
+          <span class="cmp-ctx-label">役割ごとのモデル</span>
+          <span class="cmp-ctx-count" style="text-transform:none;font-weight:500;color:var(--muted)">安く→正確に</span>
+        </div>
+        <button id="pk-role-draft" class="judge-sel" type="button" data-role="draft">
+          <span class="jl">① 下書き<span style="font-weight:400;color:var(--muted)">·安</span></span>
+          <span id="pk-draft-val" class="jv">未選択</span>
+          <svg class="shrink-0" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round" style="color:var(--text-2)"><path d="M9 6l6 6-6 6"/></svg>
+        </button>
+        <button id="pk-role-verify" class="judge-sel" type="button" data-role="verify">
+          <span class="jl">② 検証<span style="font-weight:400;color:var(--muted)">·中</span></span>
+          <span id="pk-verify-val" class="jv">未選択</span>
+          <svg class="shrink-0" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round" style="color:var(--text-2)"><path d="M9 6l6 6-6 6"/></svg>
+        </button>
+        <button id="pk-role-escalate" class="judge-sel" type="button" data-role="escalate">
+          <span class="jl">③ 強化<span style="font-weight:400;color:var(--muted)">·高</span></span>
+          <span id="pk-escalate-val" class="jv">未選択</span>
+          <svg class="shrink-0" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round" style="color:var(--text-2)"><path d="M9 6l6 6-6 6"/></svg>
+        </button>
+        <div class="flex items-center justify-between" style="margin-top:11px">
+          <label for="pk-smart-router" class="flex items-center gap-2 cursor-pointer" style="font-size:13px;color:var(--text)">
+            <input id="pk-smart-router" type="checkbox" class="sr-only"><span class="switch"></span>
+            <span>難易度ルーター</span>
+          </label>
+          <span class="hint" style="text-align:right;max-width:130px">簡単な質問は下書きのみで即返答</span>
+        </div>
+        <div class="flex items-center justify-between" style="margin-top:9px">
+          <span style="font-size:13px;color:var(--text)">強化の上限</span>
+          <div class="select-wrap">
+            <select id="pk-smart-cap" class="chip-pill" style="padding-right:24px;cursor:pointer;background:var(--surface);color:var(--text)">
+              <option value="0">0回（下書きのみ）</option>
+              <option value="1">1回（推奨）</option>
+              <option value="2">2回まで</option>
+            </select>
+            <svg class="chev" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
+          </div>
+        </div>
       </div>
     </div>
     <div id="model-list" class="overflow-y-auto scroll-thin" style="padding:6px"></div>
@@ -652,6 +734,7 @@ const LS = {
   system:"or_chat_system", history:"or_chat_history", costs:"or_chat_costs", filters:"or_chat_filters",
   convos:"or_chat_convos", cur:"or_chat_cur", cmpmode:"or_chat_cmpmode", cmpmodels:"or_chat_cmpmodels", judge:"or_chat_judge",
   theme:"or_chat_theme", temperature:"or_chat_temperature", maxTokens:"or_chat_max_tokens",
+  mode:"or_chat_mode", smart:"or_chat_smart",
 };
 const API_BASE = "https://openrouter.ai/api/v1";
 const APP_TITLE = "OpenRouter Chat UI";
@@ -659,11 +742,16 @@ const APP_TITLE = "OpenRouter Chat UI";
 /* ============================================================ 状態 */
 let API_KEY = null, MODELS = [], messages = [], pendingImages = [], abortCtrl = null;
 let selectedModelId = localStorage.getItem(LS.model) || "";
-let compareMode = false;
+let chatMode = "single"; // "single" | "compare" | "smart"
+let compareMode = false;  // = (chatMode === "compare")：既存ロジック互換のための派生フラグ
 let compareModels = [];  // 比較モードで選んだモデルID（最大3）
 let pendingJudge = null;  // 直近の比較結果（ジャッジ採点用）
 let judgeModelId = "";    // 比較後に採点する審査員モデル（"" = 採点しない）
-let menuMode = "model";   // モデルメニューの用途: "model" | "judge"
+let menuMode = "model";   // モデルメニューの用途: "model" | "judge" | "draft" | "verify" | "escalate"
+/* スマート（Fugu-lite）構成：下書き/検証/強化の3役 + 難易度ルーター + エスカレーション上限 */
+let smartCfg = { draft:"", verify:"", escalate:"", router:true, cap:1 };
+const ROLE_META = { draft:{n:"①",jp:"下書き",hint:"安いモデル"}, verify:{n:"②",jp:"検証",hint:"中位モデル"}, escalate:{n:"③",jp:"強化",hint:"強いモデル"} };
+const isRoleMode = (m) => m==="draft" || m==="verify" || m==="escalate";
 /* 「人気/主要モデル」フィルタ用：主要フラッグシップの id パターン（OpenRouter APIに人気順は無いため厳選） */
 const POPULAR_PATTERNS = ["openai/gpt-4o","openai/gpt-4.1","openai/o1","openai/o3","openai/o4","anthropic/claude-3.5-sonnet","anthropic/claude-3.7-sonnet","anthropic/claude-sonnet-4","anthropic/claude-opus-4","google/gemini-2.0-flash","google/gemini-2.5-pro","google/gemini-2.5-flash","meta-llama/llama-3.3-70b","meta-llama/llama-4","deepseek/deepseek-chat","deepseek/deepseek-r1","qwen/qwen-2.5-72b","qwen/qwen3","mistralai/mistral-large","mistralai/mistral-small","x-ai/grok-2","x-ai/grok-3"];
 const isTop = (m) => POPULAR_PATTERNS.some((p) => m.id.includes(p));
@@ -774,7 +862,8 @@ document.addEventListener("keydown", (e)=>{ if(e.key==="Escape"){ closeSettings(
 
 /* ============================================================ アンロック後 */
 async function onUnlocked() {
-  loadSystemPrompt(); loadFilters(); loadCompare(); renderCosts(); loadConversations(); loadHistory(); loadParams(); await loadModels(false);
+  loadSystemPrompt(); loadFilters(); loadSmart(); loadCompare(); renderCosts(); loadConversations(); loadHistory(); loadParams(); await loadModels(false);
+  if (chatMode === "smart") { autoSuggestSmart(); renderSmartState(); }
 }
 
 /* ============================================================ モデル一覧 */
@@ -827,6 +916,8 @@ function filteredModels() {
 const CHECK_SVG = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>';
 function renderModelList() {
   const judgeMode = (menuMode === "judge");
+  const roleMode = isRoleMode(menuMode);
+  const singleSelect = judgeMode || roleMode;   // 右側に1つだけチェック
   const filtered = filteredModels();
   if (!selectedModelId || !MODELS.some((m)=>m.id===selectedModelId)) {
     selectedModelId = ((filtered[0] || MODELS[0] || {}).id) || "";
@@ -836,11 +927,11 @@ function renderModelList() {
   list.innerHTML = "";
   const addRow = (m) => {
     const row = document.createElement("button");
-    const on = judgeMode ? (m.id===judgeModelId) : (compareMode ? compareModels.includes(m.id) : (m.id===selectedModelId));
+    const on = roleMode ? (m.id===smartCfg[menuMode]) : judgeMode ? (m.id===judgeModelId) : (compareMode ? compareModels.includes(m.id) : (m.id===selectedModelId));
     row.className = "model-row" + (on ? " active" : "");
     const badges = (isTop(m)?"⭐":"") + (m.free?"🆓":"") + (m.vision?"🖼":"");
-    const checkLeft = (compareMode && !judgeMode) ? `<span class="row-check">${CHECK_SVG}</span>` : "";
-    const checkRight = ((!compareMode || judgeMode) && on) ? `<span class="shrink-0" style="color:var(--accent);align-self:center">${CHECK_SVG}</span>` : "";
+    const checkLeft = (compareMode && !singleSelect) ? `<span class="row-check">${CHECK_SVG}</span>` : "";
+    const checkRight = ((!compareMode || singleSelect) && on) ? `<span class="shrink-0" style="color:var(--accent);align-self:center">${CHECK_SVG}</span>` : "";
     const price = m.free ? '<span style="color:#16a34a">無料</span>' : `入 $${fmtPM(m.pricePrompt)} / 出 $${fmtPM(m.priceCompletion)} <span style="opacity:.7">/1M</span>`;
     row.innerHTML = checkLeft +
       `<span style="flex:1 1 auto;min-width:0">` +
@@ -854,7 +945,13 @@ function renderModelList() {
   };
   const sep = (label) => { const d = document.createElement("div"); d.className = "model-sep"; d.textContent = label; list.appendChild(d); };
 
-  if (judgeMode) {
+  if (roleMode) {
+    if (!filtered.length) list.innerHTML = '<p class="hint" style="padding:18px;text-align:center">該当するモデルがありません</p>';
+    filtered.forEach(addRow);
+  } else if (chatMode === "smart") {
+    // スマートのメインステップはリストを使わない（役割は上の構成ブロックから選ぶ）
+    list.innerHTML = '<p class="hint" style="padding:16px;text-align:center;line-height:1.7">上の「① 下書き / ② 検証 / ③ 強化」をタップして<br>それぞれのモデルを選びます。</p>';
+  } else if (judgeMode) {
     const none = document.createElement("button");
     none.className = "model-row" + (judgeModelId ? "" : " active");
     none.innerHTML = `<span style="flex:1 1 auto;min-width:0"><span style="display:block">採点しない（並列表示のみ）</span></span>` +
@@ -877,9 +974,14 @@ function renderModelList() {
     filtered.forEach(addRow);
   }
   $("model-count").textContent = MODELS.length ? `${filtered.length} / ${MODELS.length}` : "";
-  updateModelLabel(); renderCompareState(); onModelChange();
+  updateModelLabel(); renderCompareState(); renderSmartState(); onModelChange();
 }
 function selectModel(id) {
+  if (isRoleMode(menuMode)) {
+    smartCfg[menuMode] = id;
+    saveSmart(); renderSmartState(); gotoMainStep();
+    return;
+  }
   if (menuMode === "judge") {
     judgeModelId = id;
     saveCompare(); renderCompareState(); gotoMainStep();
@@ -898,6 +1000,7 @@ function selectModel(id) {
 }
 function currentModel() { return MODELS.find((m)=>m.id===selectedModelId) || null; }
 function updateModelLabel() {
+  if (chatMode === "smart") { $("model-btn-label").textContent = "⚡ スマート回答"; return; }
   if (compareMode) { $("model-btn-label").textContent = compareModels.length ? `⚔️ ${compareModels.length}モデルで比較` : "⚔️ 比較するモデルを選択"; return; }
   const m = currentModel();
   $("model-btn-label").textContent = m ? ((m.free?"🆓 ":"") + m.name) : "モデルを選択";
@@ -930,31 +1033,77 @@ function renderCompareState() {
   });
 }
 function updateSegUI() {
-  $("seg-single").classList.toggle("active", !compareMode);
-  $("seg-compare").classList.toggle("active", compareMode);
+  $("seg-single").classList.toggle("active", chatMode==="single");
+  $("seg-compare").classList.toggle("active", chatMode==="compare");
+  $("seg-smart").classList.toggle("active", chatMode==="smart");
 }
-function toggleCompareUI() {
-  $("compare-bar").classList.toggle("hidden", !compareMode);
+/* モードに応じて2つのバー（比較 / スマート）の表示を切り替える */
+function applyModeUI() {
+  compareMode = (chatMode === "compare");
+  $("compare-bar").classList.toggle("hidden", chatMode!=="compare");
+  $("smart-bar").classList.toggle("hidden", chatMode!=="smart");
   updateSegUI();
   renderCompareState();
+  renderSmartState();
 }
 function loadCompare() {
-  compareMode = localStorage.getItem(LS.cmpmode) === "1";
+  chatMode = localStorage.getItem(LS.mode) || (localStorage.getItem(LS.cmpmode)==="1" ? "compare" : "single");
+  if (!["single","compare","smart"].includes(chatMode)) chatMode = "single";
+  compareMode = (chatMode === "compare");
   try { compareModels = JSON.parse(localStorage.getItem(LS.cmpmodels)) || []; } catch { compareModels = []; }
   judgeModelId = localStorage.getItem(LS.judge) || "";
-  toggleCompareUI();
+  applyModeUI();
 }
 function populateJudgeSelect() { renderCompareState(); }
-/* モードを切り替え（メニュー内のセグメントから） */
-function setMode(compare) {
-  if (compareMode === compare) return;
-  compareMode = compare;
-  saveCompare(); updateModelLabel(); toggleCompareUI(); refreshMenuChrome(); renderModelList();
+/* スマート構成の保存・読込・自動提案 */
+function saveSmart() { localStorage.setItem(LS.smart, JSON.stringify(smartCfg)); }
+function loadSmart() {
+  try { const s = JSON.parse(localStorage.getItem(LS.smart)); if (s && typeof s==="object") smartCfg = Object.assign(smartCfg, s); } catch {}
+  $("pk-smart-router").checked = !!smartCfg.router;
+  $("pk-smart-cap").value = String(smartCfg.cap);
 }
-$("seg-single").addEventListener("click", () => setMode(false));
-$("seg-compare").addEventListener("click", () => setMode(true));
+/* 未選択の役割を、価格順から自動で埋める（下書き=最安 / 検証=中位 / 強化=人気フラッグシップ） */
+function autoSuggestSmart() {
+  const priced = MODELS.filter((m)=>!m.free).slice().sort((a,b)=>modelCost(a)-modelCost(b));
+  const pool = priced.length ? priced : MODELS.slice().sort((a,b)=>modelCost(a)-modelCost(b));
+  if (!pool.length) return;
+  const tops = pool.filter(isTop);
+  if (!smartCfg.draft)    smartCfg.draft    = (pool[0]||{}).id || "";
+  if (!smartCfg.escalate) smartCfg.escalate = ((tops[tops.length-1]) || pool[pool.length-1] || {}).id || "";
+  if (!smartCfg.verify)   smartCfg.verify   = (tops.length ? tops[Math.floor(tops.length/2)] : pool[Math.floor(pool.length/2)] || {}).id || "";
+  saveSmart();
+}
+/* スマートバー & ピッカー内構成ブロックへ状態を反映 */
+function renderSmartState() {
+  for (const role of ["draft","verify","escalate"]) {
+    const m = MODELS.find((x)=>x.id===smartCfg[role]);
+    const nm = m ? m.name : "未選択";
+    const bl = $("smart-"+role+"-label"); if (bl) { bl.textContent = m ? m.name : ROLE_META[role].jp; bl.style.color = m ? "" : "var(--muted)"; }
+    const pv = $("pk-"+role+"-val"); if (pv) { pv.textContent = nm; pv.style.color = m ? "var(--text-2)" : "var(--muted)"; }
+  }
+  const r = $("pk-smart-router"); if (r) r.checked = !!smartCfg.router;
+  const c = $("pk-smart-cap"); if (c) c.value = String(smartCfg.cap);
+}
+/* モードを切り替え（メニュー内のセグメントから） */
+function setChatMode(mode) {
+  if (chatMode === mode) return;
+  chatMode = mode;
+  localStorage.setItem(LS.mode, mode);
+  localStorage.setItem(LS.cmpmode, mode==="compare" ? "1" : "");
+  if (mode === "smart") autoSuggestSmart();
+  updateModelLabel(); applyModeUI(); refreshMenuChrome(); renderModelList();
+}
+$("seg-single").addEventListener("click", () => setChatMode("single"));
+$("seg-compare").addEventListener("click", () => setChatMode("compare"));
+$("seg-smart").addEventListener("click", () => setChatMode("smart"));
 $("judge-bar-btn").addEventListener("click", () => openModelMenu("judge"));
 $("cmp-add-btn").addEventListener("click", () => openModelMenu("model"));
+/* スマートバー：役割チップ → 役割サブステップを直接開く / 設定 → メイン構成 */
+["draft","verify","escalate"].forEach((role)=>{ $("smart-"+role+"-btn").addEventListener("click", ()=>openModelMenu(role)); });
+$("smart-config-btn").addEventListener("click", ()=>openModelMenu("model"));
+document.querySelectorAll("#pk-smart-ctx [data-role]").forEach((b)=>{ b.addEventListener("click", ()=>gotoRoleStep(b.dataset.role)); });
+$("pk-smart-router").addEventListener("change", ()=>{ smartCfg.router = $("pk-smart-router").checked; saveSmart(); });
+$("pk-smart-cap").addEventListener("change", ()=>{ smartCfg.cap = parseInt($("pk-smart-cap").value,10)||0; saveSmart(); });
 function onModelChange() {
   const m = currentModel();
   if (!m) { $("model-info").textContent=""; return; }
@@ -965,19 +1114,29 @@ function onModelChange() {
   if (isTop(m)) tags.push("人気");
   $("model-info").textContent = tags.join(" ・ ");
 }
-/* メニューのヘッダー・セグメント・比較コンテキストの表示を menuMode/compareMode に合わせて更新 */
+/* メニューのヘッダー・セグメント・各コンテキストの表示を menuMode/chatMode に合わせて更新 */
 function refreshMenuChrome() {
   const judge = (menuMode === "judge");
-  $("pk-back").classList.toggle("hidden", !judge);
-  $("pk-title").textContent = judge ? "⚖️ 審査員を選択" : (compareMode ? "モデルを比較" : "モデルを選択");
-  $("pk-seg").classList.toggle("hidden", judge);
-  $("pk-compare-ctx").classList.toggle("hidden", judge || !compareMode);
-  $("pk-done").classList.toggle("hidden", judge || !compareMode);
+  const role = isRoleMode(menuMode);
+  const sub = judge || role;                 // サブステップ（戻る矢印あり・セグ非表示）
+  const smartMain = (chatMode==="smart" && menuMode==="model");
+  $("pk-back").classList.toggle("hidden", !sub);
+  $("pk-title").textContent = judge ? "⚖️ 審査員を選択"
+    : role ? `${ROLE_META[menuMode].n} ${ROLE_META[menuMode].jp}モデルを選択`
+    : (chatMode==="smart" ? "⚡ スマート回答の設定" : (compareMode ? "モデルを比較" : "モデルを選択"));
+  $("pk-seg").classList.toggle("hidden", sub);
+  $("pk-compare-ctx").classList.toggle("hidden", sub || chatMode!=="compare");
+  $("pk-smart-ctx").classList.toggle("hidden", sub || !smartMain);
+  // スマートのメイン構成画面では検索・フィルタ・完了を隠す（役割サブステップでは表示）
+  $("model-search").classList.toggle("hidden", smartMain);
+  $("pk-filters").classList.toggle("hidden", smartMain);
+  $("pk-done").classList.toggle("hidden", judge || role ? true : (chatMode==="single"));
 }
 function gotoMainStep() { menuMode = "model"; refreshMenuChrome(); renderModelList(); }
 function gotoJudgeStep() { menuMode = "judge"; refreshMenuChrome(); renderModelList(); setTimeout(()=>$("model-search").focus(), 30); }
+function gotoRoleStep(role) { menuMode = role; refreshMenuChrome(); renderModelList(); setTimeout(()=>$("model-search").focus(), 30); }
 function openModelMenu(mode) {
-  menuMode = (mode === "judge") ? "judge" : "model";
+  menuMode = (mode==="judge" || isRoleMode(mode)) ? mode : "model";
   refreshMenuChrome();
   renderModelList();
   $("model-backdrop").classList.remove("hidden"); $("model-menu").classList.remove("hidden");
@@ -1388,8 +1547,9 @@ function buildUserContent(text, images) {
 
 async function send() {
   if (!API_KEY) { showGate(); return; }
-  if (compareMode && compareModels.length < 2) { openModelMenu(); alert("比較するモデルを2つ以上選んでください。"); return; }
-  if (!compareMode && !currentModel()) { alert("モデルを選択してください。"); return; }
+  if (chatMode==="compare" && compareModels.length < 2) { openModelMenu(); alert("比較するモデルを2つ以上選んでください。"); return; }
+  if (chatMode==="smart" && !MODELS.find((m)=>m.id===smartCfg.draft)) { openModelMenu("draft"); alert("「① 下書き」モデルを選んでください。"); return; }
+  if (chatMode==="single" && !currentModel()) { alert("モデルを選択してください。"); return; }
   const text = inputEl.value.trim();
   if (!text && !pendingImages.length) return;
 
@@ -1402,7 +1562,9 @@ async function send() {
   pendingImages = []; renderAttachments();
   updateEmptyState(); saveHistory(); stickToBottom = true; renderThread();
 
-  if (compareMode) await sendCompare(); else await streamAssistant();
+  if (chatMode==="compare") await sendCompare();
+  else if (chatMode==="smart") await sendSmart();
+  else await streamAssistant();
 }
 
 /* 1モデル分のSSEストリーミング（リトライ込み）。bodyEl に逐次描画し {answer,usage} を返す */
@@ -1538,6 +1700,152 @@ function recordCost(model, usage) {
   const pt = usage.prompt_tokens||0, ct = usage.completion_tokens||0;
   const cost = (typeof usage.cost==="number") ? usage.cost : pt*model.pricePrompt + ct*model.priceCompletion;
   addCost(model.id, cost, pt, ct);
+}
+
+/* ============================================================ スマート（Fugu-lite）パイプライン
+   安いモデルで下書き → 検証(ACCEPT/REVISE) → 必要時だけ強いモデルへ昇格。
+   Sakana Fuguの「複雑度ルーティング＋検証で停止＋限定的エスカレーション」を、
+   学習済みコーディネーターの代わりにプロンプト＋JSロジックで近似したもの。 */
+const SMART_ACCEPT_THRESHOLD = 0.65;  // 検証の確信度がこれ以上＆ACCEPTなら下書きを採用（中庸）
+
+/* 出力からJSONオブジェクトを頑健に取り出す（コードフェンス・前後文を許容） */
+function extractJsonObject(text) {
+  if (!text) return null;
+  let s = String(text).replace(/```(?:json)?/gi, "").trim();
+  const a = s.indexOf("{"), b = s.lastIndexOf("}");
+  if (a < 0 || b <= a) return null;
+  try { return JSON.parse(s.slice(a, b+1)); } catch { return null; }
+}
+/* モデルを1回呼んでテキストだけ得る（画面には出さない）。{answer,usage} を返す */
+async function runQuiet(model, msgs) {
+  const tmp = document.createElement("div");
+  return runStream(model, msgs, tmp);
+}
+/* 難易度ルーター：simple / hard を返す（判定不能時は hard 扱いで安全側） */
+async function classifyDifficulty(model, promptText) {
+  const sys = '次のユーザーの質問の難易度を判定し、JSONのみで答えてください。形式: {"level":"simple"} または {"level":"hard"}。' +
+    'simple=挨拶・短い事実確認・単純な言い換えや要約など、安いモデル1回で十分なもの。' +
+    'hard=推論・計算・コード・分析・比較・多段思考・正確さが重要なもの。';
+  const { answer, usage } = await runQuiet(model, [{ role:"system", content:sys }, { role:"user", content:(promptText||"").slice(0,4000) }]);
+  const j = extractJsonObject(answer);
+  return { level: (j && j.level === "simple") ? "simple" : "hard", usage };
+}
+/* 検証：回答案を採点し {verdict, confidence, issues[]} を返す（パース不可は REVISE 扱い） */
+async function runVerify(model, promptText, draft) {
+  const sys = 'あなたは厳格で公平な検証者です。ユーザーの質問と「回答案」を読み、回答案が正確で十分かを評価し、JSONのみで出力してください。' +
+    '形式: {"verdict":"ACCEPT"または"REVISE","confidence":0.0〜1.0,"issues":["問題点1","問題点2"]}。' +
+    'ACCEPT=明確な誤りがなく質問に十分応えている。REVISE=事実誤り・抜け・論理の飛躍・質問への不適合がある。' +
+    'issues は REVISE のとき具体的に列挙し、ACCEPT のとき空配列。説明文やコードフェンスは付けず、JSONだけを返すこと。';
+  const body = `# ユーザーの質問\n${(promptText||"(省略)").slice(0,8000)}\n\n# 回答案\n${String(draft||"").slice(0,12000)}`;
+  const { answer, usage } = await runQuiet(model, [{ role:"system", content:sys }, { role:"user", content:body }]);
+  const j = extractJsonObject(answer) || {};
+  let conf = parseFloat(j.confidence);
+  if (isNaN(conf)) conf = 0;
+  const verdict = (j.verdict === "ACCEPT") ? "ACCEPT" : "REVISE";
+  const issues = Array.isArray(j.issues) ? j.issues.filter((x)=>typeof x==="string" && x.trim()) : [];
+  return { verdict, confidence: Math.max(0, Math.min(1, conf)), issues, usage, raw: answer };
+}
+
+async function sendSmart() {
+  const draftM = MODELS.find((m)=>m.id===smartCfg.draft);
+  const verifyM = MODELS.find((m)=>m.id===smartCfg.verify);
+  const escM = MODELS.find((m)=>m.id===smartCfg.escalate);
+  if (!draftM) { alert("「① 下書き」モデルを選んでください。"); openModelMenu("draft"); return; }
+
+  const lastUser = messages[messages.length-1];
+  const promptText = lastUser ? extractParts(lastUser.content).text : "";
+  const sys = $("system-prompt").value.trim();
+  const base = [];
+  if (sys) base.push({ role:"system", content:sys });
+  for (const m of messages) base.push(m);
+
+  // パイプライン表示コンテナ
+  const row = document.createElement("div");
+  row.className = "msg-row fade-in w-full mx-auto mb-7";
+  row.style.maxWidth = "min(100%, 820px)";
+  const pipe = document.createElement("div");
+  pipe.className = "pipe";
+  row.appendChild(pipe); $("thread").appendChild(row); scrollBottom();
+
+  const addStep = (badge, title, model, opts) => {
+    opts = opts || {};
+    const step = document.createElement("div");
+    step.className = "pipe-step" + (opts.final ? " pipe-final" : "");
+    step.innerHTML = `<div class="pipe-head"><span class="pipe-badge">${badge}</span>`+
+      `<span class="shrink-0">${escapeHtml(title)}</span>`+
+      `<span class="pipe-model">${model?escapeHtml(model.name):""}</span>`+
+      `<span class="pipe-tag run">実行中…</span></div>`+
+      `<div class="${opts.note?"pipe-note":"msg-body"}"></div>`;
+    pipe.appendChild(step); scrollBottom();
+    return { step, tag: step.querySelector(".pipe-tag"), body: step.querySelector(opts.note?".pipe-note":".msg-body") };
+  };
+  const setTag = (s, cls, label) => { s.tag.className = "pipe-tag "+cls; s.tag.textContent = label; };
+
+  setSending(true); abortCtrl = new AbortController();
+  let finalAnswer = "";
+  try {
+    // ── ルーター（任意）。下書きモデルを流用して安く判定 ──
+    let hard = true;
+    if (smartCfg.router) {
+      const rs = addStep("◇", "難易度を判定", draftM, { note:true });
+      rs.body.textContent = "判定中…";
+      let level = "hard";
+      try { const r = await classifyDifficulty(draftM, promptText); level = r.level; recordCost(draftM, r.usage); } catch {}
+      hard = (level === "hard");
+      setTag(rs, hard?"revise":"ok", hard?"難しい→精査":"簡単→そのまま");
+      rs.body.textContent = hard ? "推論・正確さが必要と判断。検証ステップに進みます。" : "単純な質問と判断。下書きのみで回答します。";
+    }
+
+    // ── ① 下書き ──
+    const ds = addStep("①", "下書き", draftM);
+    ds.body.classList.add("typing");
+    const draftRes = await runStream(draftM, base, ds.body);
+    ds.body.classList.remove("typing"); ds.body.innerHTML = formatBody(draftRes.answer || "(応答なし)");
+    recordCost(draftM, draftRes.usage);
+    finalAnswer = draftRes.answer || "";
+    setTag(ds, "ok", "完了");
+
+    // ── ② 検証 ＆ ③ 強化（hard かつ 検証役あり かつ 上限>0 かつ 強化役あり のとき）──
+    const canEscalate = hard && verifyM && escM && smartCfg.cap > 0;
+    if (canEscalate) {
+      let attempts = 0;
+      let curAnswer = finalAnswer;
+      while (attempts < smartCfg.cap) {
+        const vs = addStep("②", "検証", verifyM, { note:true });
+        vs.body.textContent = "検証中…";
+        const v = await runVerify(verifyM, promptText, curAnswer);
+        recordCost(verifyM, v.usage);
+        const accepted = (v.verdict === "ACCEPT" && v.confidence >= SMART_ACCEPT_THRESHOLD);
+        setTag(vs, accepted?"ok":"revise", `${v.verdict}・確信度 ${(v.confidence*100|0)}%`);
+        vs.body.innerHTML = accepted
+          ? "回答案は十分と判定。これを最終回答にします。"
+          : (v.issues.length ? "指摘: " + v.issues.map(escapeHtml).join(" / ") : "改善の余地ありと判定。強いモデルで仕上げます。");
+        if (accepted) break;
+
+        // ③ 強化（下書き＋指摘を渡して仕上げ）
+        attempts++;
+        const es = addStep("③", attempts>1?`強化（${attempts}回目）`:"強化", escM, { final:true });
+        es.body.classList.add("typing");
+        const escMsgs = base.slice();
+        escMsgs.push({ role:"assistant", content: curAnswer });
+        escMsgs.push({ role:"user", content:
+          `上の回答案について、検証で次の点が指摘されました:\n- ${(v.issues.length?v.issues:["正確さ・網羅性に改善の余地"]).join("\n- ")}\n\n`+
+          `これらを踏まえ、元の質問に対する最終的な最良の回答を作成してください。指摘の修正を反映し、過不足なく答えてください。` });
+        const eRes = await runStream(escM, escMsgs, es.body);
+        es.body.classList.remove("typing"); es.body.innerHTML = formatBody(eRes.answer || "(応答なし)");
+        recordCost(escM, eRes.usage);
+        curAnswer = eRes.answer || curAnswer;
+        finalAnswer = curAnswer;
+        setTag(es, "ok", "完了");
+      }
+    }
+  } catch (e) {
+    if (e.name !== "AbortError") finalAnswer += (finalAnswer?"\n\n":"") + "⚠️ " + (e.message || e);
+  }
+  abortCtrl = null; setSending(false);
+
+  messages.push({ role:"assistant", content: finalAnswer || "(応答なし)" });
+  saveHistory(); renderThread(); followBottom();
 }
 
 /* ============================================================ 起動 */
