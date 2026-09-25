@@ -1163,9 +1163,14 @@ export default function Home() {
             メルカリ・ラクマ・PayPayフリマの新着を通知
           </p>
         </div>
-        <button onClick={load} className="text-gray-400 hover:text-gray-600">
-          <RefreshCw size={20} />
-        </button>
+        <div className="flex items-center gap-3">
+          <a href="/jev" className="text-xs text-indigo-600 border border-indigo-200 rounded-full px-3 py-1 hover:bg-indigo-50">
+            Jevを試す
+          </a>
+          <button onClick={load} className="text-gray-400 hover:text-gray-600">
+            <RefreshCw size={20} />
+          </button>
+        </div>
       </div>
 
       {/* アラート */}

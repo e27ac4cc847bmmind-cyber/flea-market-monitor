@@ -171,3 +171,23 @@ npm run dev
 - OpenRouterのAPIキーが正しいか確認
 - OpenRouterのダッシュボードでエラーを確認
 - `deepseek/deepseek-chat-v3-5k:free` モデルが利用可能か確認
+
+## Jev プレイグラウンド（`/jev`）
+
+TypeSafe AI の判断モデル **Jev** をブラウザで試せる画面です。管理UIの右上「Jevを試す」から開けます。
+
+- 判断材料（テキスト or JSON）と質問（はい/いいえ・選択・スコア）を入力 → 確率つきの結果をグラフ表示
+- テンプレート4種（問い合わせ振り分け・フリマ出品チェック・レビュー感情・障害エスカレーション）
+- 同じリクエストを再現する curl コマンドを表示
+- APIキー未設定時はデモモード（ダミー値）で操作だけ確認可能
+
+APIキーは [console.typesafe.ai](https://console.typesafe.ai/settings/keys) で発行し、次のどちらかで設定します。
+
+| 方法 | 設定 |
+|---|---|
+| サーバー側（推奨） | Vercel の環境変数 `TYPESAFE_API_KEY` |
+| 画面入力 | `/jev` のキー欄（そのブラウザの localStorage にのみ保存） |
+
+任意: `TYPESAFE_DEFAULT_MODEL`（既定 `jev-latest`）、`TYPESAFE_BASE_URL`（既定 `https://api.typesafe.ai`）。
+
+> 注意: サーバー側にキーを設定すると、URLを知っている人は誰でもそのキーで実行できます。公開デプロイでは画面入力方式にしてください。
