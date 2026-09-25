@@ -38,6 +38,11 @@ UA_LIST = [
 OPENROUTER_API_KEY = os.environ.get("OPENROUTER_API_KEY", "")
 DISCORD_WEBHOOK_URL = os.environ.get("DISCORD_WEBHOOK_URL", "")
 
+# Jev（TypeSafe AI の判定専用モデル）— chat/completions ではなく Decisions エンドポイントで呼ぶ
+JEV_ENDPOINT = "https://openrouter.ai/api/alpha/decisions"
+JEV_MODEL = "typesafe/jev-1.13"
+JEV_YES_THRESHOLD = 0.5
+
 SEEN_IDS_TTL_DAYS = 14
 
 
@@ -425,10 +430,112 @@ def scrape_paypay(keyword: str, max_price: int, category_id: str = "") -> list[d
 
 # ==================== AI判定 ====================
 def ai_judge(item: dict, keyword_config: dict, market_price: Optional[float], spot_price: Optional[float]) -> dict:
-    """OpenRouter APIでAI判定を実行"""
+    """Jevで判定し、失敗時のみ文章生成LLMにフォールバック"""
     if not OPENROUTER_API_KEY:
         return {"ok": True, "reason": "AI判定スキップ（APIキー未設定）"}
 
+    result = jev_judge(item, keyword_config, market_price, spot_price)
+    if result is not None:
+        return result
+    return llm_judge(item, keyword_config, market_price, spot_price)
+
+
+def jev_judge(item: dict, keyword_config: dict, market_price: Optional[float], spot_price: Optional[float]) -> Optional[dict]:
+    """判定基準ごとに Noul（Yes確率）を1リクエストでまとめて取得。失敗時は None"""
+    precious_metal_mode = keyword_config.get("precious_metal_mode", False)
+    metal_name = "銀" if keyword_config.get("metal_type", "silver") == "silver" else "金"
+    target_keyword = keyword_config.get("keyword", "")
+    note = keyword_config.get("note", "").strip()
+
+    state = {
+        "商品名": item["name"],
+        "価格": f"{item['price']}円",
+        "プラットフォーム": item["platform"],
+        "検索キーワード": target_keyword,
+    }
+
+    # key -> (表示ラベル, 質問)
+    questions: dict[str, tuple[str, dict]] = {}
+    if precious_metal_mode:
+        if spot_price:
+            state[f"{metal_name}スポット価格"] = f"{spot_price:.0f}円/g（1oz={spot_price * 31.1035:.0f}円）"
+        questions["genuine"] = ("本物", {
+            "type": "noul",
+            "instructions": f"この商品は本物の{metal_name}製品か？",
+            "criteria": {"true": f"本物の{metal_name}製品", "false": "偽物・メッキ品・レプリカ・複製品"},
+        })
+        questions["weight"] = ("1oz以上", {
+            "type": "noul",
+            "instructions": f"この商品は1オンス（31.1g）以上の純{metal_name}か？",
+        })
+        if spot_price:
+            questions["price"] = ("価格", {
+                "type": "noul",
+                "instructions": "スポット価格と比べてお得な価格か？",
+            })
+    else:
+        if market_price:
+            state["メルカリ相場"] = f"{market_price:.0f}円"
+        questions["target"] = ("本体", {
+            "type": "noul",
+            "instructions": f"この商品は「{target_keyword}」そのもの（本体）か？",
+            "criteria": {
+                "true": f"「{target_keyword}」の本体",
+                "false": "アクセサリー・周辺機器・関連商品・別用途の商品（例: モニター検索でKVMスイッチ・ベビーモニター・ケーブル）",
+            },
+        })
+        questions["condition"] = ("状態", {
+            "type": "noul",
+            "instructions": "正規品・本物で、実用に足る状態の出品か？",
+            "criteria": {"true": "正規品で問題なく使える", "false": "偽物・詐欺的出品・パーツ取り・ジャンク・破損品"},
+        })
+        if market_price:
+            questions["price"] = ("価格", {
+                "type": "noul",
+                "instructions": "メルカリ相場と比べて適正な価格か？",
+                "criteria": {"true": "相場並みか相場より安い", "false": "相場より明らかに高い、または詐欺を疑うほど安すぎる"},
+            })
+    if note:
+        state["購入者の追加条件"] = note
+        questions["user_note"] = ("条件", {
+            "type": "noul",
+            "instructions": "この商品は「購入者の追加条件」をすべて満たしているか？",
+        })
+
+    try:
+        r = requests.post(
+            JEV_ENDPOINT,
+            headers={
+                "Authorization": f"Bearer {OPENROUTER_API_KEY}",
+                "Content-Type": "application/json",
+                "HTTP-Referer": "https://github.com/flea-market-monitor",
+            },
+            json={
+                "model": JEV_MODEL,
+                "state": state,
+                "questions": {key: q for key, (_, q) in questions.items()},
+            },
+            timeout=15,
+        )
+        if r.status_code != 200:
+            print(f"    Jev: HTTP {r.status_code} → {r.text[:200]}")
+            return None
+        answers = r.json()["answers"]
+        probs = {key: float(answers[key]["noul"]) for key in questions}
+    except Exception as e:
+        print(f"    Jev: 例外 {type(e).__name__}: {e}")
+        return None
+
+    ok = all(p >= JEV_YES_THRESHOLD for p in probs.values())
+    reason = " ".join(
+        f"{'✓' if probs[key] >= JEV_YES_THRESHOLD else '✗'}{label}{probs[key] * 100:.0f}%"
+        for key, (label, _) in questions.items()
+    )
+    return {"ok": ok, "reason": f"[jev] {reason}"}
+
+
+def llm_judge(item: dict, keyword_config: dict, market_price: Optional[float], spot_price: Optional[float]) -> dict:
+    """文章生成LLM（chat/completions）で判定"""
     precious_metal_mode = keyword_config.get("precious_metal_mode", False)
     metal_type = keyword_config.get("metal_type", "silver")
 

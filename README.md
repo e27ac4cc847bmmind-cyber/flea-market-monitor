@@ -21,7 +21,7 @@
 ┌─────────────────────────────────────────┐
 │   GitHub Actions（Python スクリプト）    │
 │   メルカリ・ラクマ・PayPayをスクレイピング│
-│   → OpenRouter AI で判定               │
+│   → OpenRouter 経由の Jev で判定       │
 │   → Discord Webhook で通知             │
 └─────────────────────────────────────────┘
 ```
@@ -170,4 +170,4 @@ npm run dev
 **AI判定が動かない**
 - OpenRouterのAPIキーが正しいか確認
 - OpenRouterのダッシュボードでエラーを確認
-- `deepseek/deepseek-chat-v3-5k:free` モデルが利用可能か確認
+- 判定はまず Jev（`typesafe/jev-1.13`、OpenRouter の `/api/alpha/decisions`）で行い、失敗時のみ `scripts/monitor.py` の `llm_judge` のモデル一覧にフォールバックする。Actionsログの `Jev: HTTP ...` を確認
