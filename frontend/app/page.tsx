@@ -58,8 +58,9 @@ export default function Home() {
         method: "POST",
         headers: { "Content-Type": "application/json", ...(apiKey ? { "x-jev-key": apiKey } : {}) },
         body: JSON.stringify({
-          state: null,
-          questions: { q: { type: "choice", instructions: question.trim(), criteria } },
+          // state は文字列必須（null は OpenRouter で 400）なので質問文を判断材料として渡す
+          state: question.trim(),
+          questions: { q: { type: "choice", instructions: "最も適切な答えはどれか", criteria } },
         }),
       });
       const data = await res.json();
@@ -67,7 +68,7 @@ export default function Home() {
       if (!data.ok || !p) {
         const b = data?.body;
         const msg = typeof b === "string" ? b : b?.error?.message || b?.error || JSON.stringify(b);
-        return setError(`エラー（${data.status}）: ${String(msg).slice(0, 200)}`);
+        return setError(`エラー（${data.status}）: ${String(msg).slice(0, 500)}`);
       }
       const out = answers.map(() => NaN);
       used.forEach(({ i }, n) => (out[i] = p[`option_${n + 1}`] ?? 0));
