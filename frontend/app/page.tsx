@@ -47,31 +47,49 @@ export default function Home() {
     if (filled.filter(Boolean).length < 2) return setError("答えを2つ以上入力してください");
     if (needKey && !apiKey.trim()) return setError("APIキーを入力してください");
 
-    // 空欄を除いた答えを option_1, option_2… として送る
     const used = filled.map((a, i) => ({ a, i })).filter((x) => x.a);
-    const criteria: Record<string, string> = {};
-    used.forEach(({ a }, n) => (criteria[`option_${n + 1}`] = a));
+    if (new Set(used.map((x) => x.a)).size !== used.length) return setError("同じ候補が重複しています");
+
+    // 先頭の候補に確率が寄る（位置バイアス）のを打ち消すため、並び順を1つずつずらした質問を
+    // 候補の数だけ1リクエストにまとめて送り、確率を平均する（最大10通り）
+    const n = used.length;
+    const rotations = Array.from({ length: Math.min(n, 10) }, (_, r) =>
+      Array.from({ length: n }, (_, k) => (k + r) % n)
+    );
+    const ask = (textLabels: boolean) => {
+      const label = (u: number) => (textLabels ? used[u].a : `option_${u + 1}`);
+      const questions: Record<string, unknown> = {};
+      rotations.forEach((order, r) => {
+        const criteria: Record<string, string | null> = {};
+        order.forEach((u) => (criteria[label(u)] = textLabels ? null : used[u].a));
+        questions[`q${r}`] = { type: "choice", instructions: "最も適切な答えはどれか", criteria };
+      });
+      return fetch("/api/jev", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", ...(apiKey ? { "x-jev-key": apiKey } : {}) },
+        // state は文字列必須（null は OpenRouter で 400）なので質問文を判断材料として渡す
+        body: JSON.stringify({ state: question.trim(), questions }),
+      })
+        .then((r) => r.json())
+        .then((data) => ({ data, label }));
+    };
 
     setLoading(true);
     try {
-      const res = await fetch("/api/jev", {
-        method: "POST",
-        headers: { "Content-Type": "application/json", ...(apiKey ? { "x-jev-key": apiKey } : {}) },
-        body: JSON.stringify({
-          // state は文字列必須（null は OpenRouter で 400）なので質問文を判断材料として渡す
-          state: question.trim(),
-          questions: { q: { type: "choice", instructions: "最も適切な答えはどれか", criteria } },
-        }),
-      });
-      const data = await res.json();
-      const p = data?.body?.answers?.q?.probabilities;
-      if (!data.ok || !p) {
+      // 答えの文字そのものをラベルにする方が中身で判断されやすい。弾かれたら option_N 方式で再試行
+      let { data, label } = await ask(true);
+      if (!data.ok && (data.status === 400 || data.status === 422)) ({ data, label } = await ask(false));
+      const got = data?.body?.answers;
+      if (!data.ok || !got) {
         const b = data?.body;
         const msg = typeof b === "string" ? b : b?.error?.message || b?.error || JSON.stringify(b);
         return setError(`エラー（${data.status}）: ${String(msg).slice(0, 500)}`);
       }
       const out = answers.map(() => NaN);
-      used.forEach(({ i }, n) => (out[i] = p[`option_${n + 1}`] ?? 0));
+      used.forEach(({ i }, u) => {
+        const ps = rotations.map((_, r) => got[`q${r}`]?.probabilities?.[label(u)] ?? 0);
+        out[i] = ps.reduce((x: number, y: number) => x + y, 0) / ps.length;
+      });
       setProbs(out);
     } catch (e) {
       setError(`通信エラー: ${(e as Error).message}`);
