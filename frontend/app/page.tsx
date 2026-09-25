@@ -1,959 +1,584 @@
 "use client";
 
-import { useState, useEffect, useMemo, useCallback } from "react";
-import {
-  Plus,
-  Trash2,
-  Play,
-  KeyRound,
-  ChevronDown,
-  ChevronUp,
-  Copy,
-  Check,
-  Sparkles,
-  Info,
-  Loader2,
-} from "lucide-react";
+import { useState, useEffect, useCallback } from "react";
+import { Settings, X, Loader2, Sparkles, ChevronDown, ChevronUp } from "lucide-react";
 
-// ==================== 型定義 ====================
-type QType = "noul" | "choice" | "score";
+// ==================== 型 ====================
+type Kind = "yesno" | "choice" | "scale";
 
-interface ChoiceOption {
-  label: string;
-  desc: string;
-}
-
-interface QuestionDraft {
-  uid: string;
-  name: string;
-  type: QType;
-  instructions: string;
-  yesDesc: string; // noul
-  noDesc: string; // noul
-  options: ChoiceOption[]; // choice
-  levels: string[]; // score（0から順）
-}
-
-interface Template {
-  title: string;
+interface Task {
+  id: string;
   emoji: string;
-  state: string;
-  stateMode: "text" | "json";
-  questions: Omit<QuestionDraft, "uid">[];
+  title: string;
+  sub: string;
+  kind: Kind;
+  question: string;
+  options?: string[]; // choice: 選択肢 / scale: 低い→高い の段階
+  examples: string[];
 }
 
 type Answer =
   | { type: "noul"; noul: number }
   | { type: "choice"; choice: string; confidence: number; probabilities: Record<string, number> }
-  | {
-      type: "score";
-      score: number;
-      confidence: number;
-      legend: Record<string, unknown>;
-      probabilities: Record<string, number>;
-    };
+  | { type: "score"; score: number; confidence: number; probabilities: Record<string, number> };
 
-interface RunResult {
-  ok: boolean;
-  status: number;
-  latency_ms?: number;
-  request_id?: string | null;
-  demo?: boolean;
-  provider?: "typesafe" | "openrouter";
-  body: unknown;
-}
-
-// ==================== テンプレート ====================
-const blank = (type: QType, name = ""): Omit<QuestionDraft, "uid"> => ({
-  name,
-  type,
-  instructions: "",
-  yesDesc: "",
-  noDesc: "",
-  options:
-    type === "choice"
-      ? [
-          { label: "", desc: "" },
-          { label: "", desc: "" },
-        ]
-      : [],
-  levels: type === "score" ? ["", "", ""] : [],
-});
-
-const TEMPLATES: Template[] = [
+// ==================== お題 ====================
+const TASKS: Task[] = [
   {
-    title: "問い合わせ振り分け",
+    id: "review",
+    emoji: "😊",
+    title: "レビューの評価",
+    sub: "感想が好評か不評かを5段階で",
+    kind: "scale",
+    question: "このレビューを書いた人の満足度は？",
+    options: ["とても不満", "不満", "普通", "満足", "とても満足"],
+    examples: [
+      "配送は早かったけど、箱が潰れていて少しがっかり。中身は問題なく動いています。",
+      "最高です！想像以上の品質で、家族にも勧めました。",
+      "説明と全然違う商品が届きました。二度と買いません。",
+    ],
+  },
+  {
+    id: "inquiry",
     emoji: "📨",
-    stateMode: "text",
-    state: "先月分が二重に請求されています。至急返金してください。対応がなければ解約を考えます。",
-    questions: [
-      {
-        ...blank("choice", "category"),
-        instructions: "この問い合わせの種類は？",
-        options: [
-          { label: "billing", desc: "請求・支払い・返金" },
-          { label: "technical", desc: "不具合・使い方" },
-          { label: "account", desc: "ログイン・契約変更" },
-          { label: "other", desc: "その他" },
-        ],
-      },
-      {
-        ...blank("noul", "churn_risk"),
-        instructions: "顧客は解約をほのめかしているか？",
-      },
+    title: "問い合わせの仕分け",
+    sub: "どの担当に回すべきか",
+    kind: "choice",
+    question: "この問い合わせは何についての内容？",
+    options: ["請求・支払い・返金", "不具合・使い方", "ログイン・アカウント", "その他"],
+    examples: [
+      "先月分が二重に請求されています。至急返金してください。",
+      "アプリを開くと真っ白な画面のまま動きません。",
+      "パスワードを忘れてログインできなくなりました。",
     ],
   },
   {
-    title: "フリマ出品チェック",
-    emoji: "🛍️",
-    stateMode: "json",
-    state: JSON.stringify(
-      {
-        title: "Nintendo Switch 本体 ジャンク 画面割れ",
-        price: 8000,
-        description: "電源は入りますが画面にヒビがあります。付属品なし。ノークレームノーリターンでお願いします。",
-      },
-      null,
-      2
-    ),
-    questions: [
-      {
-        ...blank("noul", "is_junk"),
-        instructions: "この商品はジャンク品・故障品か？",
-      },
-      {
-        ...blank("score", "condition"),
-        instructions: "商品の状態を評価して",
-        levels: ["動作しない・部品取り", "大きな傷や不具合あり", "使用感あり", "目立った傷なし", "新品・未使用"],
-      },
-      {
-        ...blank("choice", "category"),
-        instructions: "商品カテゴリは？",
-        options: [
-          { label: "game", desc: "ゲーム機・ソフト" },
-          { label: "electronics", desc: "家電・PC・スマホ" },
-          { label: "fashion", desc: "衣類・バッグ" },
-          { label: "other", desc: "その他" },
-        ],
-      },
-    ],
-  },
-  {
-    title: "レビュー感情スコア",
-    emoji: "⭐",
-    stateMode: "text",
-    state: "配送は早かったけど、箱が潰れていて少しがっかり。中身は問題なく動いています。",
-    questions: [
-      {
-        ...blank("score", "sentiment"),
-        instructions: "このレビューの満足度は？",
-        levels: ["とても不満", "不満", "普通", "満足", "とても満足"],
-      },
-      {
-        ...blank("noul", "mentions_shipping"),
-        instructions: "配送・梱包について言及しているか？",
-      },
-    ],
-  },
-  {
-    title: "障害エスカレーション",
+    id: "urgent",
     emoji: "🚨",
-    stateMode: "text",
-    state: "直近3回のデプロイが失敗し、本番環境で500エラーが返り続けています。",
-    questions: [
-      {
-        ...blank("noul", "needs_human"),
-        instructions: "今すぐ人間にエスカレーションすべきか？",
-        yesDesc: "ユーザー影響があり即対応が必要",
-        noDesc: "自動復旧や後回しで問題ない",
-      },
-      {
-        ...blank("score", "severity"),
-        instructions: "深刻度は？",
-        levels: ["影響なし", "軽微", "一部ユーザーに影響", "全ユーザーに影響"],
-      },
+    title: "急ぎかどうか",
+    sub: "すぐ対応すべき内容か",
+    kind: "yesno",
+    question: "この内容は今すぐ対応が必要か？",
+    examples: [
+      "本番サーバーが落ちていて、全ユーザーがログインできません！",
+      "来月あたりに、デザインを少し変えられたら嬉しいです。",
+      "決済エラーが続いていて、注文が一件も通りません。",
+    ],
+  },
+  {
+    id: "spam",
+    emoji: "🗑️",
+    title: "スパム判定",
+    sub: "迷惑メッセージかどうか",
+    kind: "yesno",
+    question: "これは迷惑メッセージ（スパム・詐欺）か？",
+    examples: [
+      "おめでとうございます！100万円が当選しました。こちらのURLから今すぐ受け取ってください。",
+      "明日の打ち合わせ、10時から会議室Bでお願いします。",
+      "【重要】アカウントが停止されました。24時間以内にカード情報を再入力してください。",
+    ],
+  },
+  {
+    id: "condition",
+    emoji: "🛍️",
+    title: "中古品の状態",
+    sub: "出品説明から状態を推定",
+    kind: "scale",
+    question: "この商品の状態はどのくらい良い？",
+    options: ["動かない・部品取り", "大きな傷や不具合あり", "使用感あり", "目立った傷なし", "新品・未使用"],
+    examples: [
+      "Nintendo Switch 本体。電源は入りますが画面にヒビがあります。付属品なし。",
+      "購入後一度だけ使用しました。箱・説明書すべて揃っています。",
+      "数年使っていたので細かい傷は多いですが、動作は問題ありません。",
     ],
   },
 ];
 
+const CUSTOM_ID = "custom";
+
 // ==================== ユーティリティ ====================
-let uidCounter = 0;
-const newUid = () => `q${Date.now().toString(36)}${(uidCounter++).toString(36)}`;
-const withUid = (q: Omit<QuestionDraft, "uid">): QuestionDraft => ({ ...q, uid: newUid() });
+const pct = (v: number) => `${Math.round(v * 100)}%`;
+const optKey = (i: number) => `option_${i + 1}`;
 
-const TYPE_META: Record<QType, { label: string; hint: string; color: string }> = {
-  noul: { label: "はい/いいえ", hint: "Yesの確率(0〜1)を返す", color: "bg-emerald-100 text-emerald-700" },
-  choice: { label: "選択", hint: "選択肢から1つ選ぶ（最大255）", color: "bg-sky-100 text-sky-700" },
-  score: { label: "スコア", hint: "段階評価（2〜10段階）の期待値", color: "bg-amber-100 text-amber-700" },
-};
-
-const orNull = (s: string) => (s.trim() === "" ? null : s.trim());
-
-function buildQuestions(drafts: QuestionDraft[]): { questions: Record<string, unknown>; error: string | null } {
-  const questions: Record<string, unknown> = {};
-  for (let i = 0; i < drafts.length; i++) {
-    const q = drafts[i];
-    const name = q.name.trim();
-    const where = `質問${i + 1}`;
-    if (!name) return { questions, error: `${where}: 名前（キー）を入力してください` };
-    if (questions[name]) return { questions, error: `${where}: 名前「${name}」が重複しています` };
-    if (q.type === "noul") {
-      const yes = orNull(q.yesDesc);
-      const no = orNull(q.noDesc);
-      questions[name] = {
-        type: "noul",
-        instructions: orNull(q.instructions),
-        ...(yes || no ? { criteria: { true: yes, false: no } } : {}),
-      };
-    } else if (q.type === "choice") {
-      const opts = q.options.filter((o) => o.label.trim());
-      if (opts.length < 2) return { questions, error: `${where}: 選択肢を2つ以上入力してください` };
-      const labels = new Set<string>();
-      const criteria: Record<string, string | null> = {};
-      for (const o of opts) {
-        const l = o.label.trim();
-        if (labels.has(l)) return { questions, error: `${where}: 選択肢「${l}」が重複しています` };
-        labels.add(l);
-        criteria[l] = orNull(o.desc);
-      }
-      questions[name] = { type: "choice", instructions: orNull(q.instructions), criteria };
-    } else {
-      if (q.levels.length < 2 || q.levels.length > 10)
-        return { questions, error: `${where}: スコアは2〜10段階にしてください` };
-      questions[name] = { type: "score", instructions: orNull(q.instructions), criteria: q.levels.map(orNull) };
-    }
+// Jev へ送る質問を組み立てる（選択肢は安全なキー名にして、中身は説明として渡す）
+function toQuestion(kind: Kind, question: string, options: string[]) {
+  if (kind === "yesno") return { type: "noul", instructions: question };
+  if (kind === "choice") {
+    const criteria: Record<string, string> = {};
+    options.forEach((o, i) => (criteria[optKey(i)] = o));
+    return { type: "choice", instructions: question, criteria };
   }
-  if (Object.keys(questions).length === 0) return { questions, error: "質問を1つ以上追加してください" };
-  return { questions, error: null };
+  return { type: "score", instructions: question, criteria: options };
 }
 
-function parseState(text: string, mode: "text" | "json"): { state: unknown; error: string | null } {
-  if (mode === "text") return { state: text, error: null };
-  try {
-    return { state: JSON.parse(text), error: null };
-  } catch (e) {
-    return { state: null, error: `状態のJSONが不正です: ${(e as Error).message}` };
-  }
+// キー未設定時のダミー結果（本物の判定ではない）
+function fakeAnswer(kind: Kind, text: string, n: number): Answer {
+  let h = 7;
+  for (let i = 0; i < text.length; i++) h = (h * 31 + text.charCodeAt(i)) >>> 0;
+  const r = () => ((h = (h * 1103515245 + 12345) >>> 0) % 1000) / 1000;
+  if (kind === "yesno") return { type: "noul", noul: r() };
+  const w = Array.from({ length: n }, () => Math.pow(r(), 3) + 0.01);
+  const s = w.reduce((a, b) => a + b, 0);
+  const probs: Record<string, number> = {};
+  w.forEach((x, i) => (probs[kind === "choice" ? optKey(i) : String(i)] = x / s));
+  const best = Object.keys(probs).reduce((a, b) => (probs[a] >= probs[b] ? a : b));
+  if (kind === "choice") return { type: "choice", choice: best, confidence: probs[best], probabilities: probs };
+  const score = Object.entries(probs).reduce((a, [k, p]) => a + Number(k) * p, 0);
+  return { type: "score", score, confidence: probs[best], probabilities: probs };
 }
-
-// デモモード用：入力から決定的に擬似確率を作る（実際のJevの判断ではない）
-function hash(s: string) {
-  let h = 2166136261;
-  for (let i = 0; i < s.length; i++) h = Math.imul(h ^ s.charCodeAt(i), 16777619);
-  return () => {
-    h = Math.imul(h ^ (h >>> 15), 2246822507);
-    h = Math.imul(h ^ (h >>> 13), 3266489909);
-    return ((h ^= h >>> 16) >>> 0) / 4294967296;
-  };
-}
-
-function demoAnswers(state: unknown, questions: Record<string, any>) {
-  const answers: Record<string, Answer> = {};
-  for (const [name, q] of Object.entries(questions)) {
-    const rnd = hash(JSON.stringify(state) + name);
-    if (q.type === "noul") {
-      answers[name] = { type: "noul", noul: rnd() };
-    } else {
-      const keys = q.type === "choice" ? Object.keys(q.criteria) : q.criteria.map((_: unknown, i: number) => String(i));
-      const w = keys.map(() => Math.pow(rnd(), 3));
-      const sum = w.reduce((a: number, b: number) => a + b, 0);
-      const probs: Record<string, number> = {};
-      keys.forEach((k: string, i: number) => (probs[k] = w[i] / sum));
-      const best = keys.reduce((a: string, b: string) => (probs[a] >= probs[b] ? a : b));
-      if (q.type === "choice") {
-        answers[name] = { type: "choice", choice: best, confidence: probs[best], probabilities: probs };
-      } else {
-        const legend: Record<string, unknown> = {};
-        keys.forEach((k: string, i: number) => (legend[k] = q.criteria[i]));
-        const score = keys.reduce((a: number, k: string) => a + Number(k) * probs[k], 0);
-        answers[name] = { type: "score", score, confidence: probs[best], legend, probabilities: probs };
-      }
-    }
-  }
-  return { model: "demo（ダミー）", answers, usage: { input_tokens: 0, output_tokens: 0 } };
-}
-
-const pct = (v: number) => `${(v * 100).toFixed(1)}%`;
 
 const KEY_STORAGE = "jev-playground-key";
-const safeGet = (k: string) => {
-  try {
-    return localStorage.getItem(k) || "";
-  } catch {
-    return "";
-  }
-};
-const safeSet = (k: string, v: string) => {
-  try {
-    if (v) localStorage.setItem(k, v);
-    else localStorage.removeItem(k);
-  } catch {}
+const store = {
+  get: (k: string) => {
+    try {
+      return localStorage.getItem(k) || "";
+    } catch {
+      return "";
+    }
+  },
+  set: (k: string, v: string) => {
+    try {
+      if (v) localStorage.setItem(k, v);
+      else localStorage.removeItem(k);
+    } catch {}
+  },
 };
 
 // ==================== 結果表示 ====================
-function Bar({ value, highlight }: { value: number; highlight?: boolean }) {
-  return (
-    <div className="h-2 bg-gray-100 rounded-full overflow-hidden flex-1">
-      <div
-        className={`h-full rounded-full transition-all duration-500 ${highlight ? "bg-indigo-500" : "bg-gray-300"}`}
-        style={{ width: `${Math.max(0, Math.min(1, value)) * 100}%` }}
-      />
-    </div>
-  );
-}
+function Result({ answer, kind, options, fake }: { answer: Answer; kind: Kind; options: string[]; fake: boolean }) {
+  let headline = "";
+  let confidence = 0;
+  let color = "text-indigo-600";
+  let rows: { label: string; p: number; top: boolean }[] = [];
 
-function AnswerCard({ name, answer, draft }: { name: string; answer: Answer; draft?: QuestionDraft }) {
-  const meta = TYPE_META[answer.type];
-  return (
-    <div className="bg-white rounded-xl border border-gray-200 p-4">
-      <div className="flex items-center gap-2 mb-1">
-        <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${meta.color}`}>{meta.label}</span>
-        <span className="font-mono text-sm font-semibold text-gray-800">{name}</span>
-      </div>
-      {draft?.instructions && <p className="text-xs text-gray-500 mb-3">{draft.instructions}</p>}
+  if (answer.type === "noul") {
+    const yes = answer.noul >= 0.5;
+    headline = yes ? "はい" : "いいえ";
+    confidence = yes ? answer.noul : 1 - answer.noul;
+    color = yes ? "text-emerald-600" : "text-rose-600";
+    rows = [
+      { label: "はい", p: answer.noul, top: yes },
+      { label: "いいえ", p: 1 - answer.noul, top: !yes },
+    ];
+  } else if (answer.type === "choice") {
+    const idx = Number(answer.choice.replace("option_", "")) - 1;
+    headline = options[idx] ?? answer.choice;
+    confidence = answer.confidence;
+    rows = Object.entries(answer.probabilities)
+      .map(([k, p]) => ({ label: options[Number(k.replace("option_", "")) - 1] ?? k, p, top: k === answer.choice }))
+      .sort((a, b) => b.p - a.p);
+  } else {
+    const n = Math.round(answer.score);
+    headline = options[n] ?? String(n);
+    confidence = answer.confidence;
+    color = "text-amber-600";
+    rows = options.map((o, i) => ({ label: o, p: answer.probabilities[String(i)] ?? 0, top: i === n }));
+  }
 
-      {answer.type === "noul" && (
-        <div>
-          <div className="flex items-baseline gap-2 mb-2">
-            <span className={`text-2xl font-bold ${answer.noul >= 0.5 ? "text-emerald-600" : "text-rose-600"}`}>
-              {answer.noul >= 0.5 ? "はい" : "いいえ"}
-            </span>
-            <span className="text-sm text-gray-500">Yesの確率 {pct(answer.noul)}</span>
-          </div>
-          <div className="h-3 rounded-full overflow-hidden flex bg-rose-200">
-            <div className="bg-emerald-500 h-full transition-all duration-500" style={{ width: pct(answer.noul) }} />
+  const sure = confidence >= 0.8 ? "かなり自信あり" : confidence >= 0.6 ? "まあまあ自信あり" : "迷っている";
+
+  return (
+    <div className="bg-white rounded-2xl border-2 border-indigo-100 p-5 shadow-sm">
+      {fake && (
+        <p className="text-xs bg-amber-50 text-amber-700 rounded-lg px-3 py-2 mb-4">
+          ⚠️ お試し表示です（ランダムなダミー結果）。本物のJevで判定するには右上の⚙からキーを設定してください。
+        </p>
+      )}
+      <p className="text-sm text-gray-500">Jevの判定</p>
+      <p className={`text-3xl font-bold mt-1 ${color}`}>{headline}</p>
+      <p className="text-sm text-gray-500 mt-1">
+        確信度 {pct(confidence)}（{sure}）
+      </p>
+
+      {kind === "scale" && answer.type === "score" && (
+        <div className="mt-4">
+          <div className="relative h-3 rounded-full bg-gradient-to-r from-rose-300 via-amber-200 to-emerald-300">
+            <div
+              className="absolute -top-1 w-5 h-5 -ml-2.5 bg-white border-2 border-gray-700 rounded-full transition-all duration-700"
+              style={{ left: `${(answer.score / Math.max(1, options.length - 1)) * 100}%` }}
+            />
           </div>
           <div className="flex justify-between text-[11px] text-gray-400 mt-1">
-            <span>はい</span>
-            <span>いいえ</span>
+            <span>{options[0]}</span>
+            <span>{options[options.length - 1]}</span>
           </div>
         </div>
       )}
 
-      {answer.type === "choice" && (
-        <div>
-          <div className="flex items-baseline gap-2 mb-3">
-            <span className="text-2xl font-bold text-indigo-600 font-mono">{answer.choice}</span>
-            <span className="text-sm text-gray-500">確信度 {pct(answer.confidence)}</span>
+      <div className="mt-5 space-y-2">
+        <p className="text-xs text-gray-400">それぞれの可能性</p>
+        {rows.map((r) => (
+          <div key={r.label} className="flex items-center gap-3 text-sm">
+            <span className={`w-36 shrink-0 truncate ${r.top ? "font-semibold text-gray-900" : "text-gray-500"}`}>
+              {r.label}
+            </span>
+            <div className="flex-1 h-2.5 bg-gray-100 rounded-full overflow-hidden">
+              <div
+                className={`h-full rounded-full transition-all duration-700 ${r.top ? "bg-indigo-500" : "bg-gray-300"}`}
+                style={{ width: pct(r.p) }}
+              />
+            </div>
+            <span className="w-10 text-right text-gray-500 tabular-nums">{pct(r.p)}</span>
           </div>
-          <div className="space-y-1.5">
-            {Object.entries(answer.probabilities)
-              .sort((a, b) => b[1] - a[1])
-              .map(([label, p]) => (
-                <div key={label} className="flex items-center gap-2 text-xs">
-                  <span className="w-24 truncate font-mono text-gray-700">{label}</span>
-                  <Bar value={p} highlight={label === answer.choice} />
-                  <span className="w-12 text-right text-gray-500 tabular-nums">{pct(p)}</span>
-                </div>
-              ))}
-          </div>
-        </div>
-      )}
-
-      {answer.type === "score" && (
-        <div>
-          {(() => {
-            const keys = Object.keys(answer.probabilities).sort((a, b) => Number(a) - Number(b));
-            const max = Math.max(1, keys.length - 1);
-            const nearest = String(Math.round(answer.score));
-            const legendText = (k: string) => {
-              const v = answer.legend?.[k];
-              return v == null ? "" : typeof v === "string" ? v : JSON.stringify(v);
-            };
-            return (
-              <>
-                <div className="flex items-baseline gap-2 mb-1">
-                  <span className="text-2xl font-bold text-amber-600 tabular-nums">{answer.score.toFixed(2)}</span>
-                  <span className="text-sm text-gray-500">
-                    / {max}（確信度 {pct(answer.confidence)}）
-                  </span>
-                </div>
-                {legendText(nearest) && <p className="text-sm text-gray-700 mb-2">≒ {legendText(nearest)}</p>}
-                <div className="relative h-2 bg-gradient-to-r from-rose-200 via-amber-200 to-emerald-200 rounded-full mb-3">
-                  <div
-                    className="absolute -top-1 w-4 h-4 bg-white border-2 border-amber-500 rounded-full -ml-2 transition-all duration-500"
-                    style={{ left: `${(answer.score / max) * 100}%` }}
-                  />
-                </div>
-                <div className="space-y-1.5">
-                  {keys.map((k) => (
-                    <div key={k} className="flex items-center gap-2 text-xs">
-                      <span className="w-5 text-gray-400 tabular-nums">{k}</span>
-                      <span className="w-28 truncate text-gray-700">{legendText(k) || "—"}</span>
-                      <Bar value={answer.probabilities[k]} highlight={k === nearest} />
-                      <span className="w-12 text-right text-gray-500 tabular-nums">{pct(answer.probabilities[k])}</span>
-                    </div>
-                  ))}
-                </div>
-              </>
-            );
-          })()}
-        </div>
-      )}
+        ))}
+      </div>
     </div>
   );
 }
 
-// ==================== 質問エディタ ====================
-function QuestionEditor({
-  q,
-  index,
-  onChange,
-  onRemove,
-}: {
-  q: QuestionDraft;
-  index: number;
-  onChange: (q: QuestionDraft) => void;
-  onRemove: () => void;
-}) {
-  const set = (patch: Partial<QuestionDraft>) => onChange({ ...q, ...patch });
-  const changeType = (type: QType) => {
-    const b = blank(type);
-    set({
-      type,
-      options: q.options.length ? q.options : b.options,
-      levels: q.levels.length ? q.levels : b.levels,
-    });
-  };
-  const input = "w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-200";
-
+function StepTitle({ n, children }: { n: number; children: React.ReactNode }) {
   return (
-    <div className="bg-white rounded-xl border border-gray-200 p-4 space-y-3">
-      <div className="flex items-center gap-2">
-        <span className="text-xs font-semibold text-gray-400">#{index + 1}</span>
-        <input
-          className={`${input} font-mono flex-1`}
-          placeholder="名前（例: is_urgent）"
-          value={q.name}
-          onChange={(e) => set({ name: e.target.value.replace(/\s/g, "_") })}
-        />
-        <button onClick={onRemove} className="p-2 text-gray-400 hover:text-rose-500" aria-label="質問を削除">
-          <Trash2 size={16} />
-        </button>
-      </div>
-
-      <div className="grid grid-cols-3 gap-1 bg-gray-100 p-1 rounded-lg">
-        {(Object.keys(TYPE_META) as QType[]).map((t) => (
-          <button
-            key={t}
-            onClick={() => changeType(t)}
-            className={`text-xs py-1.5 rounded-md transition ${
-              q.type === t ? "bg-white shadow-sm font-semibold text-gray-900" : "text-gray-500"
-            }`}
-          >
-            {TYPE_META[t].label}
-          </button>
-        ))}
-      </div>
-      <p className="text-[11px] text-gray-400 -mt-1">{TYPE_META[q.type].hint}</p>
-
-      <input
-        className={input}
-        placeholder="質問文（例: 至急対応が必要か？）"
-        value={q.instructions}
-        onChange={(e) => set({ instructions: e.target.value })}
-      />
-
-      {q.type === "noul" && (
-        <div className="grid grid-cols-2 gap-2">
-          <input
-            className={input}
-            placeholder="「はい」の説明（任意）"
-            value={q.yesDesc}
-            onChange={(e) => set({ yesDesc: e.target.value })}
-          />
-          <input
-            className={input}
-            placeholder="「いいえ」の説明（任意）"
-            value={q.noDesc}
-            onChange={(e) => set({ noDesc: e.target.value })}
-          />
-        </div>
-      )}
-
-      {q.type === "choice" && (
-        <div className="space-y-2">
-          {q.options.map((o, i) => (
-            <div key={i} className="flex gap-2">
-              <input
-                className={`${input} font-mono w-2/5`}
-                placeholder={`ラベル${i + 1}`}
-                value={o.label}
-                onChange={(e) => {
-                  const options = [...q.options];
-                  options[i] = { ...o, label: e.target.value };
-                  set({ options });
-                }}
-              />
-              <input
-                className={input}
-                placeholder="説明（任意）"
-                value={o.desc}
-                onChange={(e) => {
-                  const options = [...q.options];
-                  options[i] = { ...o, desc: e.target.value };
-                  set({ options });
-                }}
-              />
-              <button
-                onClick={() => set({ options: q.options.filter((_, j) => j !== i) })}
-                className="px-2 text-gray-300 hover:text-rose-500"
-                aria-label="選択肢を削除"
-              >
-                <Trash2 size={14} />
-              </button>
-            </div>
-          ))}
-          {q.options.length < 255 && (
-            <button
-              onClick={() => set({ options: [...q.options, { label: "", desc: "" }] })}
-              className="text-xs text-indigo-600 hover:underline flex items-center gap-1"
-            >
-              <Plus size={12} /> 選択肢を追加
-            </button>
-          )}
-        </div>
-      )}
-
-      {q.type === "score" && (
-        <div className="space-y-2">
-          {q.levels.map((lv, i) => (
-            <div key={i} className="flex gap-2 items-center">
-              <span className="w-5 text-xs text-gray-400 tabular-nums text-right">{i}</span>
-              <input
-                className={input}
-                placeholder={i === 0 ? "最低段階の説明（例: とても悪い）" : i === q.levels.length - 1 ? "最高段階の説明（例: とても良い）" : `段階${i}の説明`}
-                value={lv}
-                onChange={(e) => {
-                  const levels = [...q.levels];
-                  levels[i] = e.target.value;
-                  set({ levels });
-                }}
-              />
-              <button
-                onClick={() => q.levels.length > 2 && set({ levels: q.levels.filter((_, j) => j !== i) })}
-                disabled={q.levels.length <= 2}
-                className="px-2 text-gray-300 hover:text-rose-500 disabled:opacity-30"
-                aria-label="段階を削除"
-              >
-                <Trash2 size={14} />
-              </button>
-            </div>
-          ))}
-          {q.levels.length < 10 && (
-            <button
-              onClick={() => set({ levels: [...q.levels, ""] })}
-              className="text-xs text-indigo-600 hover:underline flex items-center gap-1"
-            >
-              <Plus size={12} /> 段階を追加
-            </button>
-          )}
-        </div>
-      )}
-    </div>
+    <h2 className="font-semibold text-gray-800 mb-3 flex items-center gap-2">
+      <span className="inline-flex w-6 h-6 rounded-full bg-indigo-600 text-white text-xs items-center justify-center">
+        {n}
+      </span>
+      {children}
+    </h2>
   );
 }
 
 // ==================== メイン ====================
-export default function JevPlayground() {
-  const [stateText, setStateText] = useState(TEMPLATES[0].state);
-  const [stateMode, setStateMode] = useState<"text" | "json">(TEMPLATES[0].stateMode);
-  const [drafts, setDrafts] = useState<QuestionDraft[]>(() => TEMPLATES[0].questions.map(withUid));
-  const [activeTemplate, setActiveTemplate] = useState(0);
+export default function Home() {
+  const [taskId, setTaskId] = useState(TASKS[0].id);
+  const [text, setText] = useState(TASKS[0].examples[0]);
 
+  // 自分で作る
+  const [cQuestion, setCQuestion] = useState("");
+  const [cKind, setCKind] = useState<Kind>("yesno");
+  const [cOptions, setCOptions] = useState("");
+
+  // 設定
+  const [showSettings, setShowSettings] = useState(false);
   const [apiKey, setApiKey] = useState("");
-  const [showKey, setShowKey] = useState(false);
-  const [serverKey, setServerKey] = useState(false);
-  const [provider, setProvider] = useState<"typesafe" | "openrouter" | null>(null);
-  const [models, setModels] = useState<string[]>([]);
+  const [serverKey, setServerKey] = useState<null | "typesafe" | "openrouter">(null);
   const [model, setModel] = useState("jev-latest");
-  const [demo, setDemo] = useState(false);
 
-  const [running, setRunning] = useState(false);
-  const [result, setResult] = useState<RunResult | null>(null);
-  const [inputError, setInputError] = useState<string | null>(null);
-  const [showRaw, setShowRaw] = useState(false);
-  const [showCode, setShowCode] = useState(false);
-  const [copied, setCopied] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState<{ answer: Answer; kind: Kind; options: string[]; fake: boolean } | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [showDetail, setShowDetail] = useState(false);
+  const [raw, setRaw] = useState<{ request: unknown; response: unknown } | null>(null);
 
-  const hasKey = serverKey || apiKey.trim() !== "";
+  const task = TASKS.find((t) => t.id === taskId);
+  const isCustom = taskId === CUSTOM_ID;
+  const hasKey = serverKey !== null || apiKey.trim() !== "";
 
-  const loadModels = useCallback(async (key: string) => {
-    try {
-      const res = await fetch("/api/jev", { headers: key ? { "x-jev-key": key } : {} });
-      const data = await res.json();
-      setServerKey(!!data.server_key);
-      setProvider(data.provider ?? null);
-      if (data.default_model) setModel((m) => (m === "jev-latest" ? data.default_model : m));
-      const list = data?.body?.models;
-      if (Array.isArray(list)) setModels(list.map((m: { name?: string }) => m.name).filter((n: unknown): n is string => typeof n === "string"));
-    } catch {}
+  useEffect(() => {
+    setApiKey(store.get(KEY_STORAGE));
+    fetch("/api/jev")
+      .then((r) => r.json())
+      .then((d) => setServerKey(d.server_key ? d.provider : null))
+      .catch(() => {});
   }, []);
 
-  useEffect(() => {
-    const saved = safeGet(KEY_STORAGE);
-    setApiKey(saved);
-    loadModels(saved);
-  }, [loadModels]);
-
-  useEffect(() => {
-    setDemo(!hasKey);
-  }, [hasKey]);
-
-  const applyTemplate = (i: number) => {
-    const t = TEMPLATES[i];
-    setActiveTemplate(i);
-    setStateText(t.state);
-    setStateMode(t.stateMode);
-    setDrafts(t.questions.map(withUid));
+  const pickTask = (id: string) => {
+    setTaskId(id);
     setResult(null);
-    setInputError(null);
+    setError(null);
+    setRaw(null);
+    const t = TASKS.find((x) => x.id === id);
+    setText(t ? t.examples[0] : "");
   };
-
-  const built = useMemo(() => {
-    const s = parseState(stateText, stateMode);
-    const q = buildQuestions(drafts);
-    return { state: s.state, questions: q.questions, error: s.error || q.error };
-  }, [stateText, stateMode, drafts]);
-
-  const payload = useMemo(
-    () => ({ model, state: built.state, questions: built.questions }),
-    [model, built]
-  );
 
   const run = useCallback(async () => {
-    if (built.error) {
-      setInputError(built.error);
-      return;
-    }
-    setInputError(null);
-    setRunning(true);
+    setError(null);
     setResult(null);
-    try {
-      if (demo) {
-        await new Promise((r) => setTimeout(r, 400));
-        setResult({ ok: true, status: 200, demo: true, latency_ms: 0, body: demoAnswers(built.state, built.questions) });
-      } else {
-        const res = await fetch("/api/jev", {
-          method: "POST",
-          headers: { "Content-Type": "application/json", ...(apiKey ? { "x-jev-key": apiKey } : {}) },
-          body: JSON.stringify(payload),
-        });
-        setResult(await res.json());
-      }
-    } catch (e) {
-      setResult({ ok: false, status: 0, body: { error: (e as Error).message } });
-    } finally {
-      setRunning(false);
+    if (!text.trim()) return setError("判定したい文章を入力してください");
+
+    let kind: Kind, question: string, options: string[];
+    if (isCustom) {
+      kind = cKind;
+      question = cQuestion.trim();
+      if (!question) return setError("質問を入力してください");
+      options =
+        cKind === "yesno"
+          ? []
+          : cOptions
+              .split(/[,、，\n]/)
+              .map((s) => s.trim())
+              .filter(Boolean);
+      if (cKind === "scale" && options.length === 0) options = ["とても低い", "低い", "普通", "高い", "とても高い"];
+      if (cKind === "choice" && options.length < 2) return setError("選択肢を2つ以上、「、」区切りで入力してください");
+      if (cKind === "scale" && (options.length < 2 || options.length > 10)) return setError("段階は2〜10個にしてください");
+    } else {
+      kind = task!.kind;
+      question = task!.question;
+      options = task!.options ?? [];
     }
-  }, [built, demo, apiKey, payload]);
 
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if ((e.metaKey || e.ctrlKey) && e.key === "Enter") run();
-    };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [run]);
-
-  const saveKey = (v: string) => {
-    setApiKey(v);
-    safeSet(KEY_STORAGE, v.trim());
-  };
-
-  const code = useMemo(() => {
-    const json = JSON.stringify(payload, null, 2);
-    const viaOR = provider === "openrouter" || (!serverKey && apiKey.trim().startsWith("sk-or-"));
-    const url = viaOR ? "https://openrouter.ai/api/v1/systemone" : "https://api.typesafe.ai/v1/systemone";
-    const env = viaOR ? "OPENROUTER_API_KEY" : "TYPESAFE_API_KEY";
-    return `curl ${url} \\
-  -H "Authorization: Bearer $${env}" \\
-  -H "Content-Type: application/json" \\
-  -d '${json.replace(/'/g, "'\\''")}'`;
-  }, [payload, provider, serverKey, apiKey]);
-
-  const copy = async () => {
+    const request = { model, state: text.trim(), questions: { answer: toQuestion(kind, question, options) } };
+    setLoading(true);
     try {
-      await navigator.clipboard.writeText(code);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 1500);
-    } catch {}
-  };
+      if (!hasKey) {
+        await new Promise((r) => setTimeout(r, 500));
+        setResult({ answer: fakeAnswer(kind, text, options.length), kind, options, fake: true });
+        setRaw({ request, response: "（お試し表示のためAPIは呼んでいません）" });
+        return;
+      }
+      const res = await fetch("/api/jev", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", ...(apiKey ? { "x-jev-key": apiKey } : {}) },
+        body: JSON.stringify(request),
+      });
+      const data = await res.json();
+      setRaw({ request, response: data.body });
+      const answer = data?.body?.answers?.answer;
+      if (!data.ok || !answer) {
+        setError(friendlyError(data.status, data.body));
+        return;
+      }
+      setResult({ answer, kind, options, fake: false });
+    } catch (e) {
+      setError(`通信に失敗しました: ${(e as Error).message}`);
+    } finally {
+      setLoading(false);
+    }
+  }, [text, isCustom, cKind, cQuestion, cOptions, task, model, hasKey, apiKey]);
 
-  const body = result?.body as
-    | { model?: string; answers?: Record<string, Answer>; usage?: { input_tokens: number; output_tokens: number } }
-    | undefined;
-  const answers = result?.ok ? body?.answers : undefined;
-  const errorText = result && !result.ok ? errorMessage(result) : null;
+  const input =
+    "mt-1 w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-200";
 
   return (
-    <div className="max-w-5xl mx-auto px-4 py-6">
+    <div className="max-w-2xl mx-auto px-4 py-6 pb-16">
       {/* ヘッダー */}
-      <div className="flex items-start justify-between gap-3 mb-5">
+      <header className="flex items-start justify-between gap-3 mb-6">
         <div>
           <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
-            <Sparkles className="text-indigo-500" size={22} /> Jev プレイグラウンド
+            <Sparkles className="text-indigo-500" size={22} /> Jev を試す
           </h1>
-          <p className="text-sm text-gray-500 mt-0.5">
-            テキストを渡して「質問」を定義すると、Jevが型付きの判断（はい/いいえ・選択・スコア）を確率つきで返します
+          <p className="text-sm text-gray-500 mt-1">
+            文章を入れると、AIが「はい/いいえ」「どれに当てはまるか」「どのくらいか」を判定します
           </p>
         </div>
-      </div>
+        <button
+          onClick={() => setShowSettings(true)}
+          className="p-2 rounded-full hover:bg-gray-100 text-gray-500 shrink-0"
+          aria-label="設定"
+        >
+          <Settings size={20} />
+        </button>
+      </header>
 
-      {/* 接続設定 */}
-      <div className="bg-white rounded-xl border border-gray-200 p-4 mb-4">
-        <div className="flex flex-wrap items-center gap-3">
-          <div className="flex items-center gap-2 flex-1 min-w-[240px]">
-            <KeyRound size={16} className="text-gray-400 shrink-0" />
-            {serverKey ? (
-              <span className="text-sm text-emerald-600">
-                サーバーの{provider === "openrouter" ? "OpenRouter" : "TypeSafe"}キーを使用中
-              </span>
-            ) : (
-              <>
+      {!hasKey && (
+        <div className="bg-amber-50 border border-amber-200 text-amber-800 text-sm rounded-xl px-4 py-3 mb-6">
+          今は<b>お試し表示</b>（ダミー結果）です。本物で試すには右上の ⚙ からキーを入れてください。
+        </div>
+      )}
+
+      {/* ① お題 */}
+      <section className="mb-6">
+        <StepTitle n={1}>何を判定する？</StepTitle>
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+          {[...TASKS, { id: CUSTOM_ID, emoji: "✏️", title: "自分で質問を作る", sub: "好きな質問でOK" }].map((t) => (
+            <button
+              key={t.id}
+              onClick={() => pickTask(t.id)}
+              className={`text-left rounded-xl border-2 p-3 transition ${
+                taskId === t.id ? "border-indigo-500 bg-indigo-50" : "border-gray-200 bg-white hover:border-indigo-200"
+              }`}
+            >
+              <div className="text-2xl">{t.emoji}</div>
+              <div className="font-semibold text-sm text-gray-900 mt-1">{t.title}</div>
+              <div className="text-xs text-gray-500">{t.sub}</div>
+            </button>
+          ))}
+        </div>
+
+        {task && (
+          <p className="text-sm text-gray-600 mt-3 bg-white border border-gray-200 rounded-xl px-4 py-3">
+            Jevへの質問：<b>{task.question}</b>
+            {task.options && (
+              <span className="block text-xs text-gray-400 mt-1">答えの候補：{task.options.join(" / ")}</span>
+            )}
+          </p>
+        )}
+
+        {isCustom && (
+          <div className="mt-3 bg-white border border-gray-200 rounded-xl p-4 space-y-3">
+            <label className="block">
+              <span className="text-sm text-gray-700">質問</span>
+              <input
+                className={input}
+                placeholder="例：この文章は怒っている？"
+                value={cQuestion}
+                onChange={(e) => setCQuestion(e.target.value)}
+              />
+            </label>
+            <div>
+              <span className="text-sm text-gray-700">答え方</span>
+              <div className="mt-1 grid grid-cols-3 gap-2">
+                {(
+                  [
+                    ["yesno", "はい / いいえ"],
+                    ["choice", "選択肢から選ぶ"],
+                    ["scale", "段階で評価"],
+                  ] as const
+                ).map(([k, label]) => (
+                  <button
+                    key={k}
+                    onClick={() => setCKind(k)}
+                    className={`text-sm rounded-lg border py-2 ${
+                      cKind === k ? "border-indigo-500 bg-indigo-50 font-semibold" : "border-gray-300 text-gray-600"
+                    }`}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+            </div>
+            {cKind !== "yesno" && (
+              <label className="block">
+                <span className="text-sm text-gray-700">
+                  {cKind === "choice" ? "選択肢（「、」区切り）" : "段階（低い→高い順に「、」区切り。空欄なら5段階）"}
+                </span>
                 <input
-                  type={showKey ? "text" : "password"}
-                  className="flex-1 border border-gray-200 rounded-lg px-3 py-1.5 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-indigo-200"
-                  placeholder="OpenRouterキー（sk-or-…）またはTypeSafeキー"
-                  value={apiKey}
-                  onChange={(e) => saveKey(e.target.value)}
-                  onBlur={() => apiKey && loadModels(apiKey)}
+                  className={input}
+                  placeholder={cKind === "choice" ? "例：喜び、怒り、悲しみ、その他" : "例：全然、少し、かなり"}
+                  value={cOptions}
+                  onChange={(e) => setCOptions(e.target.value)}
                 />
-                <button onClick={() => setShowKey((v) => !v)} className="text-xs text-gray-400 hover:text-gray-600">
-                  {showKey ? "隠す" : "表示"}
-                </button>
-              </>
+              </label>
             )}
           </div>
-          <div className="flex items-center gap-2">
-            <span className="text-xs text-gray-500">モデル</span>
-            <input
-              list="jev-models"
-              className="border border-gray-200 rounded-lg px-2 py-1.5 text-sm font-mono w-40 focus:outline-none focus:ring-2 focus:ring-indigo-200"
-              value={model}
-              onChange={(e) => setModel(e.target.value)}
-            />
-            <datalist id="jev-models">
-              {["jev-latest", ...models.filter((m) => m !== "jev-latest")].map((m) => (
-                <option key={m} value={m} />
-              ))}
-            </datalist>
+        )}
+      </section>
+
+      {/* ② 文章 */}
+      <section className="mb-6">
+        <StepTitle n={2}>判定したい文章</StepTitle>
+        <textarea
+          className="w-full h-32 border border-gray-300 rounded-xl p-3 text-base focus:outline-none focus:ring-2 focus:ring-indigo-200"
+          value={text}
+          onChange={(e) => setText(e.target.value)}
+          placeholder="ここに文章を貼り付け"
+        />
+        {task && (
+          <div className="flex flex-wrap gap-2 mt-2">
+            <span className="text-xs text-gray-400 self-center">例文：</span>
+            {task.examples.map((ex, i) => (
+              <button
+                key={i}
+                onClick={() => {
+                  setText(ex);
+                  setResult(null);
+                }}
+                className={`text-xs rounded-full px-3 py-1 border ${
+                  text === ex
+                    ? "border-indigo-400 bg-indigo-50 text-indigo-700"
+                    : "border-gray-300 text-gray-600 hover:bg-gray-50"
+                }`}
+              >
+                例{i + 1}
+              </button>
+            ))}
           </div>
-          <label className="flex items-center gap-2 text-sm cursor-pointer select-none">
-            <input
-              type="checkbox"
-              checked={demo}
-              onChange={(e) => setDemo(e.target.checked)}
-              disabled={!hasKey}
-              className="accent-indigo-600"
-            />
-            <span className={hasKey ? "text-gray-700" : "text-gray-400"}>デモモード</span>
-          </label>
-        </div>
-        {!hasKey && (
-          <p className="text-xs text-amber-600 mt-2 flex items-center gap-1">
-            <Info size={12} /> APIキー未設定のためデモモード（ダミー結果）で動作します。キーはこのブラウザにのみ保存されます。
-          </p>
+        )}
+      </section>
+
+      {/* ③ 実行 */}
+      <StepTitle n={3}>ボタンを押す</StepTitle>
+      <button
+        onClick={run}
+        disabled={loading}
+        className="w-full bg-indigo-600 hover:bg-indigo-700 disabled:opacity-60 text-white text-lg font-bold rounded-2xl py-4 flex items-center justify-center gap-2 shadow-md transition"
+      >
+        {loading ? <Loader2 className="animate-spin" size={22} /> : "判定する"}
+      </button>
+
+      <div className="mt-6 space-y-4">
+        {error && (
+          <div className="bg-rose-50 border border-rose-200 text-rose-700 text-sm rounded-xl px-4 py-3 break-words">
+            {error}
+          </div>
+        )}
+        {result && <Result {...result} />}
+
+        {raw && (
+          <div>
+            <button
+              onClick={() => setShowDetail((v) => !v)}
+              className="text-xs text-gray-400 hover:text-gray-600 flex items-center gap-1"
+            >
+              {showDetail ? <ChevronUp size={14} /> : <ChevronDown size={14} />} 開発者向け：送った内容と生の返事
+            </button>
+            {showDetail && (
+              <pre className="mt-2 text-xs bg-gray-900 text-gray-100 p-3 rounded-xl overflow-x-auto max-h-96">
+                {`// 送信\n${JSON.stringify(raw.request, null, 2)}\n\n// 返事\n${JSON.stringify(raw.response, null, 2)}`}
+              </pre>
+            )}
+          </div>
         )}
       </div>
 
-      {/* テンプレート */}
-      <div className="flex gap-2 overflow-x-auto pb-1 mb-4">
-        {TEMPLATES.map((t, i) => (
-          <button
-            key={t.title}
-            onClick={() => applyTemplate(i)}
-            className={`shrink-0 text-sm px-3 py-1.5 rounded-full border transition ${
-              activeTemplate === i
-                ? "bg-indigo-600 text-white border-indigo-600"
-                : "bg-white text-gray-600 border-gray-200 hover:border-indigo-300"
-            }`}
+      {/* 設定 */}
+      {showSettings && (
+        <div
+          className="fixed inset-0 bg-black/40 flex items-end sm:items-center justify-center z-10"
+          onClick={() => setShowSettings(false)}
+        >
+          <div
+            className="bg-white w-full sm:max-w-md rounded-t-2xl sm:rounded-2xl p-5 space-y-4"
+            onClick={(e) => e.stopPropagation()}
           >
-            {t.emoji} {t.title}
-          </button>
-        ))}
-      </div>
-
-      <div className="grid lg:grid-cols-2 gap-4">
-        {/* 左: 入力 */}
-        <div className="space-y-4">
-          <section>
-            <div className="flex items-center justify-between mb-2">
-              <h2 className="text-sm font-semibold text-gray-700">① 判断材料（state）</h2>
-              <div className="flex gap-1 bg-gray-100 p-0.5 rounded-md">
-                {(["text", "json"] as const).map((m) => (
-                  <button
-                    key={m}
-                    onClick={() => setStateMode(m)}
-                    className={`text-xs px-2 py-0.5 rounded ${stateMode === m ? "bg-white shadow-sm font-semibold" : "text-gray-500"}`}
-                  >
-                    {m === "text" ? "テキスト" : "JSON"}
-                  </button>
-                ))}
-              </div>
-            </div>
-            <textarea
-              className={`w-full h-36 border border-gray-200 rounded-xl p-3 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-200 ${
-                stateMode === "json" ? "font-mono text-xs" : ""
-              }`}
-              value={stateText}
-              onChange={(e) => setStateText(e.target.value)}
-              placeholder="判断してほしい文章やデータ"
-            />
-          </section>
-
-          <section>
-            <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
-              <h2 className="text-sm font-semibold text-gray-700">② 質問（questions）</h2>
-              <div className="flex gap-1">
-                {(Object.keys(TYPE_META) as QType[]).map((t) => (
-                  <button
-                    key={t}
-                    onClick={() => setDrafts((d) => [...d, withUid(blank(t, `q${d.length + 1}`))])}
-                    className={`text-xs px-2 py-1 rounded-md flex items-center gap-0.5 whitespace-nowrap ${TYPE_META[t].color} hover:opacity-80`}
-                  >
-                    <Plus size={12} />
-                    {TYPE_META[t].label}
-                  </button>
-                ))}
-              </div>
-            </div>
-            <div className="space-y-3">
-              {drafts.map((q, i) => (
-                <QuestionEditor
-                  key={q.uid}
-                  q={q}
-                  index={i}
-                  onChange={(nq) => setDrafts((d) => d.map((x) => (x.uid === q.uid ? nq : x)))}
-                  onRemove={() => setDrafts((d) => d.filter((x) => x.uid !== q.uid))}
-                />
-              ))}
-              {drafts.length === 0 && (
-                <p className="text-sm text-gray-400 text-center py-6 border border-dashed rounded-xl">
-                  上のボタンから質問を追加してください
-                </p>
-              )}
-            </div>
-          </section>
-        </div>
-
-        {/* 右: 実行と結果 */}
-        <div className="space-y-4 lg:sticky lg:top-4 self-start">
-          <button
-            onClick={run}
-            disabled={running}
-            className="w-full bg-indigo-600 hover:bg-indigo-700 disabled:opacity-60 text-white font-semibold rounded-xl py-3 flex items-center justify-center gap-2 transition"
-          >
-            {running ? <Loader2 size={18} className="animate-spin" /> : <Play size={18} />}
-            {running ? "判断中…" : demo ? "デモ実行" : "Jevに聞く"}
-            <span className="text-xs font-normal opacity-70 hidden sm:inline">Ctrl/⌘ + Enter</span>
-          </button>
-
-          {inputError && (
-            <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 text-amber-700 text-sm">{inputError}</div>
-          )}
-          {errorText && (
-            <div className="bg-rose-50 border border-rose-200 rounded-lg p-3 text-rose-700 text-sm break-words">
-              {errorText}
-            </div>
-          )}
-
-          {answers && (
-            <section className="space-y-3">
-              <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-gray-500">
-                <h2 className="text-sm font-semibold text-gray-700">③ 結果</h2>
-                {result?.demo && (
-                  <span className="bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full">デモ：ランダムなダミー値</span>
-                )}
-                {body?.model && <span className="font-mono">{body.model}</span>}
-                {!result?.demo && result?.provider && (
-                  <span>via {result.provider === "openrouter" ? "OpenRouter" : "TypeSafe"}</span>
-                )}
-                {!result?.demo && result?.latency_ms != null && <span>{result.latency_ms} ms</span>}
-                {!result?.demo && body?.usage && (
-                  <span>
-                    tokens in {body.usage.input_tokens} / out {body.usage.output_tokens}
-                  </span>
-                )}
-              </div>
-              {Object.entries(answers).map(([name, a]) => (
-                <AnswerCard key={name} name={name} answer={a} draft={drafts.find((d) => d.name.trim() === name)} />
-              ))}
-            </section>
-          )}
-
-          {!answers && !errorText && !running && (
-            <div className="text-center text-sm text-gray-400 border border-dashed rounded-xl py-10">
-              テンプレートを選ぶか、判断材料と質問を入力して実行してください
-            </div>
-          )}
-
-          {result && (
-            <div className="bg-white rounded-xl border border-gray-200">
-              <button
-                onClick={() => setShowRaw((v) => !v)}
-                className="w-full flex items-center justify-between px-4 py-2 text-sm text-gray-600"
-              >
-                レスポンスJSON {showRaw ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+            <div className="flex items-center justify-between">
+              <h3 className="font-bold text-gray-900">設定</h3>
+              <button onClick={() => setShowSettings(false)} className="text-gray-400" aria-label="閉じる">
+                <X size={20} />
               </button>
-              {showRaw && (
-                <pre className="text-xs bg-gray-900 text-gray-100 p-3 rounded-b-xl overflow-x-auto max-h-80">
-                  {JSON.stringify(result.body, null, 2)}
-                </pre>
-              )}
             </div>
-          )}
-
-          <div className="bg-white rounded-xl border border-gray-200">
-            <button
-              onClick={() => setShowCode((v) => !v)}
-              className="w-full flex items-center justify-between px-4 py-2 text-sm text-gray-600"
-            >
-              このリクエストをcurlで再現 {showCode ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
-            </button>
-            {showCode && (
-              <div className="relative">
-                <button
-                  onClick={copy}
-                  className="absolute top-2 right-2 text-gray-300 hover:text-white p-1"
-                  aria-label="コピー"
-                >
-                  {copied ? <Check size={14} /> : <Copy size={14} />}
-                </button>
-                <pre className="text-xs bg-gray-900 text-gray-100 p-3 rounded-b-xl overflow-x-auto max-h-80">{code}</pre>
-              </div>
+            {serverKey ? (
+              <p className="text-sm text-emerald-700 bg-emerald-50 rounded-lg px-3 py-2">
+                ✅ サーバーの{serverKey === "openrouter" ? "OpenRouter" : "TypeSafe"}キーを使用中。設定は不要です。
+              </p>
+            ) : (
+              <label className="block">
+                <span className="text-sm text-gray-700">APIキー</span>
+                <input
+                  type="password"
+                  className={`${input} font-mono`}
+                  placeholder="sk-or-...（OpenRouter）"
+                  value={apiKey}
+                  onChange={(e) => {
+                    setApiKey(e.target.value);
+                    store.set(KEY_STORAGE, e.target.value.trim());
+                  }}
+                />
+                <span className="text-xs text-gray-400 mt-1 block">
+                  OpenRouterのキー（sk-or-…）かTypeSafeのキー。このブラウザにだけ保存されます。
+                </span>
+              </label>
             )}
+            <label className="block">
+              <span className="text-sm text-gray-700">モデル</span>
+              <select className={input} value={model} onChange={(e) => setModel(e.target.value)}>
+                <option value="jev-latest">jev-latest（最新）</option>
+                <option value="jev-1.13">jev-1.13</option>
+              </select>
+            </label>
+            <button
+              onClick={() => setShowSettings(false)}
+              className="w-full bg-indigo-600 text-white rounded-xl py-2.5 font-semibold"
+            >
+              OK
+            </button>
           </div>
-
-          <details className="text-xs text-gray-500 bg-white rounded-xl border border-gray-200 px-4 py-2">
-            <summary className="cursor-pointer text-sm text-gray-600">Jevとは？</summary>
-            <ul className="list-disc pl-4 mt-2 space-y-1">
-              <li>TypeSafe AI の「System One」モデル。文章を生成せず、決められた答えの型で判断だけを返す</li>
-              <li>はい/いいえ（noul）：Yesの確率 0〜1</li>
-              <li>選択（choice）：選んだラベル＋各ラベルの確率＋確信度</li>
-              <li>スコア（score）：段階評価の期待値（小数）＋各段階の確率</li>
-              <li>分類・ルーティング・緊急度判定・人間レビュー要否などの繰り返し判断向け</li>
-            </ul>
-          </details>
         </div>
-      </div>
+      )}
     </div>
   );
 }
 
-function errorMessage(r: RunResult): string {
-  const b = r.body as any;
-  const detail =
-    typeof b === "string"
-      ? b
-      : b?.error?.message || b?.error || b?.detail || b?.message || (b ? JSON.stringify(b) : "");
+function friendlyError(status: number, body: unknown): string {
+  const b = body as any;
+  const detail = typeof b === "string" ? b : b?.error?.message || b?.error || b?.message || JSON.stringify(b ?? "");
   const hint =
-    r.status === 401
-      ? "（APIキーを確認してください）"
-      : r.status === 429
-        ? "（レート制限です。少し待って再実行）"
-        : r.status === 422 || r.status === 400
-          ? "（質問の形式を確認してください）"
-          : "";
-  return `エラー ${r.status || ""}: ${typeof detail === "string" ? detail : JSON.stringify(detail)} ${hint}`.slice(0, 600);
+    status === 401
+      ? "キーが正しくないようです。⚙ から確認してください。"
+      : status === 402
+        ? "OpenRouterのクレジットが不足しています。"
+        : status === 429
+          ? "混み合っています。少し待ってからもう一度押してください。"
+          : "判定に失敗しました。";
+  const d = typeof detail === "string" ? detail : JSON.stringify(detail);
+  return `${hint}（${status}: ${d.slice(0, 200)}）`;
 }
