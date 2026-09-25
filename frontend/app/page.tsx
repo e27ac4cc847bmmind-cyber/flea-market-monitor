@@ -1,1442 +1,959 @@
 "use client";
 
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import {
   Plus,
   Trash2,
-  Save,
-  Power,
-  RefreshCw,
-  ExternalLink,
+  Play,
+  KeyRound,
   ChevronDown,
   ChevronUp,
-  CheckCircle,
-  ShoppingBag,
-  Bot,
-  Link,
-  Heart,
+  Copy,
+  Check,
+  Sparkles,
+  Info,
+  Loader2,
 } from "lucide-react";
 
 // ==================== 型定義 ====================
-interface Platform {
-  mercari: boolean;
-  rakuma: boolean;
-  paypay: boolean;
+type QType = "noul" | "choice" | "score";
+
+interface ChoiceOption {
+  label: string;
+  desc: string;
 }
 
-interface KeywordConfig {
-  id: string;
-  keyword: string;
-  min_price: number;
-  max_price: number;
-  platforms: Platform;
-  precious_metal_mode: boolean;
-  metal_type: "silver" | "gold";
-  exclude_words: string[];
-  require_words: string[];
-  note: string;
-  enabled: boolean;
-  genre: string;
-  exclude_junk: boolean;
-  model_number: string;
-}
-
-interface HistoryItem {
-  id: string;
+interface QuestionDraft {
+  uid: string;
   name: string;
-  price: number;
-  platform: string;
-  url: string;
-  image_url: string;
-  keyword: string;
-  ai_comment: string;
-  ai_ok: boolean;
-  market_info: string;
-  detected_at: string;
+  type: QType;
+  instructions: string;
+  yesDesc: string; // noul
+  noDesc: string; // noul
+  options: ChoiceOption[]; // choice
+  levels: string[]; // score（0から順）
 }
 
-interface RunKeywordStats {
-  keyword: string;
-  scraped?: number;
-  new?: number;
-  ai_judged?: number;
-  ai_ok?: number;
-  market_info?: string;
-  error?: string;
+interface Template {
+  title: string;
+  emoji: string;
+  state: string;
+  stateMode: "text" | "json";
+  questions: Omit<QuestionDraft, "uid">[];
 }
 
-interface LastRun {
-  started_at: string;
-  keywords: RunKeywordStats[];
-}
-
-interface Config {
-  monitoring_enabled: boolean;
-  keywords: KeywordConfig[];
-  history: HistoryItem[];
-  last_run?: LastRun;
-}
-
-interface GitHubConfig {
-  token: string;
-  owner: string;
-  repo: string;
-  branch: string;
-}
-
-interface LearnProposal {
-  note: string;
-  exclude_words: string[];
-  require_words: string[];
-  explanation: string;
-}
-
-// ==================== GitHub認証ヘルパー ====================
-function getGitHubHeaders(): Record<string, string> {
-  try {
-    const stored = localStorage.getItem("github_config");
-    if (!stored) return {};
-    const gc: GitHubConfig = JSON.parse(stored);
-    if (!gc.token || !gc.owner || !gc.repo) return {};
-    return {
-      "x-github-token": gc.token,
-      "x-github-owner": gc.owner,
-      "x-github-repo": gc.repo,
-      "x-github-branch": gc.branch || "main",
+type Answer =
+  | { type: "noul"; noul: number }
+  | { type: "choice"; choice: string; confidence: number; probabilities: Record<string, number> }
+  | {
+      type: "score";
+      score: number;
+      confidence: number;
+      legend: Record<string, unknown>;
+      probabilities: Record<string, number>;
     };
-  } catch {
-    return {};
-  }
+
+interface RunResult {
+  ok: boolean;
+  status: number;
+  latency_ms?: number;
+  request_id?: string | null;
+  demo?: boolean;
+  provider?: "typesafe" | "openrouter";
+  body: unknown;
 }
 
-function loadGitHubConfig(): GitHubConfig | null {
+// ==================== テンプレート ====================
+const blank = (type: QType, name = ""): Omit<QuestionDraft, "uid"> => ({
+  name,
+  type,
+  instructions: "",
+  yesDesc: "",
+  noDesc: "",
+  options:
+    type === "choice"
+      ? [
+          { label: "", desc: "" },
+          { label: "", desc: "" },
+        ]
+      : [],
+  levels: type === "score" ? ["", "", ""] : [],
+});
+
+const TEMPLATES: Template[] = [
+  {
+    title: "問い合わせ振り分け",
+    emoji: "📨",
+    stateMode: "text",
+    state: "先月分が二重に請求されています。至急返金してください。対応がなければ解約を考えます。",
+    questions: [
+      {
+        ...blank("choice", "category"),
+        instructions: "この問い合わせの種類は？",
+        options: [
+          { label: "billing", desc: "請求・支払い・返金" },
+          { label: "technical", desc: "不具合・使い方" },
+          { label: "account", desc: "ログイン・契約変更" },
+          { label: "other", desc: "その他" },
+        ],
+      },
+      {
+        ...blank("noul", "churn_risk"),
+        instructions: "顧客は解約をほのめかしているか？",
+      },
+    ],
+  },
+  {
+    title: "フリマ出品チェック",
+    emoji: "🛍️",
+    stateMode: "json",
+    state: JSON.stringify(
+      {
+        title: "Nintendo Switch 本体 ジャンク 画面割れ",
+        price: 8000,
+        description: "電源は入りますが画面にヒビがあります。付属品なし。ノークレームノーリターンでお願いします。",
+      },
+      null,
+      2
+    ),
+    questions: [
+      {
+        ...blank("noul", "is_junk"),
+        instructions: "この商品はジャンク品・故障品か？",
+      },
+      {
+        ...blank("score", "condition"),
+        instructions: "商品の状態を評価して",
+        levels: ["動作しない・部品取り", "大きな傷や不具合あり", "使用感あり", "目立った傷なし", "新品・未使用"],
+      },
+      {
+        ...blank("choice", "category"),
+        instructions: "商品カテゴリは？",
+        options: [
+          { label: "game", desc: "ゲーム機・ソフト" },
+          { label: "electronics", desc: "家電・PC・スマホ" },
+          { label: "fashion", desc: "衣類・バッグ" },
+          { label: "other", desc: "その他" },
+        ],
+      },
+    ],
+  },
+  {
+    title: "レビュー感情スコア",
+    emoji: "⭐",
+    stateMode: "text",
+    state: "配送は早かったけど、箱が潰れていて少しがっかり。中身は問題なく動いています。",
+    questions: [
+      {
+        ...blank("score", "sentiment"),
+        instructions: "このレビューの満足度は？",
+        levels: ["とても不満", "不満", "普通", "満足", "とても満足"],
+      },
+      {
+        ...blank("noul", "mentions_shipping"),
+        instructions: "配送・梱包について言及しているか？",
+      },
+    ],
+  },
+  {
+    title: "障害エスカレーション",
+    emoji: "🚨",
+    stateMode: "text",
+    state: "直近3回のデプロイが失敗し、本番環境で500エラーが返り続けています。",
+    questions: [
+      {
+        ...blank("noul", "needs_human"),
+        instructions: "今すぐ人間にエスカレーションすべきか？",
+        yesDesc: "ユーザー影響があり即対応が必要",
+        noDesc: "自動復旧や後回しで問題ない",
+      },
+      {
+        ...blank("score", "severity"),
+        instructions: "深刻度は？",
+        levels: ["影響なし", "軽微", "一部ユーザーに影響", "全ユーザーに影響"],
+      },
+    ],
+  },
+];
+
+// ==================== ユーティリティ ====================
+let uidCounter = 0;
+const newUid = () => `q${Date.now().toString(36)}${(uidCounter++).toString(36)}`;
+const withUid = (q: Omit<QuestionDraft, "uid">): QuestionDraft => ({ ...q, uid: newUid() });
+
+const TYPE_META: Record<QType, { label: string; hint: string; color: string }> = {
+  noul: { label: "はい/いいえ", hint: "Yesの確率(0〜1)を返す", color: "bg-emerald-100 text-emerald-700" },
+  choice: { label: "選択", hint: "選択肢から1つ選ぶ（最大255）", color: "bg-sky-100 text-sky-700" },
+  score: { label: "スコア", hint: "段階評価（2〜10段階）の期待値", color: "bg-amber-100 text-amber-700" },
+};
+
+const orNull = (s: string) => (s.trim() === "" ? null : s.trim());
+
+function buildQuestions(drafts: QuestionDraft[]): { questions: Record<string, unknown>; error: string | null } {
+  const questions: Record<string, unknown> = {};
+  for (let i = 0; i < drafts.length; i++) {
+    const q = drafts[i];
+    const name = q.name.trim();
+    const where = `質問${i + 1}`;
+    if (!name) return { questions, error: `${where}: 名前（キー）を入力してください` };
+    if (questions[name]) return { questions, error: `${where}: 名前「${name}」が重複しています` };
+    if (q.type === "noul") {
+      const yes = orNull(q.yesDesc);
+      const no = orNull(q.noDesc);
+      questions[name] = {
+        type: "noul",
+        instructions: orNull(q.instructions),
+        ...(yes || no ? { criteria: { true: yes, false: no } } : {}),
+      };
+    } else if (q.type === "choice") {
+      const opts = q.options.filter((o) => o.label.trim());
+      if (opts.length < 2) return { questions, error: `${where}: 選択肢を2つ以上入力してください` };
+      const labels = new Set<string>();
+      const criteria: Record<string, string | null> = {};
+      for (const o of opts) {
+        const l = o.label.trim();
+        if (labels.has(l)) return { questions, error: `${where}: 選択肢「${l}」が重複しています` };
+        labels.add(l);
+        criteria[l] = orNull(o.desc);
+      }
+      questions[name] = { type: "choice", instructions: orNull(q.instructions), criteria };
+    } else {
+      if (q.levels.length < 2 || q.levels.length > 10)
+        return { questions, error: `${where}: スコアは2〜10段階にしてください` };
+      questions[name] = { type: "score", instructions: orNull(q.instructions), criteria: q.levels.map(orNull) };
+    }
+  }
+  if (Object.keys(questions).length === 0) return { questions, error: "質問を1つ以上追加してください" };
+  return { questions, error: null };
+}
+
+function parseState(text: string, mode: "text" | "json"): { state: unknown; error: string | null } {
+  if (mode === "text") return { state: text, error: null };
   try {
-    const stored = localStorage.getItem("github_config");
-    if (!stored) return null;
-    const gc: GitHubConfig = JSON.parse(stored);
-    if (!gc.token || !gc.owner || !gc.repo) return null;
-    return gc;
+    return { state: JSON.parse(text), error: null };
+  } catch (e) {
+    return { state: null, error: `状態のJSONが不正です: ${(e as Error).message}` };
+  }
+}
+
+// デモモード用：入力から決定的に擬似確率を作る（実際のJevの判断ではない）
+function hash(s: string) {
+  let h = 2166136261;
+  for (let i = 0; i < s.length; i++) h = Math.imul(h ^ s.charCodeAt(i), 16777619);
+  return () => {
+    h = Math.imul(h ^ (h >>> 15), 2246822507);
+    h = Math.imul(h ^ (h >>> 13), 3266489909);
+    return ((h ^= h >>> 16) >>> 0) / 4294967296;
+  };
+}
+
+function demoAnswers(state: unknown, questions: Record<string, any>) {
+  const answers: Record<string, Answer> = {};
+  for (const [name, q] of Object.entries(questions)) {
+    const rnd = hash(JSON.stringify(state) + name);
+    if (q.type === "noul") {
+      answers[name] = { type: "noul", noul: rnd() };
+    } else {
+      const keys = q.type === "choice" ? Object.keys(q.criteria) : q.criteria.map((_: unknown, i: number) => String(i));
+      const w = keys.map(() => Math.pow(rnd(), 3));
+      const sum = w.reduce((a: number, b: number) => a + b, 0);
+      const probs: Record<string, number> = {};
+      keys.forEach((k: string, i: number) => (probs[k] = w[i] / sum));
+      const best = keys.reduce((a: string, b: string) => (probs[a] >= probs[b] ? a : b));
+      if (q.type === "choice") {
+        answers[name] = { type: "choice", choice: best, confidence: probs[best], probabilities: probs };
+      } else {
+        const legend: Record<string, unknown> = {};
+        keys.forEach((k: string, i: number) => (legend[k] = q.criteria[i]));
+        const score = keys.reduce((a: number, k: string) => a + Number(k) * probs[k], 0);
+        answers[name] = { type: "score", score, confidence: probs[best], legend, probabilities: probs };
+      }
+    }
+  }
+  return { model: "demo（ダミー）", answers, usage: { input_tokens: 0, output_tokens: 0 } };
+}
+
+const pct = (v: number) => `${(v * 100).toFixed(1)}%`;
+
+const KEY_STORAGE = "jev-playground-key";
+const safeGet = (k: string) => {
+  try {
+    return localStorage.getItem(k) || "";
   } catch {
-    return null;
+    return "";
   }
-}
+};
+const safeSet = (k: string, v: string) => {
+  try {
+    if (v) localStorage.setItem(k, v);
+    else localStorage.removeItem(k);
+  } catch {}
+};
 
-// ==================== API関数 ====================
-async function fetchConfig(): Promise<Config> {
-  const res = await fetch("/api/config", {
-    headers: getGitHubHeaders(),
-    cache: "no-store",
-  });
-  if (!res.ok) throw new Error("設定読み込み失敗");
-  return res.json();
-}
-
-async function saveConfig(config: Config): Promise<void> {
-  const res = await fetch("/api/config", {
-    method: "POST",
-    headers: { "Content-Type": "application/json", ...getGitHubHeaders() },
-    body: JSON.stringify(config),
-  });
-  if (!res.ok) {
-    const data = await res.json().catch(() => ({}));
-    throw new Error(data.error || "設定保存失敗");
-  }
-}
-
-// ==================== プラットフォームバッジ ====================
-function PlatformBadge({ platform }: { platform: string }) {
-  const styles: Record<string, string> = {
-    メルカリ: "bg-red-100 text-red-700",
-    ラクマ: "bg-orange-100 text-orange-700",
-    PayPayフリマ: "bg-yellow-100 text-yellow-800",
-  };
+// ==================== 結果表示 ====================
+function Bar({ value, highlight }: { value: number; highlight?: boolean }) {
   return (
-    <span
-      className={`text-xs px-1.5 py-0.5 rounded font-medium ${
-        styles[platform] ?? "bg-gray-100 text-gray-600"
-      }`}
-    >
-      {platform}
-    </span>
-  );
-}
-
-// ==================== 新着カード ====================
-function ArrivalCard({
-  item,
-  isNew,
-  isLiked,
-  onToggleLike,
-  onDislike,
-}: {
-  item: HistoryItem;
-  isNew: boolean;
-  isLiked: boolean;
-  onToggleLike: () => void;
-  onDislike: () => void;
-}) {
-  const [imgError, setImgError] = useState(false);
-
-  const relativeTime = () => {
-    const diff = Date.now() - new Date(item.detected_at).getTime();
-    const mins = Math.floor(diff / 60000);
-    if (mins < 60) return `${Math.max(0, mins)}分前`;
-    const hours = Math.floor(diff / 3600000);
-    if (hours < 24) return `${hours}時間前`;
-    return `${Math.floor(hours / 24)}日前`;
-  };
-
-  return (
-    <div className="border rounded-lg bg-white shadow-sm p-3 flex gap-3">
-      <div className="w-20 h-20 flex-shrink-0 rounded-md overflow-hidden bg-gray-100 flex items-center justify-center">
-        {item.image_url && !imgError ? (
-          <img
-            src={item.image_url}
-            alt={item.name}
-            referrerPolicy="no-referrer"
-            className="w-full h-full object-cover"
-            onError={() => setImgError(true)}
-          />
-        ) : (
-          <ShoppingBag size={24} className="text-gray-300" />
-        )}
-      </div>
-
-      <div className="flex-1 min-w-0">
-        <div className="flex items-start justify-between gap-2">
-          <p className="font-medium text-sm leading-snug line-clamp-2 flex-1">{item.name}</p>
-          <div className="flex items-center gap-1.5 flex-shrink-0">
-            {isNew && (
-              <span className="text-xs bg-teal-500 text-white px-1.5 py-0.5 rounded font-bold">
-                NEW
-              </span>
-            )}
-            <a
-              href={item.url}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-blue-400 hover:text-blue-600"
-            >
-              <ExternalLink size={15} />
-            </a>
-          </div>
-        </div>
-
-        <div className="flex flex-wrap items-center gap-1.5 mt-1">
-          <span className="font-bold text-gray-900 text-sm">
-            ¥{item.price.toLocaleString()}
-          </span>
-          <PlatformBadge platform={item.platform} />
-          <span className="text-xs text-gray-400">#{item.keyword}</span>
-        </div>
-
-        <div className="flex items-center gap-1 mt-1">
-          <div className="flex items-start gap-1 flex-1 min-w-0">
-            {item.ai_ok ? (
-              <CheckCircle size={13} className="text-green-500 flex-shrink-0 mt-0.5" />
-            ) : (
-              <Bot size={13} className="text-gray-300 flex-shrink-0 mt-0.5" />
-            )}
-            <p className="text-xs text-gray-500 line-clamp-1">
-              {item.ai_comment.replace(/^\[.*?\]\s*/, "")}
-            </p>
-          </div>
-          <button
-            onClick={onToggleLike}
-            className="flex-shrink-0 px-1 text-base leading-none transition-transform hover:scale-125 active:scale-110"
-            title={isLiked ? "お気に入り解除" : "お気に入り登録"}
-          >
-            {isLiked ? (
-              <span className="text-red-500">♥</span>
-            ) : (
-              <span className="text-gray-300 hover:text-red-300">♡</span>
-            )}
-          </button>
-          <button
-            onClick={onDislike}
-            className="flex-shrink-0 px-1 text-base leading-none transition-transform hover:scale-125 active:scale-110 text-gray-300 hover:text-gray-500"
-            title="この商品を非表示にする"
-          >
-            ✕
-          </button>
-        </div>
-
-        <p className="text-xs text-gray-400 mt-0.5">{relativeTime()}</p>
-      </div>
+    <div className="h-2 bg-gray-100 rounded-full overflow-hidden flex-1">
+      <div
+        className={`h-full rounded-full transition-all duration-500 ${highlight ? "bg-indigo-500" : "bg-gray-300"}`}
+        style={{ width: `${Math.max(0, Math.min(1, value)) * 100}%` }}
+      />
     </div>
   );
 }
 
-// ==================== 実行ログパネル ====================
-function LastRunPanel({ lastRun }: { lastRun: LastRun }) {
-  const [expanded, setExpanded] = useState(false);
-
-  const relativeTime = () => {
-    const diff = Date.now() - new Date(lastRun.started_at).getTime();
-    const mins = Math.floor(diff / 60000);
-    if (mins < 1) return "たった今";
-    if (mins < 60) return `${mins}分前`;
-    const hours = Math.floor(diff / 3600000);
-    if (hours < 24) return `${hours}時間前`;
-    return `${Math.floor(hours / 24)}日前`;
-  };
-
-  const totalNew = lastRun.keywords.reduce((s, k) => s + (k.new ?? 0), 0);
-  const totalAiOk = lastRun.keywords.reduce((s, k) => s + (k.ai_ok ?? 0), 0);
-
+function AnswerCard({ name, answer, draft }: { name: string; answer: Answer; draft?: QuestionDraft }) {
+  const meta = TYPE_META[answer.type];
   return (
-    <div className="border rounded-lg bg-white shadow-sm text-sm">
-      <button
-        onClick={() => setExpanded(!expanded)}
-        className="w-full flex items-center justify-between px-4 py-3 text-left"
-      >
-        <div className="flex items-center gap-3">
-          <span className="text-gray-400 text-xs">📋</span>
-          <div>
-            <span className="font-medium text-gray-700">最終実行: {relativeTime()}</span>
-            <span className="ml-3 text-xs text-gray-400">
-              新着{totalNew}件 / 通知{totalAiOk}件
+    <div className="bg-white rounded-xl border border-gray-200 p-4">
+      <div className="flex items-center gap-2 mb-1">
+        <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${meta.color}`}>{meta.label}</span>
+        <span className="font-mono text-sm font-semibold text-gray-800">{name}</span>
+      </div>
+      {draft?.instructions && <p className="text-xs text-gray-500 mb-3">{draft.instructions}</p>}
+
+      {answer.type === "noul" && (
+        <div>
+          <div className="flex items-baseline gap-2 mb-2">
+            <span className={`text-2xl font-bold ${answer.noul >= 0.5 ? "text-emerald-600" : "text-rose-600"}`}>
+              {answer.noul >= 0.5 ? "はい" : "いいえ"}
             </span>
+            <span className="text-sm text-gray-500">Yesの確率 {pct(answer.noul)}</span>
+          </div>
+          <div className="h-3 rounded-full overflow-hidden flex bg-rose-200">
+            <div className="bg-emerald-500 h-full transition-all duration-500" style={{ width: pct(answer.noul) }} />
+          </div>
+          <div className="flex justify-between text-[11px] text-gray-400 mt-1">
+            <span>はい</span>
+            <span>いいえ</span>
           </div>
         </div>
-        {expanded ? <ChevronUp size={16} className="text-gray-400" /> : <ChevronDown size={16} className="text-gray-400" />}
-      </button>
+      )}
 
-      {expanded && (
-        <div className="border-t px-4 pb-3 pt-2 space-y-1.5">
-          {lastRun.keywords.map((k, i) => (
-            <div key={i} className="text-xs">
-              {k.error ? (
-                <div className="flex items-center gap-2">
-                  <span className="font-medium text-gray-700 w-28 truncate">{k.keyword}</span>
-                  <span className="text-red-500">エラー: {k.error}</span>
+      {answer.type === "choice" && (
+        <div>
+          <div className="flex items-baseline gap-2 mb-3">
+            <span className="text-2xl font-bold text-indigo-600 font-mono">{answer.choice}</span>
+            <span className="text-sm text-gray-500">確信度 {pct(answer.confidence)}</span>
+          </div>
+          <div className="space-y-1.5">
+            {Object.entries(answer.probabilities)
+              .sort((a, b) => b[1] - a[1])
+              .map(([label, p]) => (
+                <div key={label} className="flex items-center gap-2 text-xs">
+                  <span className="w-24 truncate font-mono text-gray-700">{label}</span>
+                  <Bar value={p} highlight={label === answer.choice} />
+                  <span className="w-12 text-right text-gray-500 tabular-nums">{pct(p)}</span>
                 </div>
-              ) : (
-                <div className="flex items-center gap-1 flex-wrap">
-                  <span className="font-medium text-gray-700 w-28 truncate shrink-0">{k.keyword}</span>
-                  <span className="text-gray-400">取得{k.scraped ?? 0}</span>
-                  <span className="text-gray-300">→</span>
-                  <span className={k.new ? "text-blue-600 font-medium" : "text-gray-400"}>新着{k.new ?? 0}</span>
-                  <span className="text-gray-300">→</span>
-                  <span className="text-gray-400">AI{k.ai_judged ?? 0}</span>
-                  <span className="text-gray-300">→</span>
-                  <span className={k.ai_ok ? "text-green-600 font-bold" : "text-gray-400"}>
-                    通知{k.ai_ok ?? 0}{k.ai_ok ? " ✓" : ""}
+              ))}
+          </div>
+        </div>
+      )}
+
+      {answer.type === "score" && (
+        <div>
+          {(() => {
+            const keys = Object.keys(answer.probabilities).sort((a, b) => Number(a) - Number(b));
+            const max = Math.max(1, keys.length - 1);
+            const nearest = String(Math.round(answer.score));
+            const legendText = (k: string) => {
+              const v = answer.legend?.[k];
+              return v == null ? "" : typeof v === "string" ? v : JSON.stringify(v);
+            };
+            return (
+              <>
+                <div className="flex items-baseline gap-2 mb-1">
+                  <span className="text-2xl font-bold text-amber-600 tabular-nums">{answer.score.toFixed(2)}</span>
+                  <span className="text-sm text-gray-500">
+                    / {max}（確信度 {pct(answer.confidence)}）
                   </span>
-                  {k.market_info && k.market_info !== "相場情報なし" && (
-                    <span className="text-gray-300 ml-1 hidden sm:inline">({k.market_info})</span>
-                  )}
                 </div>
-              )}
+                {legendText(nearest) && <p className="text-sm text-gray-700 mb-2">≒ {legendText(nearest)}</p>}
+                <div className="relative h-2 bg-gradient-to-r from-rose-200 via-amber-200 to-emerald-200 rounded-full mb-3">
+                  <div
+                    className="absolute -top-1 w-4 h-4 bg-white border-2 border-amber-500 rounded-full -ml-2 transition-all duration-500"
+                    style={{ left: `${(answer.score / max) * 100}%` }}
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  {keys.map((k) => (
+                    <div key={k} className="flex items-center gap-2 text-xs">
+                      <span className="w-5 text-gray-400 tabular-nums">{k}</span>
+                      <span className="w-28 truncate text-gray-700">{legendText(k) || "—"}</span>
+                      <Bar value={answer.probabilities[k]} highlight={k === nearest} />
+                      <span className="w-12 text-right text-gray-500 tabular-nums">{pct(answer.probabilities[k])}</span>
+                    </div>
+                  ))}
+                </div>
+              </>
+            );
+          })()}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ==================== 質問エディタ ====================
+function QuestionEditor({
+  q,
+  index,
+  onChange,
+  onRemove,
+}: {
+  q: QuestionDraft;
+  index: number;
+  onChange: (q: QuestionDraft) => void;
+  onRemove: () => void;
+}) {
+  const set = (patch: Partial<QuestionDraft>) => onChange({ ...q, ...patch });
+  const changeType = (type: QType) => {
+    const b = blank(type);
+    set({
+      type,
+      options: q.options.length ? q.options : b.options,
+      levels: q.levels.length ? q.levels : b.levels,
+    });
+  };
+  const input = "w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-200";
+
+  return (
+    <div className="bg-white rounded-xl border border-gray-200 p-4 space-y-3">
+      <div className="flex items-center gap-2">
+        <span className="text-xs font-semibold text-gray-400">#{index + 1}</span>
+        <input
+          className={`${input} font-mono flex-1`}
+          placeholder="名前（例: is_urgent）"
+          value={q.name}
+          onChange={(e) => set({ name: e.target.value.replace(/\s/g, "_") })}
+        />
+        <button onClick={onRemove} className="p-2 text-gray-400 hover:text-rose-500" aria-label="質問を削除">
+          <Trash2 size={16} />
+        </button>
+      </div>
+
+      <div className="grid grid-cols-3 gap-1 bg-gray-100 p-1 rounded-lg">
+        {(Object.keys(TYPE_META) as QType[]).map((t) => (
+          <button
+            key={t}
+            onClick={() => changeType(t)}
+            className={`text-xs py-1.5 rounded-md transition ${
+              q.type === t ? "bg-white shadow-sm font-semibold text-gray-900" : "text-gray-500"
+            }`}
+          >
+            {TYPE_META[t].label}
+          </button>
+        ))}
+      </div>
+      <p className="text-[11px] text-gray-400 -mt-1">{TYPE_META[q.type].hint}</p>
+
+      <input
+        className={input}
+        placeholder="質問文（例: 至急対応が必要か？）"
+        value={q.instructions}
+        onChange={(e) => set({ instructions: e.target.value })}
+      />
+
+      {q.type === "noul" && (
+        <div className="grid grid-cols-2 gap-2">
+          <input
+            className={input}
+            placeholder="「はい」の説明（任意）"
+            value={q.yesDesc}
+            onChange={(e) => set({ yesDesc: e.target.value })}
+          />
+          <input
+            className={input}
+            placeholder="「いいえ」の説明（任意）"
+            value={q.noDesc}
+            onChange={(e) => set({ noDesc: e.target.value })}
+          />
+        </div>
+      )}
+
+      {q.type === "choice" && (
+        <div className="space-y-2">
+          {q.options.map((o, i) => (
+            <div key={i} className="flex gap-2">
+              <input
+                className={`${input} font-mono w-2/5`}
+                placeholder={`ラベル${i + 1}`}
+                value={o.label}
+                onChange={(e) => {
+                  const options = [...q.options];
+                  options[i] = { ...o, label: e.target.value };
+                  set({ options });
+                }}
+              />
+              <input
+                className={input}
+                placeholder="説明（任意）"
+                value={o.desc}
+                onChange={(e) => {
+                  const options = [...q.options];
+                  options[i] = { ...o, desc: e.target.value };
+                  set({ options });
+                }}
+              />
+              <button
+                onClick={() => set({ options: q.options.filter((_, j) => j !== i) })}
+                className="px-2 text-gray-300 hover:text-rose-500"
+                aria-label="選択肢を削除"
+              >
+                <Trash2 size={14} />
+              </button>
             </div>
           ))}
-          <p className="text-xs text-gray-300 pt-1">
-            {new Date(lastRun.started_at).toLocaleString("ja-JP")}
-          </p>
+          {q.options.length < 255 && (
+            <button
+              onClick={() => set({ options: [...q.options, { label: "", desc: "" }] })}
+              className="text-xs text-indigo-600 hover:underline flex items-center gap-1"
+            >
+              <Plus size={12} /> 選択肢を追加
+            </button>
+          )}
+        </div>
+      )}
+
+      {q.type === "score" && (
+        <div className="space-y-2">
+          {q.levels.map((lv, i) => (
+            <div key={i} className="flex gap-2 items-center">
+              <span className="w-5 text-xs text-gray-400 tabular-nums text-right">{i}</span>
+              <input
+                className={input}
+                placeholder={i === 0 ? "最低段階の説明（例: とても悪い）" : i === q.levels.length - 1 ? "最高段階の説明（例: とても良い）" : `段階${i}の説明`}
+                value={lv}
+                onChange={(e) => {
+                  const levels = [...q.levels];
+                  levels[i] = e.target.value;
+                  set({ levels });
+                }}
+              />
+              <button
+                onClick={() => q.levels.length > 2 && set({ levels: q.levels.filter((_, j) => j !== i) })}
+                disabled={q.levels.length <= 2}
+                className="px-2 text-gray-300 hover:text-rose-500 disabled:opacity-30"
+                aria-label="段階を削除"
+              >
+                <Trash2 size={14} />
+              </button>
+            </div>
+          ))}
+          {q.levels.length < 10 && (
+            <button
+              onClick={() => set({ levels: [...q.levels, ""] })}
+              className="text-xs text-indigo-600 hover:underline flex items-center gap-1"
+            >
+              <Plus size={12} /> 段階を追加
+            </button>
+          )}
         </div>
       )}
     </div>
   );
 }
 
-// ==================== GitHub接続設定カード ====================
-function GitHubSettingsCard({ onConfigured }: { onConfigured: () => void }) {
-  const [gc, setGc] = useState<GitHubConfig>(() => ({
-    token: "",
-    owner: "",
-    repo: "flea-market-monitor",
-    branch: "main",
-  }));
-  const [expanded, setExpanded] = useState(false);
-  const [testing, setTesting] = useState(false);
-  const [result, setResult] = useState<"ok" | "error" | null>(null);
-  const [resultMsg, setResultMsg] = useState("");
-  const configured = !!loadGitHubConfig();
+// ==================== メイン ====================
+export default function JevPlayground() {
+  const [stateText, setStateText] = useState(TEMPLATES[0].state);
+  const [stateMode, setStateMode] = useState<"text" | "json">(TEMPLATES[0].stateMode);
+  const [drafts, setDrafts] = useState<QuestionDraft[]>(() => TEMPLATES[0].questions.map(withUid));
+  const [activeTemplate, setActiveTemplate] = useState(0);
 
-  useEffect(() => {
-    const saved = loadGitHubConfig();
-    if (saved) setGc(saved);
-    else setExpanded(true);
+  const [apiKey, setApiKey] = useState("");
+  const [showKey, setShowKey] = useState(false);
+  const [serverKey, setServerKey] = useState(false);
+  const [provider, setProvider] = useState<"typesafe" | "openrouter" | null>(null);
+  const [models, setModels] = useState<string[]>([]);
+  const [model, setModel] = useState("jev-latest");
+  const [demo, setDemo] = useState(false);
+
+  const [running, setRunning] = useState(false);
+  const [result, setResult] = useState<RunResult | null>(null);
+  const [inputError, setInputError] = useState<string | null>(null);
+  const [showRaw, setShowRaw] = useState(false);
+  const [showCode, setShowCode] = useState(false);
+  const [copied, setCopied] = useState(false);
+
+  const hasKey = serverKey || apiKey.trim() !== "";
+
+  const loadModels = useCallback(async (key: string) => {
+    try {
+      const res = await fetch("/api/jev", { headers: key ? { "x-jev-key": key } : {} });
+      const data = await res.json();
+      setServerKey(!!data.server_key);
+      setProvider(data.provider ?? null);
+      if (data.default_model) setModel((m) => (m === "jev-latest" ? data.default_model : m));
+      const list = data?.body?.models;
+      if (Array.isArray(list)) setModels(list.map((m: { name?: string }) => m.name).filter((n: unknown): n is string => typeof n === "string"));
+    } catch {}
   }, []);
 
-  const connect = async () => {
-    if (!gc.token || !gc.owner || !gc.repo) return;
-    setTesting(true);
+  useEffect(() => {
+    const saved = safeGet(KEY_STORAGE);
+    setApiKey(saved);
+    loadModels(saved);
+  }, [loadModels]);
+
+  useEffect(() => {
+    setDemo(!hasKey);
+  }, [hasKey]);
+
+  const applyTemplate = (i: number) => {
+    const t = TEMPLATES[i];
+    setActiveTemplate(i);
+    setStateText(t.state);
+    setStateMode(t.stateMode);
+    setDrafts(t.questions.map(withUid));
+    setResult(null);
+    setInputError(null);
+  };
+
+  const built = useMemo(() => {
+    const s = parseState(stateText, stateMode);
+    const q = buildQuestions(drafts);
+    return { state: s.state, questions: q.questions, error: s.error || q.error };
+  }, [stateText, stateMode, drafts]);
+
+  const payload = useMemo(
+    () => ({ model, state: built.state, questions: built.questions }),
+    [model, built]
+  );
+
+  const run = useCallback(async () => {
+    if (built.error) {
+      setInputError(built.error);
+      return;
+    }
+    setInputError(null);
+    setRunning(true);
     setResult(null);
     try {
-      localStorage.setItem("github_config", JSON.stringify(gc));
-      const res = await fetch("/api/config", {
-        headers: {
-          "x-github-token": gc.token,
-          "x-github-owner": gc.owner,
-          "x-github-repo": gc.repo,
-          "x-github-branch": gc.branch || "main",
-        },
-        cache: "no-store",
-      });
-      if (res.ok) {
-        setResult("ok");
-        setResultMsg("接続成功！設定が読み込まれました。");
-        setExpanded(false);
-        onConfigured();
+      if (demo) {
+        await new Promise((r) => setTimeout(r, 400));
+        setResult({ ok: true, status: 200, demo: true, latency_ms: 0, body: demoAnswers(built.state, built.questions) });
       } else {
-        const data = await res.json().catch(() => ({}));
-        setResult("error");
-        setResultMsg(data.error || "接続に失敗しました。");
-        localStorage.removeItem("github_config");
-      }
-    } catch {
-      setResult("error");
-      setResultMsg("ネットワークエラーが発生しました。");
-      localStorage.removeItem("github_config");
-    } finally {
-      setTesting(false);
-    }
-  };
-
-  return (
-    <div
-      className={`border rounded-lg bg-white shadow-sm ${
-        !configured ? "border-amber-300" : ""
-      }`}
-    >
-      <div className="flex items-center justify-between p-4">
-        <div className="flex items-center gap-2">
-          <Link size={16} className="text-gray-500" />
-          <span className="font-medium text-sm text-gray-800">GitHub接続設定</span>
-          {configured ? (
-            <span className="text-xs text-green-700 bg-green-100 px-2 py-0.5 rounded">
-              接続済み
-            </span>
-          ) : (
-            <span className="text-xs text-amber-700 bg-amber-100 px-2 py-0.5 rounded">
-              ⚠ 要設定
-            </span>
-          )}
-        </div>
-        <button
-          onClick={() => setExpanded(!expanded)}
-          className="text-gray-400 hover:text-gray-600"
-        >
-          {expanded ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
-        </button>
-      </div>
-
-      {expanded && (
-        <div className="border-t px-4 pb-4 pt-3 space-y-3">
-          <p className="text-xs text-gray-500 leading-relaxed">
-            キーワードを保存・監視するには GitHub Personal Access Token が必要です。
-            <br />
-            <a
-              href="https://github.com/settings/tokens/new?scopes=repo&description=flea-market-monitor"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-blue-500 underline"
-            >
-              こちらでトークンを発行（repoスコープにチェック）→
-            </a>
-          </p>
-
-          <div>
-            <label className="text-xs font-medium text-gray-700">
-              Personal Access Token <span className="text-red-500">*</span>
-            </label>
-            <input
-              type="password"
-              value={gc.token}
-              onChange={(e) => setGc({ ...gc, token: e.target.value })}
-              placeholder="ghp_xxxxxxxxxxxx"
-              className="mt-1 w-full border rounded px-3 py-2 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-blue-400"
-            />
-          </div>
-
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="text-xs font-medium text-gray-700">
-                GitHubユーザー名 <span className="text-red-500">*</span>
-              </label>
-              <input
-                type="text"
-                value={gc.owner}
-                onChange={(e) => setGc({ ...gc, owner: e.target.value })}
-                placeholder="username"
-                className="mt-1 w-full border rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
-              />
-            </div>
-            <div>
-              <label className="text-xs font-medium text-gray-700">リポジトリ名</label>
-              <input
-                type="text"
-                value={gc.repo}
-                onChange={(e) => setGc({ ...gc, repo: e.target.value })}
-                className="mt-1 w-full border rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
-              />
-            </div>
-          </div>
-
-          {result === "ok" && (
-            <p className="text-xs text-green-700 bg-green-50 border border-green-200 rounded p-2">
-              ✓ {resultMsg}
-            </p>
-          )}
-          {result === "error" && (
-            <p className="text-xs text-red-700 bg-red-50 border border-red-200 rounded p-2">
-              ✗ {resultMsg}
-            </p>
-          )}
-
-          <button
-            onClick={connect}
-            disabled={testing || !gc.token || !gc.owner || !gc.repo}
-            className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-blue-300 text-white font-medium py-2 rounded-lg text-sm transition-colors flex items-center justify-center gap-2"
-          >
-            {testing ? (
-              <>
-                <RefreshCw size={15} className="animate-spin" />
-                接続テスト中...
-              </>
-            ) : (
-              <>
-                <Link size={15} />
-                接続して保存
-              </>
-            )}
-          </button>
-        </div>
-      )}
-    </div>
-  );
-}
-
-// ==================== ジャンルラベル ====================
-const GENRE_LABELS: Record<string, string> = {
-  "": "指定なし",
-  electronics: "家電・PC・スマホ",
-  display: "ディスプレイ・モニター本体",
-  fashion: "ファッション・衣類",
-  automotive: "自動車・バイク部品",
-  sports: "スポーツ・アウトドア",
-  games: "ゲーム・おもちゃ",
-  books: "本・音楽・映画",
-  interior: "インテリア・家具",
-};
-
-const GENRE_EXCLUDE_WORDS_FRONT: Record<string, string[]> = {
-  electronics: ["y2k", "ファッション", "服", "古着", "レディース", "メンズ", "コーデ", "アパレル", "ウェア", "シャツ", "パンツ"],
-  display: ["ケーブル", "スタンド", "アーム", "保護フィルム", "ベゼル", "ブラケット", "ベビー", "ペット", "カメラ"],
-  fashion: ["家電", "スマホ", "パソコン", "モニター", "プリンター", "カメラ"],
-  automotive: ["ミニカー", "プラモデル", "おもちゃ", "フィギュア", "模型", "ラジコン"],
-  sports: ["フィギュア", "プラモデル", "おもちゃ"],
-  games: ["工具", "部品", "素材"],
-  books: ["工具", "部品"],
-  interior: ["フィギュア", "プラモデル", "ミニチュア"],
-};
-
-// ==================== キーワードカード ====================
-function KeywordCard({
-  kw,
-  onChange,
-  onDelete,
-  likedItems,
-  onClearLiked,
-}: {
-  kw: KeywordConfig;
-  onChange: (updated: KeywordConfig) => void;
-  onDelete: () => void;
-  likedItems: HistoryItem[];
-  onClearLiked: (ids: string[]) => void;
-}) {
-  const [expanded, setExpanded] = useState(false);
-  const [proposalLoading, setProposalLoading] = useState(false);
-  const [proposal, setProposal] = useState<LearnProposal | null>(null);
-  const [proposalError, setProposalError] = useState("");
-  const [genreDetecting, setGenreDetecting] = useState(false);
-  const [marketPriceLoading, setMarketPriceLoading] = useState(false);
-  const [marketPriceMsg, setMarketPriceMsg] = useState("");
-
-  const detectGenre = async () => {
-    if (!kw.keyword.trim()) return;
-    setGenreDetecting(true);
-    try {
-      const res = await fetch("/api/parse-keyword", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ text: kw.keyword }),
-      });
-      const data = await res.json();
-      if (res.ok && data.config) {
-        const aiExcludes: string[] = data.config.exclude_words ?? [];
-        const merged = Array.from(new Set([...kw.exclude_words, ...aiExcludes]));
-        onChange({
-          ...kw,
-          genre: data.config.genre ?? kw.genre,
-          exclude_words: merged,
+        const res = await fetch("/api/jev", {
+          method: "POST",
+          headers: { "Content-Type": "application/json", ...(apiKey ? { "x-jev-key": apiKey } : {}) },
+          body: JSON.stringify(payload),
         });
+        setResult(await res.json());
       }
-    } catch {
-      // 失敗しても無視
-    } finally {
-      setGenreDetecting(false);
-    }
-  };
-
-  const fetchMarketPrice = async () => {
-    if (!kw.keyword.trim()) return;
-    setMarketPriceLoading(true);
-    setMarketPriceMsg("");
-    try {
-      const res = await fetch("/api/market-price", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ keyword: kw.keyword, model_number: kw.model_number ?? "" }),
-      });
-      const data = await res.json();
-      if (!res.ok || !data.price) {
-        setMarketPriceMsg(data.error ?? "取得失敗");
-      } else {
-        onChange({ ...kw, max_price: data.price });
-        setMarketPriceMsg(`相場 ¥${data.price.toLocaleString()}（${data.samples}件）→ 上限価格に設定`);
-      }
-    } catch {
-      setMarketPriceMsg("取得失敗");
-    } finally {
-      setMarketPriceLoading(false);
-    }
-  };
-
-  const learnFromLikes = async () => {
-    setProposalLoading(true);
-    setProposal(null);
-    setProposalError("");
-    try {
-      const res = await fetch("/api/learn-preference", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ keyword_config: kw, liked_items: likedItems }),
-      });
-      const data = await res.json();
-      if (!res.ok || !data.ok) throw new Error(data.error || "学習に失敗しました");
-      setProposal({
-        note: data.note,
-        exclude_words: data.exclude_words,
-        require_words: data.require_words,
-        explanation: data.explanation,
-      });
     } catch (e) {
-      setProposalError(e instanceof Error ? e.message : "学習に失敗しました");
+      setResult({ ok: false, status: 0, body: { error: (e as Error).message } });
     } finally {
-      setProposalLoading(false);
+      setRunning(false);
     }
+  }, [built, demo, apiKey, payload]);
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === "Enter") run();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [run]);
+
+  const saveKey = (v: string) => {
+    setApiKey(v);
+    safeSet(KEY_STORAGE, v.trim());
   };
 
-  const applyProposal = () => {
-    if (!proposal) return;
-    const parts = [proposal.note];
-    if (proposal.exclude_words.length > 0)
-      parts.push(`NGワード: ${proposal.exclude_words.join(", ")}`);
-    if (proposal.require_words.length > 0)
-      parts.push(`必須: ${proposal.require_words.join(", ")}`);
-    onChange({
-      ...kw,
-      note: parts.filter(Boolean).join("\n"),
-      exclude_words: [],
-      require_words: [],
-    });
-    onClearLiked(likedItems.map((i) => i.id));
-    setProposal(null);
+  const code = useMemo(() => {
+    const json = JSON.stringify(payload, null, 2);
+    const viaOR = provider === "openrouter" || (!serverKey && apiKey.trim().startsWith("sk-or-"));
+    const url = viaOR ? "https://openrouter.ai/api/v1/systemone" : "https://api.typesafe.ai/v1/systemone";
+    const env = viaOR ? "OPENROUTER_API_KEY" : "TYPESAFE_API_KEY";
+    return `curl ${url} \\
+  -H "Authorization: Bearer $${env}" \\
+  -H "Content-Type: application/json" \\
+  -d '${json.replace(/'/g, "'\\''")}'`;
+  }, [payload, provider, serverKey, apiKey]);
+
+  const copy = async () => {
+    try {
+      await navigator.clipboard.writeText(code);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1500);
+    } catch {}
   };
+
+  const body = result?.body as
+    | { model?: string; answers?: Record<string, Answer>; usage?: { input_tokens: number; output_tokens: number } }
+    | undefined;
+  const answers = result?.ok ? body?.answers : undefined;
+  const errorText = result && !result.ok ? errorMessage(result) : null;
 
   return (
-    <div className={`border rounded-lg bg-white shadow-sm ${!kw.enabled ? "opacity-60" : ""}`}>
-      <div className="flex items-center gap-3 p-4">
-        <button
-          onClick={() => onChange({ ...kw, enabled: !kw.enabled })}
-          className={`w-10 h-6 rounded-full transition-colors flex-shrink-0 ${
-            kw.enabled ? "bg-green-500" : "bg-gray-300"
-          }`}
-        >
-          <div
-            className={`w-4 h-4 bg-white rounded-full transition-transform mx-1 ${
-              kw.enabled ? "translate-x-4" : "translate-x-0"
-            }`}
-          />
-        </button>
-
-        <span className="font-medium flex-1 truncate">{kw.keyword || "（キーワード未設定）"}</span>
-        {likedItems.length > 0 && (
-          <span className="text-xs text-red-400 font-medium">♥ {likedItems.length}</span>
-        )}
-        <span className="text-sm text-gray-500">
-          {(kw.min_price ?? 0) > 0 ? `¥${kw.min_price.toLocaleString()}〜` : ""}¥{kw.max_price.toLocaleString()}
-        </span>
-
-        <button onClick={() => setExpanded(!expanded)} className="text-gray-400 hover:text-gray-600">
-          {expanded ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
-        </button>
-        <button onClick={onDelete} className="text-red-400 hover:text-red-600">
-          <Trash2 size={18} />
-        </button>
+    <div className="max-w-5xl mx-auto px-4 py-6">
+      {/* ヘッダー */}
+      <div className="flex items-start justify-between gap-3 mb-5">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
+            <Sparkles className="text-indigo-500" size={22} /> Jev プレイグラウンド
+          </h1>
+          <p className="text-sm text-gray-500 mt-0.5">
+            テキストを渡して「質問」を定義すると、Jevが型付きの判断（はい/いいえ・選択・スコア）を確率つきで返します
+          </p>
+        </div>
       </div>
 
-      {expanded && (
-        <div className="border-t px-4 pb-4 pt-3 space-y-4">
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div>
-              <label className="text-sm font-medium text-gray-700">キーワード</label>
-              <input
-                type="text"
-                value={kw.keyword}
-                onChange={(e) => onChange({ ...kw, keyword: e.target.value })}
-                className="mt-1 w-full border rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
-              />
-            </div>
-            <div>
-              <label className="text-sm font-medium text-gray-700">型番・モデル名（任意）</label>
-              <input
-                type="text"
-                value={kw.model_number ?? ""}
-                onChange={(e) => onChange({ ...kw, model_number: e.target.value })}
-                placeholder="例: BenQ EW2880U, iPhone 14 Pro"
-                className="mt-1 w-full border rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
-              />
-            </div>
-            <div className="sm:col-span-2">
-              <label className="text-sm font-medium text-gray-700">価格帯</label>
-              <div className="mt-2 space-y-3">
-                <div>
-                  <div className="flex items-center justify-between text-xs mb-1">
-                    <span className="text-gray-500">最低価格</span>
-                    <div className="flex items-center gap-1">
-                      <span className="text-gray-400">¥</span>
-                      <input
-                        type="number"
-                        min={0}
-                        max={kw.max_price}
-                        step={500}
-                        value={kw.min_price ?? 0}
-                        onChange={(e) => {
-                          const val = Math.min(Number(e.target.value), kw.max_price);
-                          onChange({ ...kw, min_price: Math.max(0, val) });
-                        }}
-                        className="w-24 border rounded px-2 py-0.5 text-xs text-right font-medium text-gray-700 focus:outline-none focus:ring-1 focus:ring-blue-400"
-                      />
-                      <span className="text-gray-400 text-xs">円〜</span>
-                    </div>
-                  </div>
-                  <input
-                    type="range"
-                    min={0}
-                    max={kw.max_price}
-                    step={500}
-                    value={kw.min_price ?? 0}
-                    onChange={(e) => {
-                      const val = Math.min(Number(e.target.value), kw.max_price);
-                      onChange({ ...kw, min_price: Math.max(0, val) });
-                    }}
-                    style={{ touchAction: "none" }}
-                    className="w-full accent-blue-500"
-                  />
-                  <p className="text-xs text-gray-300">{(kw.min_price ?? 0) === 0 ? "0円 = 制限なし" : ""}</p>
-                </div>
-                <div>
-                  <div className="flex items-center justify-between text-xs mb-1">
-                    <div className="flex items-center gap-2">
-                      <span className="text-gray-500">上限価格</span>
-                      <button
-                        onClick={fetchMarketPrice}
-                        disabled={marketPriceLoading || !kw.keyword.trim()}
-                        className="px-2 py-0.5 text-xs rounded bg-blue-50 text-blue-600 border border-blue-200 hover:bg-blue-100 disabled:opacity-40 disabled:cursor-not-allowed"
-                      >
-                        {marketPriceLoading ? "取得中…" : "相場取得"}
-                      </button>
-                    </div>
-                    <div className="flex items-center gap-1">
-                      <span className="text-gray-400">¥</span>
-                      <input
-                        type="number"
-                        min={kw.min_price ?? 0}
-                        max={300000}
-                        step={500}
-                        value={kw.max_price}
-                        onChange={(e) => {
-                          const val = Math.max(kw.min_price ?? 0, Math.min(300000, Number(e.target.value)));
-                          onChange({ ...kw, max_price: val });
-                        }}
-                        className="w-28 border rounded px-2 py-0.5 text-xs text-right font-medium text-gray-700 focus:outline-none focus:ring-1 focus:ring-blue-400"
-                      />
-                      <span className="text-gray-400 text-xs">円以下</span>
-                    </div>
-                  </div>
-                  <input
-                    type="range"
-                    min={kw.min_price ?? 0}
-                    max={300000}
-                    step={500}
-                    value={kw.max_price}
-                    onChange={(e) => {
-                      const val = Math.max(kw.min_price ?? 0, Math.min(300000, Number(e.target.value)));
-                      onChange({ ...kw, max_price: val });
-                    }}
-                    style={{ touchAction: "none" }}
-                    className="w-full accent-blue-500"
-                  />
-                  {marketPriceMsg && (
-                    <p className={`text-xs mt-1 ${marketPriceMsg.includes("失敗") || marketPriceMsg.includes("エラー") || marketPriceMsg.includes("不足") ? "text-red-500" : "text-green-600"}`}>
-                      {marketPriceMsg}
-                    </p>
-                  )}
-                </div>
+      {/* 接続設定 */}
+      <div className="bg-white rounded-xl border border-gray-200 p-4 mb-4">
+        <div className="flex flex-wrap items-center gap-3">
+          <div className="flex items-center gap-2 flex-1 min-w-[240px]">
+            <KeyRound size={16} className="text-gray-400 shrink-0" />
+            {serverKey ? (
+              <span className="text-sm text-emerald-600">
+                サーバーの{provider === "openrouter" ? "OpenRouter" : "TypeSafe"}キーを使用中
+              </span>
+            ) : (
+              <>
+                <input
+                  type={showKey ? "text" : "password"}
+                  className="flex-1 border border-gray-200 rounded-lg px-3 py-1.5 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-indigo-200"
+                  placeholder="OpenRouterキー（sk-or-…）またはTypeSafeキー"
+                  value={apiKey}
+                  onChange={(e) => saveKey(e.target.value)}
+                  onBlur={() => apiKey && loadModels(apiKey)}
+                />
+                <button onClick={() => setShowKey((v) => !v)} className="text-xs text-gray-400 hover:text-gray-600">
+                  {showKey ? "隠す" : "表示"}
+                </button>
+              </>
+            )}
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-gray-500">モデル</span>
+            <input
+              list="jev-models"
+              className="border border-gray-200 rounded-lg px-2 py-1.5 text-sm font-mono w-40 focus:outline-none focus:ring-2 focus:ring-indigo-200"
+              value={model}
+              onChange={(e) => setModel(e.target.value)}
+            />
+            <datalist id="jev-models">
+              {["jev-latest", ...models.filter((m) => m !== "jev-latest")].map((m) => (
+                <option key={m} value={m} />
+              ))}
+            </datalist>
+          </div>
+          <label className="flex items-center gap-2 text-sm cursor-pointer select-none">
+            <input
+              type="checkbox"
+              checked={demo}
+              onChange={(e) => setDemo(e.target.checked)}
+              disabled={!hasKey}
+              className="accent-indigo-600"
+            />
+            <span className={hasKey ? "text-gray-700" : "text-gray-400"}>デモモード</span>
+          </label>
+        </div>
+        {!hasKey && (
+          <p className="text-xs text-amber-600 mt-2 flex items-center gap-1">
+            <Info size={12} /> APIキー未設定のためデモモード（ダミー結果）で動作します。キーはこのブラウザにのみ保存されます。
+          </p>
+        )}
+      </div>
+
+      {/* テンプレート */}
+      <div className="flex gap-2 overflow-x-auto pb-1 mb-4">
+        {TEMPLATES.map((t, i) => (
+          <button
+            key={t.title}
+            onClick={() => applyTemplate(i)}
+            className={`shrink-0 text-sm px-3 py-1.5 rounded-full border transition ${
+              activeTemplate === i
+                ? "bg-indigo-600 text-white border-indigo-600"
+                : "bg-white text-gray-600 border-gray-200 hover:border-indigo-300"
+            }`}
+          >
+            {t.emoji} {t.title}
+          </button>
+        ))}
+      </div>
+
+      <div className="grid lg:grid-cols-2 gap-4">
+        {/* 左: 入力 */}
+        <div className="space-y-4">
+          <section>
+            <div className="flex items-center justify-between mb-2">
+              <h2 className="text-sm font-semibold text-gray-700">① 判断材料（state）</h2>
+              <div className="flex gap-1 bg-gray-100 p-0.5 rounded-md">
+                {(["text", "json"] as const).map((m) => (
+                  <button
+                    key={m}
+                    onClick={() => setStateMode(m)}
+                    className={`text-xs px-2 py-0.5 rounded ${stateMode === m ? "bg-white shadow-sm font-semibold" : "text-gray-500"}`}
+                  >
+                    {m === "text" ? "テキスト" : "JSON"}
+                  </button>
+                ))}
               </div>
             </div>
-          </div>
-
-
-          <div>
-            <label className="text-sm font-medium text-gray-700">監視プラットフォーム</label>
-            <div className="flex gap-4 mt-2">
-              {(["mercari", "rakuma", "paypay"] as const).map((p) => {
-                const labels = { mercari: "メルカリ", rakuma: "ラクマ", paypay: "PayPayフリマ" };
-                return (
-                  <label key={p} className="flex items-center gap-2 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={kw.platforms[p]}
-                      onChange={(e) =>
-                        onChange({ ...kw, platforms: { ...kw.platforms, [p]: e.target.checked } })
-                      }
-                      className="w-4 h-4 rounded"
-                    />
-                    <span className="text-sm">{labels[p]}</span>
-                  </label>
-                );
-              })}
-            </div>
-          </div>
-
-
-          <div>
-            <label className="text-sm font-medium text-gray-700">ジャンル（カテゴリ絞り込み）</label>
-            <div className="flex gap-2 mt-1">
-              <select
-                value={kw.genre ?? ""}
-                onChange={(e) => onChange({ ...kw, genre: e.target.value })}
-                className="flex-1 border rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 bg-white"
-              >
-                {Object.entries(GENRE_LABELS).map(([value, label]) => (
-                  <option key={value} value={value}>
-                    {label}
-                  </option>
-                ))}
-              </select>
-              <button
-                onClick={detectGenre}
-                disabled={genreDetecting || !kw.keyword.trim()}
-                className="px-3 py-2 text-xs font-medium bg-purple-100 hover:bg-purple-200 disabled:bg-gray-100 text-purple-700 disabled:text-gray-400 rounded transition-colors whitespace-nowrap"
-              >
-                {genreDetecting ? "判定中…" : "AIで自動設定"}
-              </button>
-            </div>
-            <p className="text-xs text-gray-400 mt-0.5">
-              ジャンルを設定するとカテゴリを絞り込んで検索します。「AIで自動設定」で自動判別します。
-            </p>
-          </div>
-
-          <div>
-            <label className="text-sm font-medium text-gray-700">
-              AIへの指示
-            </label>
             <textarea
-              value={kw.note}
-              onChange={(e) => onChange({ ...kw, note: e.target.value })}
-              placeholder={"例: 24インチ以上のもの。ジャンク品・訳あり品は除外。白または黒のみ。動作確認済みの良品が欲しい。"}
-              rows={3}
-              className="mt-1 w-full border rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 resize-y"
+              className={`w-full h-36 border border-gray-200 rounded-xl p-3 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-200 ${
+                stateMode === "json" ? "font-mono text-xs" : ""
+              }`}
+              value={stateText}
+              onChange={(e) => setStateText(e.target.value)}
+              placeholder="判断してほしい文章やデータ"
             />
-            <p className="text-xs text-gray-400 mt-0.5">
-              自然文で条件を書いてください。AIが文脈を理解して判定します。
-            </p>
-          </div>
+          </section>
 
-          {/* ❤️ 学習ボタン */}
-          {likedItems.length >= 3 && (
-            <div className="rounded-lg bg-pink-50 border border-pink-200 p-3 space-y-2">
-              <p className="text-sm font-medium text-pink-800">
-                ❤️ {likedItems.length}件のお気に入りから学習
-              </p>
-              <p className="text-xs text-pink-600">
-                お気に入りした商品の共通点をAIが分析し、検索条件（note・除外ワード・必須ワード）を自動改善します。
-              </p>
-              {proposalError && (
-                <p className="text-xs text-red-600 bg-red-50 rounded p-2">{proposalError}</p>
+          <section>
+            <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
+              <h2 className="text-sm font-semibold text-gray-700">② 質問（questions）</h2>
+              <div className="flex gap-1">
+                {(Object.keys(TYPE_META) as QType[]).map((t) => (
+                  <button
+                    key={t}
+                    onClick={() => setDrafts((d) => [...d, withUid(blank(t, `q${d.length + 1}`))])}
+                    className={`text-xs px-2 py-1 rounded-md flex items-center gap-0.5 whitespace-nowrap ${TYPE_META[t].color} hover:opacity-80`}
+                  >
+                    <Plus size={12} />
+                    {TYPE_META[t].label}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div className="space-y-3">
+              {drafts.map((q, i) => (
+                <QuestionEditor
+                  key={q.uid}
+                  q={q}
+                  index={i}
+                  onChange={(nq) => setDrafts((d) => d.map((x) => (x.uid === q.uid ? nq : x)))}
+                  onRemove={() => setDrafts((d) => d.filter((x) => x.uid !== q.uid))}
+                />
+              ))}
+              {drafts.length === 0 && (
+                <p className="text-sm text-gray-400 text-center py-6 border border-dashed rounded-xl">
+                  上のボタンから質問を追加してください
+                </p>
               )}
-              {!proposal && (
-                <button
-                  onClick={learnFromLikes}
-                  disabled={proposalLoading}
-                  className="w-full bg-pink-500 hover:bg-pink-600 disabled:bg-pink-300 text-white text-sm font-medium py-2 rounded-lg flex items-center justify-center gap-2 transition-colors"
-                >
-                  {proposalLoading ? (
-                    <>
-                      <RefreshCw size={14} className="animate-spin" />
-                      AIが分析中...
-                    </>
-                  ) : (
-                    <>
-                      <Heart size={14} />
-                      好みを分析して条件を改善
-                    </>
-                  )}
-                </button>
-              )}
-              {proposal && (
-                <div className="space-y-2">
-                  <div className="text-xs bg-white border border-pink-200 rounded p-2 space-y-1.5">
-                    <p className="font-medium text-gray-700">AIの提案（「AIへの指示」に反映されます）:</p>
-                    <p className="text-gray-700 whitespace-pre-wrap">
-                      {[
-                        proposal.note,
-                        proposal.exclude_words.length > 0 ? `NGワード: ${proposal.exclude_words.join(", ")}` : "",
-                        proposal.require_words.length > 0 ? `必須: ${proposal.require_words.join(", ")}` : "",
-                      ].filter(Boolean).join("\n")}
-                    </p>
-                    <p className="text-gray-400 italic border-t border-pink-100 pt-1">
-                      {proposal.explanation}
-                    </p>
-                  </div>
-                  <div className="flex gap-2">
-                    <button
-                      onClick={applyProposal}
-                      className="flex-1 bg-pink-500 hover:bg-pink-600 text-white text-sm font-medium py-2 rounded-lg transition-colors"
-                    >
-                      適用する
-                    </button>
-                    <button
-                      onClick={() => setProposal(null)}
-                      className="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-600 text-sm font-medium py-2 rounded-lg transition-colors"
-                    >
-                      キャンセル
-                    </button>
-                  </div>
-                </div>
+            </div>
+          </section>
+        </div>
+
+        {/* 右: 実行と結果 */}
+        <div className="space-y-4 lg:sticky lg:top-4 self-start">
+          <button
+            onClick={run}
+            disabled={running}
+            className="w-full bg-indigo-600 hover:bg-indigo-700 disabled:opacity-60 text-white font-semibold rounded-xl py-3 flex items-center justify-center gap-2 transition"
+          >
+            {running ? <Loader2 size={18} className="animate-spin" /> : <Play size={18} />}
+            {running ? "判断中…" : demo ? "デモ実行" : "Jevに聞く"}
+            <span className="text-xs font-normal opacity-70 hidden sm:inline">Ctrl/⌘ + Enter</span>
+          </button>
+
+          {inputError && (
+            <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 text-amber-700 text-sm">{inputError}</div>
+          )}
+          {errorText && (
+            <div className="bg-rose-50 border border-rose-200 rounded-lg p-3 text-rose-700 text-sm break-words">
+              {errorText}
+            </div>
+          )}
+
+          {answers && (
+            <section className="space-y-3">
+              <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-gray-500">
+                <h2 className="text-sm font-semibold text-gray-700">③ 結果</h2>
+                {result?.demo && (
+                  <span className="bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full">デモ：ランダムなダミー値</span>
+                )}
+                {body?.model && <span className="font-mono">{body.model}</span>}
+                {!result?.demo && result?.provider && (
+                  <span>via {result.provider === "openrouter" ? "OpenRouter" : "TypeSafe"}</span>
+                )}
+                {!result?.demo && result?.latency_ms != null && <span>{result.latency_ms} ms</span>}
+                {!result?.demo && body?.usage && (
+                  <span>
+                    tokens in {body.usage.input_tokens} / out {body.usage.output_tokens}
+                  </span>
+                )}
+              </div>
+              {Object.entries(answers).map(([name, a]) => (
+                <AnswerCard key={name} name={name} answer={a} draft={drafts.find((d) => d.name.trim() === name)} />
+              ))}
+            </section>
+          )}
+
+          {!answers && !errorText && !running && (
+            <div className="text-center text-sm text-gray-400 border border-dashed rounded-xl py-10">
+              テンプレートを選ぶか、判断材料と質問を入力して実行してください
+            </div>
+          )}
+
+          {result && (
+            <div className="bg-white rounded-xl border border-gray-200">
+              <button
+                onClick={() => setShowRaw((v) => !v)}
+                className="w-full flex items-center justify-between px-4 py-2 text-sm text-gray-600"
+              >
+                レスポンスJSON {showRaw ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+              </button>
+              {showRaw && (
+                <pre className="text-xs bg-gray-900 text-gray-100 p-3 rounded-b-xl overflow-x-auto max-h-80">
+                  {JSON.stringify(result.body, null, 2)}
+                </pre>
               )}
             </div>
           )}
+
+          <div className="bg-white rounded-xl border border-gray-200">
+            <button
+              onClick={() => setShowCode((v) => !v)}
+              className="w-full flex items-center justify-between px-4 py-2 text-sm text-gray-600"
+            >
+              このリクエストをcurlで再現 {showCode ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+            </button>
+            {showCode && (
+              <div className="relative">
+                <button
+                  onClick={copy}
+                  className="absolute top-2 right-2 text-gray-300 hover:text-white p-1"
+                  aria-label="コピー"
+                >
+                  {copied ? <Check size={14} /> : <Copy size={14} />}
+                </button>
+                <pre className="text-xs bg-gray-900 text-gray-100 p-3 rounded-b-xl overflow-x-auto max-h-80">{code}</pre>
+              </div>
+            )}
+          </div>
+
+          <details className="text-xs text-gray-500 bg-white rounded-xl border border-gray-200 px-4 py-2">
+            <summary className="cursor-pointer text-sm text-gray-600">Jevとは？</summary>
+            <ul className="list-disc pl-4 mt-2 space-y-1">
+              <li>TypeSafe AI の「System One」モデル。文章を生成せず、決められた答えの型で判断だけを返す</li>
+              <li>はい/いいえ（noul）：Yesの確率 0〜1</li>
+              <li>選択（choice）：選んだラベル＋各ラベルの確率＋確信度</li>
+              <li>スコア（score）：段階評価の期待値（小数）＋各段階の確率</li>
+              <li>分類・ルーティング・緊急度判定・人間レビュー要否などの繰り返し判断向け</li>
+            </ul>
+          </details>
         </div>
-      )}
+      </div>
     </div>
   );
 }
 
-// ==================== メインページ ====================
-export default function Home() {
-  const [config, setConfig] = useState<Config | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
-  const [error, setError] = useState("");
-  const [success, setSuccess] = useState("");
-  const [githubConfigured, setGithubConfigured] = useState(false);
-  const [activeTab, setActiveTab] = useState<"arrivals" | "settings">("arrivals");
-  const [filter, setFilter] = useState<"all" | "ai_ok" | "recent">("all");
-  const [activeKeyword, setActiveKeyword] = useState<string | null>(null);
-
-  const [lastSeenAt] = useState<string>(() => {
-    if (typeof window === "undefined") return new Date(0).toISOString();
-    return localStorage.getItem("arrivals_last_seen_at") ?? new Date(0).toISOString();
-  });
-
-  const [likedIds, setLikedIds] = useState<Set<string>>(() => {
-    if (typeof window === "undefined") return new Set();
-    try {
-      const stored = localStorage.getItem("liked_items");
-      return new Set(JSON.parse(stored ?? "[]") as string[]);
-    } catch {
-      return new Set();
-    }
-  });
-
-  const toggleLike = useCallback((itemId: string) => {
-    setLikedIds((prev) => {
-      const next = new Set(prev);
-      if (next.has(itemId)) next.delete(itemId);
-      else next.add(itemId);
-      localStorage.setItem("liked_items", JSON.stringify(Array.from(next)));
-      return next;
-    });
-  }, []);
-
-  const clearLikedIds = useCallback((ids: string[]) => {
-    setLikedIds((prev) => {
-      const next = new Set(prev);
-      ids.forEach((id) => next.delete(id));
-      localStorage.setItem("liked_items", JSON.stringify(Array.from(next)));
-      return next;
-    });
-  }, []);
-
-  const [dislikedIds, setDislikedIds] = useState<Set<string>>(() => {
-    if (typeof window === "undefined") return new Set();
-    try {
-      const stored = localStorage.getItem("disliked_items");
-      return new Set(JSON.parse(stored ?? "[]") as string[]);
-    } catch {
-      return new Set();
-    }
-  });
-
-  const dislikeItem = useCallback((itemId: string) => {
-    setDislikedIds((prev) => {
-      const next = new Set(prev);
-      next.add(itemId);
-      localStorage.setItem("disliked_items", JSON.stringify(Array.from(next)));
-      return next;
-    });
-  }, []);
-
-  useEffect(() => {
-    const isConfigured = !!loadGitHubConfig();
-    setGithubConfigured(isConfigured);
-    if (!isConfigured) setActiveTab("settings");
-  }, []);
-
-  const load = useCallback(async () => {
-    try {
-      setLoading(true);
-      setError("");
-      const data = await fetchConfig();
-      data.keywords = (data.keywords ?? []).map((k) => ({
-        ...k,
-        // 旧フィルター項目をnoteに統合してクリア（UI非表示フィールドの残留対策）
-        note: (() => {
-          const parts: string[] = [k.note ?? ""];
-          const ex = (k.exclude_words ?? []).filter(Boolean);
-          const req = (k.require_words ?? []).filter(Boolean);
-          if (ex.length > 0) parts.push(`NGワード: ${ex.join(", ")}`);
-          if (req.length > 0) parts.push(`必須: ${req.join(", ")}`);
-          return parts.filter(Boolean).join("\n");
-        })(),
-        exclude_words: [],
-        require_words: [],
-      }));
-      setConfig(data);
-    } catch {
-      setError("設定の読み込みに失敗しました。");
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    load();
-  }, [load]);
-
-  useEffect(() => {
-    if (activeTab === "arrivals" && config && typeof window !== "undefined") {
-      localStorage.setItem("arrivals_last_seen_at", new Date().toISOString());
-    }
-  }, [activeTab, config]);
-
-  const unreadCount = useMemo(() => {
-    if (!config) return 0;
-    return config.history.filter((item) => item.detected_at > lastSeenAt).length;
-  }, [config, lastSeenAt]);
-
-  const keywordConfigMap = useMemo(() => {
-    const map: Record<string, KeywordConfig> = {};
-    config?.keywords.forEach((kw) => { map[kw.keyword] = kw; });
-    return map;
-  }, [config]);
-
-  const filteredHistory = useMemo(() => {
-    if (!config) return [];
-    const cutoff24h = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
-    return config.history
-      .filter((item) => {
-        if (dislikedIds.has(item.id)) return false;
-        if (filter === "ai_ok") return item.ai_ok;
-        if (filter === "recent") return item.detected_at >= cutoff24h;
-        return true;
-      })
-      .filter((item) => {
-        const kw = keywordConfigMap[item.keyword];
-        if (!kw) return true;
-        const nameLower = item.name.toLowerCase();
-        // ジャンル除外
-        const genre = kw.genre ?? "";
-        const genreExcludes = GENRE_EXCLUDE_WORDS_FRONT[genre] ?? [];
-        if (genreExcludes.some((w) => nameLower.includes(w.toLowerCase()))) return false;
-        return true;
-      })
-      .sort((a, b) => b.detected_at.localeCompare(a.detected_at));
-  }, [config, filter, dislikedIds, keywordConfigMap]);
-
-  // キーワードごとにグループ化（filteredHistory は新着順ソート済みなので先頭が最新）
-  const groupedHistory = useMemo(() => {
-    const groups = new Map<string, HistoryItem[]>();
-    for (const item of filteredHistory) {
-      const existing = groups.get(item.keyword) ?? [];
-      groups.set(item.keyword, [...existing, item]);
-    }
-    return Array.from(groups.entries());
-  }, [filteredHistory]);
-
-  const handleSave = async () => {
-    if (!config) return;
-    setSaving(true);
-    setError("");
-    setSuccess("");
-    try {
-      await saveConfig(config);
-      setSuccess("設定を保存しました！");
-      setTimeout(() => setSuccess(""), 3000);
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "保存に失敗しました。");
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  const addKeyword = () => {
-    if (!config) return;
-    const newKw: KeywordConfig = {
-      id: Date.now().toString(),
-      keyword: "",
-      min_price: 0,
-      max_price: 10000,
-      platforms: { mercari: true, rakuma: true, paypay: true },
-      precious_metal_mode: false,
-      metal_type: "silver",
-      exclude_words: [],
-      require_words: [],
-      note: "",
-      enabled: true,
-      genre: "",
-      exclude_junk: true,
-      model_number: "",
-    };
-    setConfig({ ...config, keywords: [...config.keywords, newKw] });
-  };
-
-  const updateKeyword = (id: string, updated: KeywordConfig) => {
-    if (!config) return;
-    setConfig({
-      ...config,
-      keywords: config.keywords.map((k) => (k.id === id ? updated : k)),
-    });
-  };
-
-  const deleteKeyword = (id: string) => {
-    if (!config) return;
-    setConfig({ ...config, keywords: config.keywords.filter((k) => k.id !== id) });
-  };
-
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-center">
-          <div className="animate-spin w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full mx-auto mb-3" />
-          <p className="text-gray-500">読み込み中...</p>
-        </div>
-      </div>
-    );
-  }
-
-  if (!config) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-center text-red-500">
-          <p>{error || "設定の読み込みに失敗しました。"}</p>
-          <button onClick={load} className="mt-3 text-blue-500 underline">
-            再試行
-          </button>
-        </div>
-      </div>
-    );
-  }
-
-  return (
-    <div className="max-w-3xl mx-auto px-4 py-6">
-      {/* ヘッダー */}
-      <div className="flex items-center justify-between mb-5">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">🛍️ 買い物ウォッチ</h1>
-          <p className="text-sm text-gray-500 mt-0.5">
-            メルカリ・ラクマ・PayPayフリマの新着を通知
-          </p>
-        </div>
-        <div className="flex items-center gap-3">
-          <a href="/jev" className="text-xs text-indigo-600 border border-indigo-200 rounded-full px-3 py-1 hover:bg-indigo-50">
-            Jevを試す
-          </a>
-          <button onClick={load} className="text-gray-400 hover:text-gray-600">
-            <RefreshCw size={20} />
-          </button>
-        </div>
-      </div>
-
-      {/* アラート */}
-      {error && (
-        <div className="bg-red-50 border border-red-200 rounded-lg p-3 mb-4 text-red-700 text-sm">
-          {error}
-        </div>
-      )}
-      {success && (
-        <div className="bg-green-50 border border-green-200 rounded-lg p-3 mb-4 text-green-700 text-sm">
-          {success}
-        </div>
-      )}
-
-      {/* タブ */}
-      <div className="flex gap-1 mb-4 bg-gray-100 p-1 rounded-lg">
-        <button
-          onClick={() => setActiveTab("arrivals")}
-          className={`flex-1 py-2 text-sm font-medium rounded-md transition-colors flex items-center justify-center gap-1.5 ${
-            activeTab === "arrivals" ? "bg-white shadow text-gray-900" : "text-gray-500"
-          }`}
-        >
-          🛍️ 新着アイテム
-          {unreadCount > 0 && (
-            <span className="bg-teal-500 text-white text-xs px-1.5 py-0.5 rounded-full font-bold leading-none">
-              {unreadCount}
-            </span>
-          )}
-        </button>
-        <button
-          onClick={() => setActiveTab("settings")}
-          className={`flex-1 py-2 text-sm font-medium rounded-md transition-colors flex items-center justify-center gap-1.5 ${
-            activeTab === "settings" ? "bg-white shadow text-gray-900" : "text-gray-500"
-          }`}
-        >
-          ⚙️ 検索設定
-          {!githubConfigured && (
-            <span className="bg-amber-400 text-white text-xs px-1.5 py-0.5 rounded-full font-bold leading-none">
-              !
-            </span>
-          )}
-        </button>
-      </div>
-
-      {/* 新着タブ */}
-      {activeTab === "arrivals" && (
-        <div>
-          {!githubConfigured && (
-            <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 mb-3 text-sm">
-              <p className="font-medium text-amber-800">GitHub接続が未設定です</p>
-              <p className="text-amber-700 text-xs mt-1">
-                「検索設定」タブでGitHubトークンを設定するとキーワードの保存・監視が開始されます。
-              </p>
-              <button
-                onClick={() => setActiveTab("settings")}
-                className="mt-2 text-xs text-blue-600 underline"
-              >
-                設定タブへ →
-              </button>
-            </div>
-          )}
-
-          {/* タイプフィルター */}
-          <div className="flex gap-2 mb-2">
-            {(["all", "ai_ok", "recent"] as const).map((f) => {
-              const labels = { all: "すべて", ai_ok: "✓ AI推薦", recent: "24時間以内" };
-              return (
-                <button
-                  key={f}
-                  onClick={() => setFilter(f)}
-                  className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
-                    filter === f
-                      ? "bg-blue-600 text-white"
-                      : "bg-gray-100 text-gray-600 hover:bg-gray-200"
-                  }`}
-                >
-                  {labels[f]}
-                </button>
-              );
-            })}
-          </div>
-
-          {/* キーワード絞り込みチップ */}
-          {groupedHistory.length >= 2 && (
-            <div className="flex flex-wrap gap-1.5 mb-3">
-              <button
-                onClick={() => setActiveKeyword(null)}
-                className={`px-3 py-1 rounded-full text-xs font-medium transition-colors ${
-                  activeKeyword === null
-                    ? "bg-gray-700 text-white"
-                    : "bg-gray-100 text-gray-500 hover:bg-gray-200"
-                }`}
-              >
-                全条件
-              </button>
-              {groupedHistory.map(([kw, items]) => (
-                <button
-                  key={kw}
-                  onClick={() => setActiveKeyword(activeKeyword === kw ? null : kw)}
-                  className={`px-3 py-1 rounded-full text-xs font-medium transition-colors ${
-                    activeKeyword === kw
-                      ? "bg-indigo-600 text-white"
-                      : "bg-gray-100 text-gray-600 hover:bg-gray-200"
-                  }`}
-                >
-                  #{kw}
-                  <span className="ml-1 opacity-70">{items.length}</span>
-                </button>
-              ))}
-            </div>
-          )}
-
-          {groupedHistory.length > 0 && (
-            <p className="text-xs text-gray-400 mb-3">
-              各商品の ♡ を押すとお気に入り登録 → 3件以上で「検索設定」タブから好みを学習できます
-            </p>
-          )}
-
-          {/* キーワード別グループ表示 */}
-          <div className="space-y-5">
-            {groupedHistory.length === 0 ? (
-              <div className="text-center py-12 text-gray-400">
-                {filter === "all" && (
-                  <>
-                    <ShoppingBag size={32} className="mx-auto mb-2 opacity-40" />
-                    <p>まだ新着アイテムがありません</p>
-                    <p className="text-sm mt-1">検索設定でキーワードを登録すると表示されます</p>
-                  </>
-                )}
-                {filter === "ai_ok" && <p>AI推薦の商品はまだありません</p>}
-                {filter === "recent" && <p>直近24時間の新着はありません</p>}
-              </div>
-            ) : (
-              groupedHistory
-                .filter(([kw]) => activeKeyword === null || kw === activeKeyword)
-                .map(([keyword, items]) => (
-                  <div key={keyword}>
-                    <div className="flex items-center gap-2 mb-2 px-1">
-                      <button
-                        onClick={() => setActiveKeyword(activeKeyword === keyword ? null : keyword)}
-                        className="text-sm font-bold text-gray-800 hover:text-indigo-600 transition-colors"
-                      >
-                        #{keyword}
-                      </button>
-                      <span className="text-xs text-gray-400">{items.length}件</span>
-                      {items.some((i) => likedIds.has(i.id)) && (
-                        <span className="text-xs text-red-400 font-medium">
-                          ♥ {items.filter((i) => likedIds.has(i.id)).length}
-                        </span>
-                      )}
-                    </div>
-                    <div className="space-y-2">
-                      {items.map((item) => (
-                        <ArrivalCard
-                          key={item.id}
-                          item={item}
-                          isNew={item.detected_at > lastSeenAt}
-                          isLiked={likedIds.has(item.id)}
-                          onToggleLike={() => toggleLike(item.id)}
-                          onDislike={() => dislikeItem(item.id)}
-                        />
-                      ))}
-                    </div>
-                  </div>
-                ))
-            )}
-          </div>
-        </div>
-      )}
-
-      {/* 設定タブ */}
-      {activeTab === "settings" && (
-        <div className="space-y-3">
-          {/* GitHub接続設定 */}
-          <GitHubSettingsCard
-            onConfigured={() => {
-              setGithubConfigured(true);
-              load();
-            }}
-          />
-
-          {/* 監視ON/OFF */}
-          <div
-            className={`flex items-center justify-between p-3 rounded-xl ${
-              config.monitoring_enabled
-                ? "bg-green-50 border border-green-200"
-                : "bg-gray-50 border border-gray-200"
-            }`}
-          >
-            <div className="flex items-center gap-2">
-              <Power
-                size={18}
-                className={config.monitoring_enabled ? "text-green-600" : "text-gray-400"}
-              />
-              <div>
-                <p className="font-medium text-sm text-gray-800">自動監視</p>
-                <p
-                  className={`text-xs ${
-                    config.monitoring_enabled ? "text-green-600" : "text-gray-400"
-                  }`}
-                >
-                  {config.monitoring_enabled ? "稼働中 — 約5〜10分ごとに実行" : "停止中"}
-                </p>
-              </div>
-            </div>
-            <button
-              onClick={() =>
-                setConfig({ ...config, monitoring_enabled: !config.monitoring_enabled })
-              }
-              className={`w-11 h-6 rounded-full transition-colors ${
-                config.monitoring_enabled ? "bg-green-500" : "bg-gray-300"
-              }`}
-            >
-              <div
-                className={`w-4 h-4 bg-white rounded-full transition-transform mx-1 ${
-                  config.monitoring_enabled ? "translate-x-5" : "translate-x-0"
-                }`}
-              />
-            </button>
-          </div>
-
-          {/* 実行ログ */}
-          {config.last_run && (
-            <LastRunPanel lastRun={config.last_run} />
-          )}
-
-          {config.keywords.length === 0 && (
-            <div className="text-center py-8 text-gray-400">
-              <p>検索キーワードが登録されていません</p>
-              <p className="text-sm mt-1">下のボタンからキーワードを追加してください</p>
-            </div>
-          )}
-          {config.keywords.map((kw) => {
-            const likedForKw = config.history.filter(
-              (item) => item.keyword === kw.keyword && likedIds.has(item.id)
-            );
-            return (
-              <KeywordCard
-                key={kw.id}
-                kw={kw}
-                onChange={(updated) => updateKeyword(kw.id, updated)}
-                onDelete={() => deleteKeyword(kw.id)}
-                likedItems={likedForKw}
-                onClearLiked={clearLikedIds}
-              />
-            );
-          })}
-
-          <button
-            onClick={addKeyword}
-            className="w-full border-2 border-dashed border-gray-300 rounded-lg py-3 text-gray-500 hover:border-blue-400 hover:text-blue-500 transition-colors flex items-center justify-center gap-2"
-          >
-            <Plus size={18} />
-            キーワードを追加
-          </button>
-
-          <button
-            onClick={handleSave}
-            disabled={saving}
-            className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-blue-300 text-white font-semibold py-3 rounded-lg flex items-center justify-center gap-2 transition-colors"
-          >
-            <Save size={18} />
-            {saving ? "保存中..." : "設定を保存"}
-          </button>
-        </div>
-      )}
-    </div>
-  );
+function errorMessage(r: RunResult): string {
+  const b = r.body as any;
+  const detail =
+    typeof b === "string"
+      ? b
+      : b?.error?.message || b?.error || b?.detail || b?.message || (b ? JSON.stringify(b) : "");
+  const hint =
+    r.status === 401
+      ? "（APIキーを確認してください）"
+      : r.status === 429
+        ? "（レート制限です。少し待って再実行）"
+        : r.status === 422 || r.status === 400
+          ? "（質問の形式を確認してください）"
+          : "";
+  return `エラー ${r.status || ""}: ${typeof detail === "string" ? detail : JSON.stringify(detail)} ${hint}`.slice(0, 600);
 }
