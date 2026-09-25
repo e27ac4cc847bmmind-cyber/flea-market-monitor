@@ -60,6 +60,7 @@ interface RunResult {
   latency_ms?: number;
   request_id?: string | null;
   demo?: boolean;
+  provider?: "typesafe" | "openrouter";
   body: unknown;
 }
 
@@ -564,6 +565,7 @@ export default function JevPlayground() {
   const [apiKey, setApiKey] = useState("");
   const [showKey, setShowKey] = useState(false);
   const [serverKey, setServerKey] = useState(false);
+  const [provider, setProvider] = useState<"typesafe" | "openrouter" | null>(null);
   const [models, setModels] = useState<string[]>([]);
   const [model, setModel] = useState("jev-latest");
   const [demo, setDemo] = useState(false);
@@ -582,6 +584,7 @@ export default function JevPlayground() {
       const res = await fetch("/api/jev", { headers: key ? { "x-jev-key": key } : {} });
       const data = await res.json();
       setServerKey(!!data.server_key);
+      setProvider(data.provider ?? null);
       if (data.default_model) setModel((m) => (m === "jev-latest" ? data.default_model : m));
       const list = data?.body?.models;
       if (Array.isArray(list)) setModels(list.map((m: { name?: string }) => m.name).filter((n: unknown): n is string => typeof n === "string"));
@@ -661,11 +664,14 @@ export default function JevPlayground() {
 
   const code = useMemo(() => {
     const json = JSON.stringify(payload, null, 2);
-    return `curl https://api.typesafe.ai/v1/systemone \\
-  -H "Authorization: Bearer $TYPESAFE_API_KEY" \\
+    const viaOR = provider === "openrouter" || (!serverKey && apiKey.trim().startsWith("sk-or-"));
+    const url = viaOR ? "https://openrouter.ai/api/v1/systemone" : "https://api.typesafe.ai/v1/systemone";
+    const env = viaOR ? "OPENROUTER_API_KEY" : "TYPESAFE_API_KEY";
+    return `curl ${url} \\
+  -H "Authorization: Bearer $${env}" \\
   -H "Content-Type: application/json" \\
   -d '${json.replace(/'/g, "'\\''")}'`;
-  }, [payload]);
+  }, [payload, provider, serverKey, apiKey]);
 
   const copy = async () => {
     try {
@@ -704,13 +710,15 @@ export default function JevPlayground() {
           <div className="flex items-center gap-2 flex-1 min-w-[240px]">
             <KeyRound size={16} className="text-gray-400 shrink-0" />
             {serverKey ? (
-              <span className="text-sm text-emerald-600">サーバーのAPIキーを使用中</span>
+              <span className="text-sm text-emerald-600">
+                サーバーの{provider === "openrouter" ? "OpenRouter" : "TypeSafe"}キーを使用中
+              </span>
             ) : (
               <>
                 <input
                   type={showKey ? "text" : "password"}
                   className="flex-1 border border-gray-200 rounded-lg px-3 py-1.5 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-indigo-200"
-                  placeholder="TypeSafe APIキー（console.typesafe.ai で発行）"
+                  placeholder="OpenRouterキー（sk-or-…）またはTypeSafeキー"
                   value={apiKey}
                   onChange={(e) => saveKey(e.target.value)}
                   onBlur={() => apiKey && loadModels(apiKey)}
@@ -862,6 +870,9 @@ export default function JevPlayground() {
                   <span className="bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full">デモ：ランダムなダミー値</span>
                 )}
                 {body?.model && <span className="font-mono">{body.model}</span>}
+                {!result?.demo && result?.provider && (
+                  <span>via {result.provider === "openrouter" ? "OpenRouter" : "TypeSafe"}</span>
+                )}
                 {!result?.demo && result?.latency_ms != null && <span>{result.latency_ms} ms</span>}
                 {!result?.demo && body?.usage && (
                   <span>

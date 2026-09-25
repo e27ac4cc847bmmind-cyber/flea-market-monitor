@@ -1,24 +1,44 @@
 import { NextRequest, NextResponse } from "next/server";
 
-// TypeSafe AI (Jev) API プロキシ
+// Jev API プロキシ（TypeSafe 直 または OpenRouter 経由）
 // 仕様は公式SDK @typesafe-ai/sdk 0.6.0 準拠:
 //   POST {base}/v1/systemone  { model, state, questions }  Authorization: Bearer <key>
-//   GET  {base}/v1/models     -> { models: [...] }
-const BASE_URL = (process.env.TYPESAFE_BASE_URL || "https://api.typesafe.ai").replace(/\/+$/, "");
+//   GET  {base}/v1/models     -> { models: [...] }（TypeSafe のみ）
+// OpenRouter は base = https://openrouter.ai/api で同じ /v1/systemone を提供（jev-latest → typesafe/jev-latest）
+const TYPESAFE_BASE = (process.env.TYPESAFE_BASE_URL || "https://api.typesafe.ai").replace(/\/+$/, "");
+const OPENROUTER_BASE = "https://openrouter.ai/api";
 const DEFAULT_MODEL = process.env.TYPESAFE_DEFAULT_MODEL || "jev-latest";
+const OPENROUTER_MODELS = ["jev-latest", "jev-1.13"];
 const TIMEOUT_MS = 20000;
 
-// サーバー側の TYPESAFE_API_KEY を優先し、未設定なら画面で入力されたキー（x-jev-key）を使う
-function resolveKey(req: NextRequest): string | null {
-  return process.env.TYPESAFE_API_KEY || req.headers.get("x-jev-key") || null;
+type Provider = "typesafe" | "openrouter";
+interface Target {
+  key: string;
+  base: string;
+  provider: Provider;
+  source: "server" | "browser";
 }
 
-async function forward(path: string, key: string, init: RequestInit) {
+// 優先順: サーバーの TYPESAFE_API_KEY → サーバーの OPENROUTER_API_KEY → 画面で入力されたキー（x-jev-key）
+// 画面入力キーは sk-or- で始まれば OpenRouter として扱う
+function resolveTarget(req: NextRequest): Target | null {
+  if (process.env.TYPESAFE_API_KEY)
+    return { key: process.env.TYPESAFE_API_KEY, base: TYPESAFE_BASE, provider: "typesafe", source: "server" };
+  if (process.env.OPENROUTER_API_KEY)
+    return { key: process.env.OPENROUTER_API_KEY, base: OPENROUTER_BASE, provider: "openrouter", source: "server" };
+  const key = req.headers.get("x-jev-key")?.trim();
+  if (!key) return null;
+  return key.startsWith("sk-or-")
+    ? { key, base: OPENROUTER_BASE, provider: "openrouter", source: "browser" }
+    : { key, base: TYPESAFE_BASE, provider: "typesafe", source: "browser" };
+}
+
+async function forward(t: Target, path: string, init: RequestInit) {
   const started = Date.now();
-  const res = await fetch(`${BASE_URL}${path}`, {
+  const res = await fetch(`${t.base}${path}`, {
     ...init,
     headers: {
-      Authorization: `Bearer ${key}`,
+      Authorization: `Bearer ${t.key}`,
       "Content-Type": "application/json",
       Accept: "application/json",
     },
@@ -35,6 +55,7 @@ async function forward(path: string, key: string, init: RequestInit) {
       ok: res.ok,
       status: res.status,
       latency_ms: Date.now() - started,
+      provider: t.provider,
       request_id: res.headers.get("x-typesafe-request-id"),
       body,
     },
@@ -49,24 +70,30 @@ function errorResponse(e: unknown) {
 
 // 利用可能なモデル一覧 & サーバー側キーの有無
 export async function GET(req: NextRequest) {
-  const key = resolveKey(req);
-  if (!key) {
-    return NextResponse.json({ ok: false, server_key: false, default_model: DEFAULT_MODEL, body: null });
-  }
+  const t = resolveTarget(req);
+  const meta = {
+    server_key: t?.source === "server",
+    provider: t?.provider ?? null,
+    default_model: DEFAULT_MODEL,
+  };
+  if (!t) return NextResponse.json({ ok: false, ...meta, body: null });
+  // OpenRouter の /v1/models は全モデル一覧なので使わず、Jev の既知モデルを返す
+  if (t.provider === "openrouter")
+    return NextResponse.json({ ok: true, ...meta, body: { models: OPENROUTER_MODELS.map((name) => ({ name })) } });
   try {
-    const res = await forward("/v1/models", key, { method: "GET" });
+    const res = await forward(t, "/v1/models", { method: "GET" });
     const data = await res.json();
-    return NextResponse.json({ ...data, server_key: !!process.env.TYPESAFE_API_KEY, default_model: DEFAULT_MODEL });
+    return NextResponse.json({ ...data, ...meta });
   } catch (e) {
     return errorResponse(e);
   }
 }
 
 export async function POST(req: NextRequest) {
-  const key = resolveKey(req);
-  if (!key) {
+  const t = resolveTarget(req);
+  if (!t) {
     return NextResponse.json(
-      { ok: false, status: 401, body: { error: "APIキーが未設定です（TYPESAFE_API_KEY または画面で入力）" } },
+      { ok: false, status: 401, body: { error: "APIキーが未設定です（OPENROUTER_API_KEY / TYPESAFE_API_KEY または画面で入力）" } },
       { status: 401 }
     );
   }
@@ -80,7 +107,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ ok: false, status: 400, body: { error: "質問を1つ以上追加してください" } }, { status: 400 });
   }
   try {
-    return await forward("/v1/systemone", key, {
+    return await forward(t, "/v1/systemone", {
       method: "POST",
       body: JSON.stringify({
         model: payload.model || DEFAULT_MODEL,

@@ -181,13 +181,14 @@ TypeSafe AI の判断モデル **Jev** をブラウザで試せる画面です�
 - 同じリクエストを再現する curl コマンドを表示
 - APIキー未設定時はデモモード（ダミー値）で操作だけ確認可能
 
-APIキーは [console.typesafe.ai](https://console.typesafe.ai/settings/keys) で発行し、次のどちらかで設定します。
+キーは次の優先順で使われます（OpenRouter経由でもJevを実行可能）。
 
-| 方法 | 設定 |
-|---|---|
-| サーバー側（推奨） | Vercel の環境変数 `TYPESAFE_API_KEY` |
-| 画面入力 | `/jev` のキー欄（そのブラウザの localStorage にのみ保存） |
+| 優先 | 設定 | 接続先 |
+|---|---|---|
+| 1 | 環境変数 `TYPESAFE_API_KEY` | api.typesafe.ai |
+| 2 | 環境変数 `OPENROUTER_API_KEY`（既存の監視用と共通） | openrouter.ai/api（`jev-latest` → `typesafe/jev-latest`） |
+| 3 | `/jev` のキー欄に入力（`sk-or-` で始まればOpenRouter扱い、localStorageにのみ保存） | 上記いずれか |
 
 任意: `TYPESAFE_DEFAULT_MODEL`（既定 `jev-latest`）、`TYPESAFE_BASE_URL`（既定 `https://api.typesafe.ai`）。
 
-> 注意: サーバー側にキーを設定すると、URLを知っている人は誰でもそのキーで実行できます。公開デプロイでは画面入力方式にしてください。
+> 注意: サーバー側のキーは、URLを知っている人なら誰でも `/jev` 経由で使えます（Jevは入力 $0.042/100万トークン程度と安価ですが、公開デプロイでは留意）。
