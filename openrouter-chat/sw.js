@@ -1,5 +1,5 @@
 /* OpenRouter Chat – minimal offline shell service worker */
-const CACHE = "or-chat-v1";
+const CACHE = "or-chat-v2";
 const ASSETS = ["./", "./index.html", "./manifest.webmanifest", "./icon.svg"];
 
 self.addEventListener("install", (e) => {
@@ -16,14 +16,12 @@ self.addEventListener("fetch", (e) => {
   const url = new URL(req.url);
   // Never cache API calls (OpenRouter) – always go to network
   if (url.hostname.endsWith("openrouter.ai")) return;
-  // Cache-first for the app shell / same-origin assets, network fallback
+  if (url.origin !== location.origin) return;
+  // Network-first：更新を確実に反映し、オフライン時だけキャッシュを使う
   e.respondWith(
-    caches.match(req).then((hit) => hit || fetch(req).then((res) => {
-      if (url.origin === location.origin && res.ok) {
-        const copy = res.clone();
-        caches.open(CACHE).then((c) => c.put(req, copy));
-      }
+    fetch(req).then((res) => {
+      if (res.ok) { const copy = res.clone(); caches.open(CACHE).then((c) => c.put(req, copy)); }
       return res;
-    }).catch(() => hit))
+    }).catch(() => caches.match(req).then((hit) => hit || caches.match("./index.html")))
   );
 });
