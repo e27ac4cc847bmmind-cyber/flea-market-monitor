@@ -485,6 +485,7 @@
       </div>
 
       <input id="model-search" type="text" placeholder="モデルを検索（gpt, claude, gemini…）" class="field" style="margin-top:11px" />
+      <p id="models-new-note" class="hint hidden truncate" style="margin-top:8px;color:var(--accent)"></p>
       <div id="pk-filters" class="flex flex-wrap items-center gap-1.5" style="margin-top:9px">
         <label class="chip-toggle"><input id="filter-top" type="checkbox" class="sr-only"><span class="chip-pill">⭐ 人気</span></label>
         <label class="chip-toggle"><input id="filter-free" type="checkbox" class="sr-only"><span class="chip-pill">🆓 無料</span></label>
@@ -494,6 +495,7 @@
             <option value="default">⇅ おすすめ順</option>
             <option value="price-asc">⇅ 安い順</option>
             <option value="price-desc">⇅ 高い順</option>
+            <option value="newest">⇅ 新着順</option>
             <option value="name">⇅ 名前順</option>
           </select>
           <svg class="chev" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
@@ -560,6 +562,7 @@
     <div class="flex items-center justify-between gap-2" style="padding:9px 12px;border-top:1px solid var(--border)">
       <p id="model-info" class="hint truncate"></p>
       <div class="shrink-0 flex items-center gap-3">
+        <span id="models-stamp" class="hint" title="モデル一覧の最終取得（6時間ごとに自動更新）"></span>
         <button id="refresh-models" class="text-[12px] font-medium inline-flex items-center gap-1" style="color:var(--accent)">
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-2.6-6.4M21 3v6h-6"/></svg>再取得
         </button>
@@ -740,7 +743,7 @@ const LS = {
   system:"or_chat_system", history:"or_chat_history", costs:"or_chat_costs", filters:"or_chat_filters",
   convos:"or_chat_convos", cur:"or_chat_cur", cmpmode:"or_chat_cmpmode", cmpmodels:"or_chat_cmpmodels", judge:"or_chat_judge",
   theme:"or_chat_theme", temperature:"or_chat_temperature", maxTokens:"or_chat_max_tokens",
-  mode:"or_chat_mode", smart:"or_chat_smart",
+  mode:"or_chat_mode", smart:"or_chat_smart", modelsAt:"or_chat_models_at", seenIds:"or_chat_seen_model_ids",
 };
 const API_BASE = "https://openrouter.ai/api/v1";
 const APP_TITLE = "OpenRouter Chat UI";
@@ -760,17 +763,31 @@ const ROLE_META = { draft:{n:"①",jp:"下書き",hint:"安いモデル"}, verif
 const isRoleMode = (m) => m==="draft" || m==="verify" || m==="escalate";
 /* カワハギ（フグの仲間）アイコン：立った背びれのトゲ＋扁平な体 */
 const kawahagiSvg = (px) => `<svg width="${px}" height="${px}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" style="flex:0 0 auto"><path d="M8.8 5.4 L8 2.6"/><path d="M3.2 12 C3.8 8.4 7.4 5.4 12 5.4 C16 5.4 18.4 8.4 18.4 12 C18.4 15.6 16 18.6 12 18.6 C7.4 18.6 3.8 15.6 3.2 12 Z"/><path d="M18.4 12 L22 8.8 L22 15.2 Z"/><circle cx="6.6" cy="10.9" r="0.85" fill="currentColor" stroke="none"/></svg>`;
-/* 「人気/主要モデル」フィルタ用：主要フラッグシップの id パターン（OpenRouter APIに人気順は無いため厳選・2026-10時点）
-   部分一致なので "anthropic/claude-opus-5" は opus-5 / opus-5.5 の両方に当たる */
-const POPULAR_PATTERNS = [
-  "openai/gpt-6","openai/gpt-5.5",
-  "anthropic/claude-fable","anthropic/claude-opus-5","anthropic/claude-sonnet-5","anthropic/claude-haiku-5",
-  "google/gemini-4","google/gemini-3.8",
-  "x-ai/grok-5","x-ai/grok-4.7",
-  "deepseek/deepseek-v4","moonshotai/kimi-k3","qwen/qwen3.8","z-ai/glm-5",
-  "mistralai/mistral-large","meta-llama/llama-4",
-];
-const isTop = (m) => POPULAR_PATTERNS.some((p) => m.id.includes(p));
+/* 「人気/主要モデル」は OpenRouter から取得した一覧から自動判定する（手書きリストの更新は不要）
+   主要プロバイダごとに、有料・バリアント(:free 等)以外で「公開日が新しい順に上位 TOP_PER_PROVIDER 件」を主要モデルとする */
+const MAJOR_PROVIDERS = ["openai","anthropic","google","x-ai","deepseek","moonshotai","qwen","z-ai","mistralai","meta-llama"];
+const TOP_PER_PROVIDER = 3;
+const TOP_MAX_AGE_DAYS = 365;
+const NEW_DAYS = 30;                     // 公開からこの日数以内は 🆕
+const MODELS_TTL_MS = 6 * 3600 * 1000;   // モデル一覧の自動再取得間隔
+let TOP_IDS = new Set();
+function computeTopIds() {
+  const by = {};
+  MODELS.forEach((m, i) => {
+    const prov = m.id.split("/")[0];
+    if (!MAJOR_PROVIDERS.includes(prov) || m.free || m.id.includes(":")) return;
+    if (m.created && Date.now()/1000 - m.created > TOP_MAX_AGE_DAYS*86400) return;   // 1年以上前のモデルは除外
+    (by[prov] = by[prov] || []).push({ m, i });
+  });
+  TOP_IDS = new Set();
+  for (const prov in by) {
+    // created が無い場合は API の並び順（新しい順）で代用
+    by[prov].sort((a,b) => ((b.m.created||0)-(a.m.created||0)) || (a.i-b.i));
+    by[prov].slice(0, TOP_PER_PROVIDER).forEach(({ m }) => TOP_IDS.add(m.id));
+  }
+}
+const isTop = (m) => TOP_IDS.has(m.id);
+const isNew = (m) => !!m.created && (Date.now()/1000 - m.created) < NEW_DAYS*86400;
 /* 1Mトークンあたりの価格を読みやすく整形 */
 const fmtPM = (v) => { const x = (v||0)*1e6; if (x===0) return "0"; if (x<0.1) return x.toFixed(3); if (x<10) return x.toFixed(2); return x.toFixed(1); };
 
@@ -890,21 +907,56 @@ function normalizeModels(raw) {
     const modalities = (m.architecture && m.architecture.input_modalities) || [];
     const pp = isNaN(prompt)?0:prompt, pc = isNaN(completion)?0:completion;
     return { id:m.id, name:m.name||m.id, pricePrompt:pp, priceCompletion:pc,
-      vision: modalities.includes("image"), free: pp===0 && pc===0 };
+      vision: modalities.includes("image"), free: pp===0 && pc===0,
+      created: m.created || 0, ctx: m.context_length || 0 };
   });
 }
+let modelsLoading = false;
 async function loadModels(forceRefresh) {
+  if (!API_KEY) return;   // ロック中は何もしない
   const cached = localStorage.getItem(LS.models);
-  if (cached && !forceRefresh) { try { MODELS=JSON.parse(cached); renderModelList(); populateJudgeSelect(); } catch {} }
+  if (cached && !MODELS.length) { try { MODELS=JSON.parse(cached); computeTopIds(); renderModelList(); populateJudgeSelect(); } catch {} }
+  const at = parseInt(localStorage.getItem(LS.modelsAt)||"0",10);
+  // 古い形式のキャッシュ（created 無し）は新着判定できないので取り直す
+  const stale = !MODELS.length || !("created" in MODELS[0]) || Date.now()-at >= MODELS_TTL_MS;
+  if (!forceRefresh && !stale) { updateModelsStamp(); return; }
+  if (modelsLoading) return;
+  modelsLoading = true;
   try {
     const res = await fetch(`${API_BASE}/models`, { headers:{ Authorization:`Bearer ${API_KEY}` } });
     if (!res.ok) throw new Error("HTTP "+res.status);
     const data = await res.json();
     MODELS = normalizeModels(data.data || []);
+    computeTopIds();
     localStorage.setItem(LS.models, JSON.stringify(MODELS));
-    renderModelList(); populateJudgeSelect();
+    localStorage.setItem(LS.modelsAt, String(Date.now()));
+    notifyNewModels();
+    renderModelList(); populateJudgeSelect(); updateModelsStamp();
   } catch (e) { if (!MODELS.length) $("model-info").textContent = "モデル一覧の取得に失敗: " + e.message; }
+  finally { modelsLoading = false; }
 }
+/* 前回取得時に無かったモデルを数えて知らせる（初回は記録のみ） */
+function notifyNewModels() {
+  let seen = null;
+  try { seen = JSON.parse(localStorage.getItem(LS.seenIds)); } catch {}
+  localStorage.setItem(LS.seenIds, JSON.stringify(MODELS.map((m)=>m.id)));
+  if (!Array.isArray(seen)) return;
+  const old = new Set(seen);
+  const added = MODELS.filter((m)=>!old.has(m.id));
+  const el = $("models-new-note");
+  if (!el || !added.length) return;
+  el.textContent = `🆕 新しいモデル ${added.length}件: ` + added.slice(0,3).map((m)=>m.name).join(" / ") + (added.length>3?" ほか":"");
+  el.classList.remove("hidden");
+}
+function updateModelsStamp() {
+  const el = $("models-stamp"); if (!el) return;
+  const at = parseInt(localStorage.getItem(LS.modelsAt)||"0",10);
+  const d = at ? new Date(at) : null;
+  el.textContent = d ? `${MODELS.length}件・${d.getMonth()+1}/${d.getDate()} ${String(d.getHours()).padStart(2,"0")}:${String(d.getMinutes()).padStart(2,"0")}` : "";
+}
+/* 開いたままでも定期的に・画面復帰時に、古ければ自動で再取得 */
+setInterval(() => loadModels(false), 30 * 60 * 1000);
+document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible") loadModels(false); });
 function getFilters() {
   return { search:$("model-search").value.trim().toLowerCase(), free:$("filter-free").checked, vision:$("filter-vision").checked, top:$("filter-top").checked,
     sort: $("model-sort") ? $("model-sort").value : "default" };
@@ -916,6 +968,7 @@ function sortModels(list, mode) {
   if (mode === "price-asc") arr.sort((a,b)=>modelCost(a)-modelCost(b));
   else if (mode === "price-desc") arr.sort((a,b)=>modelCost(b)-modelCost(a));
   else if (mode === "name") arr.sort((a,b)=>a.name.localeCompare(b.name, "ja"));
+  else if (mode === "newest") arr.sort((a,b)=>(b.created||0)-(a.created||0));
   return arr;
 }
 function filteredModels() {
@@ -945,7 +998,7 @@ function renderModelList() {
     const row = document.createElement("button");
     const on = roleMode ? (m.id===smartCfg[menuMode]) : judgeMode ? (m.id===judgeModelId) : (compareMode ? compareModels.includes(m.id) : (m.id===selectedModelId));
     row.className = "model-row" + (on ? " active" : "");
-    const badges = (isTop(m)?"⭐":"") + (m.free?"🆓":"") + (m.vision?"🖼":"");
+    const badges = (isNew(m)?"🆕":"") + (isTop(m)?"⭐":"") + (m.free?"🆓":"") + (m.vision?"🖼":"");
     const checkLeft = (compareMode && !singleSelect) ? `<span class="row-check">${CHECK_SVG}</span>` : "";
     const checkRight = ((!compareMode || singleSelect) && on) ? `<span class="shrink-0" style="color:var(--accent);align-self:center">${CHECK_SVG}</span>` : "";
     const price = m.free ? '<span style="color:#16a34a">無料</span>' : `入 $${fmtPM(m.pricePrompt)} / 出 $${fmtPM(m.priceCompletion)} <span style="opacity:.7">/1M</span>`;
